@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hearth - Your Pulse</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/design-system.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/app.css">
+    <link rel="stylesheet" href="styles/dark-mode.css">
+</head>
+
+<body>
+
+    <!-- Top Navigation -->
+    <nav class="navbar">
+        <div class="nav-left">
+            <h1 class="nav-logo">🌿 Hearth</h1>
+        </div>
+        <div class="nav-right">
+            <button class="btn-icon" id="sunset-toggle" title="Toggle Sunset Timer">
+                🌙
+            </button>
+            <button class="btn-icon" id="settings-btn" title="Settings">
+                ⚙️
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="app-main content-padding">
+        <div class="container-narrow">
+
+            <!-- Page Title -->
+            <div class="page-header">
+                <h2 class="page-title">The Pulse</h2>
+                <button class="btn btn-primary" id="new-pulse-btn">
+                    + New Pulse
+                </button>
+            </div>
+
+            <!-- Pulse Feed -->
+            <div class="pulse-feed" id="pulse-feed">
+                <!-- Pulses will be dynamically loaded here -->
+
+                <!-- Sample Pulse Items (will be replaced with real data) -->
+                <div class="pulse-item card">
+                    <div class="pulse-header">
+                        <div class="pulse-author">
+                            <div class="avatar">👤</div>
+                            <div class="author-info">
+                                <div class="author-name">Demo User</div>
+                                <div class="pulse-time">2 hours ago</div>
+                            </div>
+                        </div>
+                        <span class="badge">All Kin</span>
+                    </div>
+
+                    <div class="pulse-content">
+                        <p>Just finished setting up my Hearth space! This feels so much calmer than other social
+                            platforms. 🌿</p>
+                    </div>
+
+                    <div class="pulse-actions">
+                        <button class="pulse-action-btn">
+                            <span class="action-icon">✓</span>
+                            <span class="action-label">Acknowledge</span>
+                        </button>
+                        <button class="pulse-action-btn">
+                            <span class="action-icon">💬</span>
+                            <span class="action-label">Respond</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- "You're all caught up" Message -->
+                <div class="caught-up-message" id="caught-up">
+                    <div class="caught-up-icon">☕</div>
+                    <h3 class="caught-up-title">You're all caught up</h3>
+                    <p class="caught-up-text">No more updates. Go enjoy your day! 🌿</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="nav-tabs">
+        <a href="app.html" class="nav-tab active">
+            <span class="tab-icon">💭</span>
+            <span class="tab-label">Pulse</span>
+        </a>
+        <a href="parlor.html" class="nav-tab">
+            <span class="tab-icon">💬</span>
+            <span class="tab-label">Parlor</span>
+        </a>
+        <a href="notice-board.html" class="nav-tab">
+            <span class="tab-icon">📅</span>
+            <span class="tab-label">Events</span>
+        </a>
+        <a href="profile.html" class="nav-tab">
+            <span class="tab-icon">👤</span>
+            <span class="tab-label">Profile</span>
+        </a>
+    </nav>
+
+    <!-- New Pulse Modal -->
+    <div class="modal-overlay" id="new-pulse-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Share Your Pulse</h3>
+                <button class="btn-icon" id="close-pulse-modal">✕</button>
+            </div>
+
+            <form id="new-pulse-form">
+                <div class="form-group">
+                    <label for="pulse-content">What's on your mind?</label>
+                    <textarea id="pulse-content" name="pulse-content" class="input"
+                        placeholder="Share an update with your Kin..." rows="6" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="pulse-visibility">Who can see this?</label>
+                    <select id="pulse-visibility" name="pulse-visibility" class="input">
+                        <option value="all-kin">All Kin</option>
+                        <option value="inner-circle">Inner Circle</option>
+                        <option value="private">Private (just me)</option>
+                    </select>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn" id="cancel-pulse-btn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Share Pulse</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Settings</h3>
+                <button class="btn-icon" id="close-settings-modal">✕</button>
+            </div>
+
+            <div class="settings-content">
+                <div class="setting-item">
+                    <div>
+                        <h4>Sunset Timer</h4>
+                        <p class="text-muted">Dim the app in the evening to encourage rest</p>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="sunset-timer-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <button class="btn" onclick="window.location.href='profile.html'">
+                        View Full Settings
+                    </button>
+                </div>
+
+                <div class="setting-item">
+                    <button class="btn" id="logout-btn">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/pulse.js"></script>
+</body>
+
+</html>

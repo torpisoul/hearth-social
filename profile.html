@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Hearth</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="styles/design-system.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/app.css">
+    <link rel="stylesheet" href="styles/profile.css">
+    <link rel="stylesheet" href="styles/dark-mode.css">
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="nav-left">
+            <h1 class="nav-logo">🌿 Hearth</h1>
+        </div>
+    </nav>
+
+    <main class="app-main content-padding">
+        <div class="container-narrow">
+
+            <!-- Profile Header -->
+            <div class="profile-header card mb-lg">
+                <div class="profile-avatar-large" id="profile-avatar">😊</div>
+                <h2 class="profile-name" id="profile-name">Loading...</h2>
+                <div class="hearth-key-display">
+                    <div class="hearth-key-label">Your Hearth Key</div>
+                    <div class="hearth-key-value" id="profile-hearth-key">HEARTH-XXXX-XXXX-XXXX</div>
+                    <button class="btn btn-small" id="copy-hearth-key">Copy Key</button>
+                    <button class="btn btn-small" id="share-hearth-key">Share via QR</button>
+                </div>
+            </div>
+
+            <!-- Privacy Control Panel -->
+            <div class="profile-section mb-lg">
+                <h3 class="section-title">Privacy & Visibility</h3>
+
+                <div class="privacy-controls">
+                    <div class="privacy-item card">
+                        <div class="privacy-header">
+                            <div>
+                                <h4 class="privacy-title">Allow Contacts to Find Me</h4>
+                                <p class="privacy-description text-muted">Let people from your phone contacts discover
+                                    you by Hearth Key</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="setting-discoverable">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="privacy-item card">
+                        <div class="privacy-header">
+                            <div>
+                                <h4 class="privacy-title">Show Read Receipts</h4>
+                                <p class="privacy-description text-muted">Let Kin know when you've read their messages
+                                    in Parlor</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="setting-read-receipts">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="privacy-item card">
+                        <div class="privacy-header">
+                            <div>
+                                <h4 class="privacy-title">Cloud Backup</h4>
+                                <p class="privacy-description text-muted">Sync your data to encrypted cloud for backup
+                                </p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="setting-cloud-backup">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Life Updates -->
+            <div class="profile-section mb-lg">
+                <h3 class="section-title">Life Updates</h3>
+                <p class="text-muted mb-md">Share what's happening in your life. Choose who can see each update.</p>
+
+                <div class="life-updates">
+                    <div class="life-update-item card">
+                        <div class="life-update-header">
+                            <span class="life-update-icon">💼</span>
+                            <div class="life-update-info">
+                                <h4>Job / Work Status</h4>
+                                <input type="text" id="job-value" class="input"
+                                    placeholder="e.g., Software Engineer at Tech Co">
+                            </div>
+                        </div>
+                        <div class="life-update-footer">
+                            <label class="text-muted" style="font-size: var(--font-size-sm);">Visible to:</label>
+                            <select id="job-visibility" class="input" style="width: auto; min-width: 150px;">
+                                <option value="private">Private</option>
+                                <option value="inner-circle">Inner Circle</option>
+                                <option value="all-kin">All Kin</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="life-update-item card">
+                        <div class="life-update-header">
+                            <span class="life-update-icon">📍</span>
+                            <div class="life-update-info">
+                                <h4>Location</h4>
+                                <input type="text" id="location-value" class="input" placeholder="e.g., Seattle, WA">
+                            </div>
+                        </div>
+                        <div class="life-update-footer">
+                            <label class="text-muted" style="font-size: var(--font-size-sm);">Visible to:</label>
+                            <select id="location-visibility" class="input" style="width: auto; min-width: 150px;">
+                                <option value="private">Private</option>
+                                <option value="inner-circle">Inner Circle</option>
+                                <option value="all-kin">All Kin</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="life-update-item card">
+                        <div class="life-update-header">
+                            <span class="life-update-icon">💝</span>
+                            <div class="life-update-info">
+                                <h4>Relationship Status</h4>
+                                <select id="relationship-value" class="input">
+                                    <option value="">Prefer not to say</option>
+                                    <option value="single">Single</option>
+                                    <option value="relationship">In a Relationship</option>
+                                    <option value="married">Married</option>
+                                    <option value="complicated">It's Complicated</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="life-update-footer">
+                            <label class="text-muted" style="font-size: var(--font-size-sm);">Visible to:</label>
+                            <select id="relationship-visibility" class="input" style="width: auto; min-width: 150px;">
+                                <option value="private">Private</option>
+                                <option value="inner-circle">Inner Circle</option>
+                                <option value="all-kin">All Kin</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="save-life-updates">Save Life Updates</button>
+            </div>
+
+            <!-- My Kin -->
+            <div class="profile-section mb-lg">
+                <div class="section-header">
+                    <h3 class="section-title">My Kin</h3>
+                    <button class="btn" id="add-kin-btn">+ Add Kin</button>
+                </div>
+
+                <div class="kin-list" id="kin-list">
+                    <!-- Kin will be loaded here -->
+                    <div class="kin-card card">
+                        <div class="kin-header">
+                            <div class="avatar">🌻</div>
+                            <div class="kin-info-section">
+                                <h4 class="kin-name">Jamie</h4>
+                                <span class="badge badge-primary">Inner Circle</span>
+                            </div>
+                        </div>
+                        <div class="kin-actions">
+                            <button class="btn btn-small">Message</button>
+                            <button class="btn btn-small">Remove</button>
+                        </div>
+                    </div>
+
+                    <div class="kin-card card">
+                        <div class="kin-header">
+                            <div class="avatar">🍃</div>
+                            <div class="kin-info-section">
+                                <h4 class="kin-name">Alex</h4>
+                                <span class="badge">Kin</span>
+                            </div>
+                        </div>
+                        <div class="kin-actions">
+                            <button class="btn btn-small">Message</button>
+                            <button class="btn btn-small">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Settings -->
+            <div class="profile-section mb-lg">
+                <h3 class="section-title">Additional Settings</h3>
+
+                <div class="settings-list">
+                    <div class="setting-card card">
+                        <div>
+                            <h4>Sunset Timer</h4>
+                            <p class="text-muted">Dim the app in the evening (8 PM - 6 AM)</p>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="setting-sunset-timer">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-card card">
+                        <div>
+                            <h4>Dark Mode</h4>
+                            <p class="text-muted">Use dark color theme</p>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="setting-dark-mode">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logout -->
+            <div class="profile-section">
+                <button class="btn" id="logout-btn-profile" style="width: 100%;">Logout</button>
+            </div>
+
+        </div>
+    </main>
+
+    <nav class="nav-tabs">
+        <a href="app.html" class="nav-tab">
+            <span class="tab-icon">💭</span>
+            <span class="tab-label">Pulse</span>
+        </a>
+        <a href="parlor.html" class="nav-tab">
+            <span class="tab-icon">💬</span>
+            <span class="tab-label">Parlor</span>
+        </a>
+        <a href="notice-board.html" class="nav-tab">
+            <span class="tab-icon">📅</span>
+            <span class="tab-label">Events</span>
+        </a>
+        <a href="profile.html" class="nav-tab active">
+            <span class="tab-icon">👤</span>
+            <span class="tab-label">Profile</span>
+        </a>
+    </nav>
+
+    <!-- QR Code Modal -->
+    <div class="modal-overlay" id="qr-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Share Your Hearth Key</h3>
+                <button class="btn-icon" id="close-qr-modal">✕</button>
+            </div>
+
+            <div class="qr-content">
+                <div class="qr-code-placeholder" id="qr-code">
+                    <!-- In real app, would generate actual QR code -->
+                    <div class="qr-mock">
+                        <div style="font-size: 4rem;">📱</div>
+                        <p class="text-muted">QR Code would appear here</p>
+                    </div>
+                </div>
+                <p class="text-center text-muted mt-md">
+                    Let your friends scan this QR code to add you as Kin
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Kin Modal -->
+    <div class="modal-overlay" id="add-kin-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Kin</h3>
+                <button class="btn-icon" id="close-add-kin-modal">✕</button>
+            </div>
+
+            <form id="add-kin-form">
+                <div class="form-group">
+                    <label for="kin-hearth-key">Enter their Hearth Key</label>
+                    <input type="text" id="kin-hearth-key" class="input" placeholder="HEARTH-XXXX-XXXX-XXXX" required>
+                    <p class="input-hint text-muted">Ask your friend for their unique Hearth Key</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Relationship Tier</label>
+                    <select id="kin-tier" class="input">
+                        <option value="kin">Kin</option>
+                        <option value="inner-circle">Inner Circle</option>
+                    </select>
+                    <p class="input-hint text-muted">Inner Circle sees more of your life updates</p>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn" id="cancel-add-kin">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Send Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/profile.js"></script>
+</body>
+
+</html>

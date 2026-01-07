@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notice Board - Hearth</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="styles/design-system.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/app.css">
+    <link rel="stylesheet" href="styles/notice-board.css">
+    <link rel="stylesheet" href="styles/dark-mode.css">
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="nav-left">
+            <h1 class="nav-logo">🌿 Hearth</h1>
+        </div>
+    </nav>
+
+    <main class="app-main content-padding">
+        <div class="container-narrow">
+
+            <div class="page-header">
+                <h2 class="page-title">The Notice Board</h2>
+                <button class="btn btn-primary" id="new-event-btn">+ New Event</button>
+            </div>
+
+            <!-- Events List -->
+            <div class="events-timeline" id="events-timeline">
+                <!-- Events will be loaded here -->
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="empty-events" style="display: none;">
+                <div class="empty-icon">📅</div>
+                <h3>No Upcoming Events</h3>
+                <p class="text-muted">Create an event or wait for invitations from your Kin.</p>
+            </div>
+
+        </div>
+    </main>
+
+    <nav class="nav-tabs">
+        <a href="app.html" class="nav-tab">
+            <span class="tab-icon">💭</span>
+            <span class="tab-label">Pulse</span>
+        </a>
+        <a href="parlor.html" class="nav-tab">
+            <span class="tab-icon">💬</span>
+            <span class="tab-label">Parlor</span>
+        </a>
+        <a href="notice-board.html" class="nav-tab active">
+            <span class="tab-icon">📅</span>
+            <span class="tab-label">Events</span>
+        </a>
+        <a href="profile.html" class="nav-tab">
+            <span class="tab-icon">👤</span>
+            <span class="tab-label">Profile</span>
+        </a>
+    </nav>
+
+    <!-- New Event Modal -->
+    <div class="modal-overlay" id="new-event-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Create Event</h3>
+                <button class="btn-icon" id="close-event-modal">✕</button>
+            </div>
+
+            <form id="new-event-form">
+                <div class="form-group">
+                    <label for="event-title">Event Title *</label>
+                    <input type="text" id="event-title" class="input" placeholder="e.g., Weekend Hike" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="event-description">Description</label>
+                    <textarea id="event-description" class="input" placeholder="Tell your Kin what this is about..."
+                        rows="4"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="event-date">Date & Time *</label>
+                    <input type="datetime-local" id="event-date" class="input" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="event-location">Location</label>
+                    <input type="text" id="event-location" class="input" placeholder="e.g., Central Park">
+                </div>
+
+                <div class="form-group">
+                    <label>Guest List Settings</label>
+                    <label class="setting-toggle card">
+                        <div>
+                            <h4>Make guest list visible</h4>
+                            <p class="text-muted">Allow invitees to see who else is invited</p>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="guest-list-visible">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>Invite Kin</label>
+                    <div class="kin-selector" id="event-kin-selector">
+                        <!-- Sample Kin -->
+                        <label class="kin-option card">
+                            <input type="checkbox" name="event-kin" value="demo-user-1">
+                            <div class="kin-info">
+                                <div class="avatar">🌻</div>
+                                <div>
+                                    <div class="kin-name">Jamie</div>
+                                    <div class="text-muted" style="font-size: var(--font-size-sm);">Inner Circle</div>
+                                </div>
+                            </div>
+                        </label>
+                        <label class="kin-option card">
+                            <input type="checkbox" name="event-kin" value="demo-user-2">
+                            <div class="kin-info">
+                                <div class="avatar">🍃</div>
+                                <div>
+                                    <div class="kin-name">Alex</div>
+                                    <div class="text-muted" style="font-size: var(--font-size-sm);">Kin</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn" id="cancel-event-btn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Event Details Modal -->
+    <div class="modal-overlay" id="event-details-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="event-details-title">Event Details</h3>
+                <button class="btn-icon" id="close-details-modal">✕</button>
+            </div>
+
+            <div class="event-details-content">
+                <div class="event-detail-section">
+                    <div class="detail-icon">📅</div>
+                    <div>
+                        <div class="detail-label">When</div>
+                        <div class="detail-value" id="details-date">Loading...</div>
+                    </div>
+                </div>
+
+                <div class="event-detail-section">
+                    <div class="detail-icon">📍</div>
+                    <div>
+                        <div class="detail-label">Where</div>
+                        <div class="detail-value" id="details-location">Loading...</div>
+                    </div>
+                </div>
+
+                <div class="event-detail-section">
+                    <div class="detail-icon">👤</div>
+                    <div>
+                        <div class="detail-label">Host</div>
+                        <div class="detail-value" id="details-host">Loading...</div>
+                    </div>
+                </div>
+
+                <div class="event-detail-section full-width">
+                    <div class="detail-label">Description</div>
+                    <p class="detail-description" id="details-description">Loading...</p>
+                </div>
+
+                <div class="event-detail-section full-width" id="details-guest-list-section">
+                    <div class="detail-label">Guest List</div>
+                    <div class="guest-list" id="details-guest-list">
+                        <!-- Guest list will be loaded here -->
+                    </div>
+                </div>
+
+                <div class="rsvp-section">
+                    <div class="detail-label mb-sm">Your RSVP</div>
+                    <div class="rsvp-buttons" id="rsvp-buttons">
+                        <button class="btn" data-rsvp="yes">✓ Yes</button>
+                        <button class="btn" data-rsvp="maybe">? Maybe</button>
+                        <button class="btn" data-rsvp="no">✕ No</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/notice-board.js"></script>
+</body>
+
+</html>

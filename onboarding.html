@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curate Your Space - Hearth</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/design-system.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/onboarding.css">
+</head>
+
+<body>
+
+    <div class="onboarding-container">
+        <!-- Progress Indicator -->
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+
+        <!-- Step 1: Welcome -->
+        <div class="onboarding-step active" id="step-1">
+            <div class="step-content">
+                <h1 class="step-title">Welcome to Hearth 🌿</h1>
+                <p class="step-description">
+                    Let's take a moment to curate your space. Unlike other platforms, we start with everything
+                    <strong>private</strong>. You choose what to share, who to trust, and how to connect.
+                </p>
+                <p class="step-note text-muted">
+                    This will only take a minute, and you can change these settings anytime.
+                </p>
+                <div class="step-actions">
+                    <button class="btn btn-primary btn-large" onclick="nextStep(2)">
+                        Let's Begin
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Create Account -->
+        <div class="onboarding-step" id="step-2">
+            <div class="step-content">
+                <h2 class="step-title">Create Your Account</h2>
+                <p class="step-description">
+                    We need just a few details to get started. Your email is only used for account access, never sold or
+                    shared.
+                </p>
+
+                <form class="onboarding-form" id="signup-form">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" class="input" placeholder="you@example.com"
+                            required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" class="input"
+                            placeholder="Create a secure password" required>
+                        <p class="input-hint text-muted">At least 8 characters</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm-password">Confirm Password</label>
+                        <input type="password" id="confirm-password" name="confirm-password" class="input"
+                            placeholder="Type your password again" required>
+                    </div>
+
+                    <div class="step-actions">
+                        <button type="button" class="btn" onclick="prevStep(1)">Back</button>
+                        <button type="submit" class="btn btn-primary">Continue</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Step 3: Choose Display Name -->
+        <div class="onboarding-step" id="step-3">
+            <div class="step-content">
+                <h2 class="step-title">How Should We Address You?</h2>
+                <p class="step-description">
+                    Choose a display name for your Hearth profile. This is how your Kin will see you.
+                </p>
+
+                <form class="onboarding-form" id="name-form">
+                    <div class="form-group">
+                        <label for="display-name">Display Name</label>
+                        <input type="text" id="display-name" name="display-name" class="input" placeholder="Your Name"
+                            required>
+                        <p class="input-hint text-muted">You can change this later</p>
+                    </div>
+
+                    <div class="step-actions">
+                        <button type="button" class="btn" onclick="prevStep(2)">Back</button>
+                        <button type="submit" class="btn btn-primary">Continue</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Step 4: Privacy Control Panel -->
+        <div class="onboarding-step" id="step-4">
+            <div class="step-content">
+                <h2 class="step-title">Your Privacy, Your Choice</h2>
+                <p class="step-description">
+                    Everything starts <strong>private</strong>. Toggle only what you're comfortable sharing. You can
+                    always change these later.
+                </p>
+
+                <div class="privacy-controls">
+                    <div class="privacy-item card">
+                        <div class="privacy-header">
+                            <div>
+                                <h4 class="privacy-title">Allow Contacts to Find Me</h4>
+                                <p class="privacy-description text-muted">Let people from your phone contacts discover
+                                    you by Hearth Key</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="discoverable" name="discoverable">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="privacy-item card">
+                        <div class="privacy-header">
+                            <div>
+                                <h4 class="privacy-title">Show Read Receipts</h4>
+                                <p class="privacy-description text-muted">Let Kin know when you've read their messages
+                                </p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="read-receipts" name="read-receipts">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="privacy-section">
+                        <h3 class="privacy-section-title">Life Updates Visibility</h3>
+                        <p class="text-muted mb-md">Choose who can see your personal information</p>
+
+                        <div class="privacy-item card">
+                            <div class="privacy-header">
+                                <div>
+                                    <h4 class="privacy-title">Job / Work Status</h4>
+                                </div>
+                                <select class="input" id="job-visibility" name="job-visibility"
+                                    style="width: auto; min-width: 150px;">
+                                    <option value="private">Private</option>
+                                    <option value="inner-circle">Inner Circle</option>
+                                    <option value="all-kin">All Kin</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="privacy-item card">
+                            <div class="privacy-header">
+                                <div>
+                                    <h4 class="privacy-title">Location</h4>
+                                </div>
+                                <select class="input" id="location-visibility" name="location-visibility"
+                                    style="width: auto; min-width: 150px;">
+                                    <option value="private">Private</option>
+                                    <option value="inner-circle">Inner Circle</option>
+                                    <option value="all-kin">All Kin</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="privacy-item card">
+                            <div class="privacy-header">
+                                <div>
+                                    <h4 class="privacy-title">Relationship Status</h4>
+                                </div>
+                                <select class="input" id="relationship-visibility" name="relationship-visibility"
+                                    style="width: auto; min-width: 150px;">
+                                    <option value="private">Private</option>
+                                    <option value="inner-circle">Inner Circle</option>
+                                    <option value="all-kin">All Kin</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="privacy-item card">
+                        <div class="privacy-header">
+                            <div>
+                                <h4 class="privacy-title">Cloud Backup</h4>
+                                <p class="privacy-description text-muted">Sync your data to encrypted cloud for backup
+                                </p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="cloud-backup" name="cloud-backup">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-actions">
+                    <button type="button" class="btn" onclick="prevStep(3)">Back</button>
+                    <button type="button" class="btn btn-primary" onclick="nextStep(5)">Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 5: Hearth Key -->
+        <div class="onboarding-step" id="step-5">
+            <div class="step-content text-center">
+                <h2 class="step-title">Your Unique Hearth Key</h2>
+                <p class="step-description">
+                    This is your unique identifier. Share it with friends so they can find you. No global search means
+                    no strangers—only people you choose.
+                </p>
+
+                <div class="hearth-key-display card">
+                    <div class="key-icon">🔑</div>
+                    <div class="hearth-key" id="hearth-key">HEARTH-XXXX-XXXX-XXXX</div>
+                    <button class="btn btn-small mt-md" id="copy-key-btn">
+                        Copy Key
+                    </button>
+                </div>
+
+                <p class="step-note text-muted mt-lg">
+                    You can find this key anytime in your profile settings.
+                </p>
+
+                <div class="step-actions">
+                    <button type="button" class="btn" onclick="prevStep(4)">Back</button>
+                    <button type="button" class="btn btn-primary" onclick="completeOnboarding()">
+                        Enter the Hearth
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="js/onboarding.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,32 @@
+/* ============================================
+   DARK MODE SUPPORT
+   ============================================ */
+
+[data-theme="dark"] {
+    --warm-white: #2A2D34;
+    --oatmeal: #2A2D34;
+    --background: var(--deep-charcoal);
+    --surface: var(--midnight-moss);
+    --text-primary: #E5E1D8;
+    --text-secondary: #B8B4AA;
+    --sage-green: #7A8A72;
+    --accent-primary: #8B95A2;
+}
+
+[data-theme="dark"] body {
+    background: var(--deep-charcoal);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .card {
+    background: var(--midnight-moss);
+}
+
+[data-theme="dark"] .input {
+    background: var(--deep-charcoal);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn {
+    color: var(--text-primary);
+}

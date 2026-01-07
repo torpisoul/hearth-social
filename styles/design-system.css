@@ -1,0 +1,185 @@
+:root {
+  /* ============================================
+     LIGHT MODE - Warm & Grounded
+     ============================================ */
+  --oatmeal: #F5F1E8;
+  --sage-green: #A8B5A0;
+  --soft-slate: #8B95A2;
+  --warm-white: #FDFCFA;
+  --text-primary-light: #3B3630;
+  --text-secondary-light: #6B6560;
+  
+  /* Neumorphic shadows for light mode */
+  --shadow-light-outer: 8px 8px 16px rgba(139, 149, 162, 0.15),
+                        -8px -8px 16px rgba(255, 255, 255, 0.7);
+  --shadow-light-inner: inset 4px 4px 8px rgba(139, 149, 162, 0.1),
+                        inset -4px -4px 8px rgba(255, 255, 255, 0.5);
+  --shadow-light-pressed: inset 6px 6px 12px rgba(139, 149, 162, 0.2),
+                          inset -6px -6px 12px rgba(255, 255, 255, 0.3);
+  
+  /* ============================================
+     DARK MODE - Deep & Cozy
+     ============================================ */
+  --deep-charcoal: #2A2D34;
+  --midnight-moss: #3D4A42;
+  --warm-ebony: #3B3630;
+  --darker-charcoal: #1F2126;
+  --text-primary-dark: #E8E4DC;
+  --text-secondary-dark: #B0ACA4;
+  
+  /* Neumorphic shadows for dark mode */
+  --shadow-dark-outer: 8px 8px 16px rgba(0, 0, 0, 0.4),
+                       -8px -8px 16px rgba(70, 75, 85, 0.1);
+  --shadow-dark-inner: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
+                       inset -4px -4px 8px rgba(70, 75, 85, 0.05);
+  --shadow-dark-pressed: inset 6px 6px 12px rgba(0, 0, 0, 0.5),
+                         inset -6px -6px 12px rgba(70, 75, 85, 0.03);
+  
+  /* ============================================
+     SEMANTIC COLORS
+     ============================================ */
+  --accent-primary: var(--sage-green);
+  --accent-secondary: var(--midnight-moss);
+  --background: var(--oatmeal);
+  --surface: var(--warm-white);
+  --text-primary: var(--text-primary-light);
+  --text-secondary: var(--text-secondary-light);
+  --shadow-outer: var(--shadow-light-outer);
+  --shadow-inner: var(--shadow-light-inner);
+  --shadow-pressed: var(--shadow-light-pressed);
+  
+  /* ============================================
+     DESIGN TOKENS
+     ============================================ */
+  --radius-soft: 30px;
+  --radius-medium: 20px;
+  --radius-small: 12px;
+  --radius-pill: 999px;
+  
+  --transition-calm: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-gentle: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-quick: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 20px;
+  --spacing-lg: 32px;
+  --spacing-xl: 48px;
+  
+  --font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 2rem;
+  --font-size-3xl: 2.5rem;
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+}
+
+/* ============================================
+   DARK MODE OVERRIDES
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: var(--deep-charcoal);
+    --surface: var(--warm-ebony);
+    --text-primary: var(--text-primary-dark);
+    --text-secondary: var(--text-secondary-dark);
+    --shadow-outer: var(--shadow-dark-outer);
+    --shadow-inner: var(--shadow-dark-inner);
+    --shadow-pressed: var(--shadow-dark-pressed);
+    --accent-primary: var(--midnight-moss);
+  }
+}
+
+/* Manual dark mode toggle */
+[data-theme="dark"] {
+  --background: var(--deep-charcoal);
+  --surface: var(--warm-ebony);
+  --text-primary: var(--text-primary-dark);
+  --text-secondary: var(--text-secondary-dark);
+  --shadow-outer: var(--shadow-dark-outer);
+  --shadow-inner: var(--shadow-dark-inner);
+  --shadow-pressed: var(--shadow-dark-pressed);
+  --accent-primary: var(--midnight-moss);
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--font-family);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background-color var(--transition-calm), color var(--transition-calm);
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.2;
+  margin-bottom: var(--spacing-sm);
+}
+
+h1 { font-size: var(--font-size-3xl); }
+h2 { font-size: var(--font-size-2xl); }
+h3 { font-size: var(--font-size-xl); }
+h4 { font-size: var(--font-size-lg); }
+
+p {
+  margin-bottom: var(--spacing-md);
+  color: var(--text-secondary);
+}
+
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color var(--transition-quick);
+}
+
+a:hover {
+  color: var(--sage-green);
+}
+
+/* ============================================
+   SUNSET TIMER - Dimming Effect
+   ============================================ */
+body.sunset-active {
+  filter: brightness(0.7) saturate(0.8);
+  transition: filter 1200ms ease-in-out;
+}
+
+body.sunset-active::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, 
+    rgba(61, 54, 48, 0) 0%, 
+    rgba(61, 54, 48, 0.15) 100%);
+  pointer-events: none;
+  z-index: 9998;
+}
