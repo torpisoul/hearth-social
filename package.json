@@ -1,0 +1,8 @@
+{
+  "name": "hearth",
+  "version": "1.0.0",
+  "description": "Hearth - Relationship Management App",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}

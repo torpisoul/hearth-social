@@ -215,3 +215,29 @@ Each function will use the Supabase client to interact with the database.
 - Use environment variables in Netlify for production
 - Service key should only be used in backend functions, never exposed to client
 - RLS policies ensure users can only access data they're permitted to see
+
+-- Kin Requests table (pending connections)
+CREATE TABLE kin_requests (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  receiver_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'rejected')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(sender_id, receiver_id),
+  CHECK (sender_id != receiver_id)
+);
+
+-- RLS for Kin Requests
+ALTER TABLE kin_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can create requests" ON kin_requests
+  FOR INSERT WITH CHECK (auth.uid() = sender_id);
+
+CREATE POLICY "Users can view requests sent or received" ON kin_requests
+  FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+
+CREATE POLICY "Users can update received requests" ON kin_requests
+  FOR UPDATE USING (auth.uid() = receiver_id);
+
+CREATE POLICY "Users can delete sent or received requests" ON kin_requests
+  FOR DELETE USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
