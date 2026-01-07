@@ -1,0 +1,24 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "**Your Digital Living Room** - A privacy-first social platform built on intentionality, consent, and calm.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/torpisoul/hearth-social.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/torpisoul/hearth-social/issues"
+  },
+  "homepage": "https://github.com/torpisoul/hearth-social#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.90.0"
+  }
+}
