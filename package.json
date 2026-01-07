@@ -1,0 +1,13 @@
+{
+  "name": "hearth-functions",
+  "version": "1.0.0",
+  "description": "Netlify Functions for Hearth",
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.90.0",
+    "buffer": "^6.0.3"
+  },
+  "devDependencies": {
+    "esmock": "^2.7.3"
+  }
+}
