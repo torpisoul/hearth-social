@@ -133,14 +133,34 @@ function checkAndApplySunsetMode() {
     const sunsetEnabled = localStorage.getItem('sunsetTimerEnabled') === 'true';
 
     if (!sunsetEnabled) {
+        document.body.classList.remove('sunset-active');
         return;
     }
 
     const now = new Date();
-    const hour = now.getHours();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    // Sunset mode from 8 PM to 6 AM
-    if (hour >= 20 || hour < 6) {
+    // Get settings or default to 20:00 (8 PM) and 06:00 (6 AM)
+    const startStr = localStorage.getItem('sunsetStart') || '20:00';
+    const endStr = localStorage.getItem('sunsetEnd') || '06:00';
+
+    const [startHour, startMinute] = startStr.split(':').map(Number);
+    const [endHour, endMinute] = endStr.split(':').map(Number);
+
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+
+    let inSunsetRange = false;
+
+    if (startMinutes < endMinutes) {
+        // Range is within the same day (e.g., 10:00 to 14:00)
+        inSunsetRange = currentMinutes >= startMinutes && currentMinutes < endMinutes;
+    } else {
+        // Range crosses midnight (e.g., 20:00 to 06:00)
+        inSunsetRange = currentMinutes >= startMinutes || currentMinutes < endMinutes;
+    }
+
+    if (inSunsetRange) {
         document.body.classList.add('sunset-active');
     } else {
         document.body.classList.remove('sunset-active');
