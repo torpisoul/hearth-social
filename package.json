@@ -19,8 +19,12 @@
   },
   "homepage": "https://github.com/torpisoul/hearth-social#readme",
   "dependencies": {
+    "@supabase/supabase-js": "^2.90.0",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.16.3",
-    "pg-mem": "^3.0.5"
+    "pg-mem": "^3.0.5",
+    "uuid": "^13.0.0"
   }
 }
