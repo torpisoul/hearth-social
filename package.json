@@ -1,8 +1,9 @@
 {
-  "name": "hearth",
+  "name": "hearth-functions",
   "version": "1.0.0",
-  "description": "**Your Digital Living Room** - A privacy-first social platform built on intentionality, consent, and calm.",
+  "description": "Netlify Functions for Hearth",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -13,7 +14,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/torpisoul/hearth-social/issues"
   },
@@ -21,10 +21,14 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.90.0",
     "bcryptjs": "^3.0.3",
+    "buffer": "^6.0.3",
     "dotenv": "^17.2.3",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.16.3",
     "pg-mem": "^3.0.5",
     "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "esmock": "^2.7.3"
   }
 }

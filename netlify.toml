@@ -1,3 +1,4 @@
+
 [build]
   command = "echo 'No build step required for static site'"
   publish = "."
@@ -21,6 +22,16 @@
 [[redirects]]
   from = "/api/kin/*"
   to = "/.netlify/functions/kin-management"
+  status = 200
+
+[[redirects]]
+  from = "/api/conversations"
+  to = "/.netlify/functions/parlor"
+  status = 200
+
+[[redirects]]
+  from = "/api/conversations/*"
+  to = "/.netlify/functions/parlor"
   status = 200
 
 [[redirects]]
