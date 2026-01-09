@@ -246,12 +246,30 @@ function initializeSettings() {
         const sunsetEnabled = localStorage.getItem('sunsetTimerEnabled') !== 'false'; // default true
         sunsetToggle.checked = sunsetEnabled;
 
+        const startInput = document.getElementById('sunset-start');
+        const endInput = document.getElementById('sunset-end');
+
+        // Initialize inputs
+        if (startInput) {
+            startInput.value = localStorage.getItem('sunsetStart') || '20:00';
+            startInput.addEventListener('change', (e) => {
+                localStorage.setItem('sunsetStart', e.target.value);
+            });
+        }
+
+        if (endInput) {
+            endInput.value = localStorage.getItem('sunsetEnd') || '06:00';
+            endInput.addEventListener('change', (e) => {
+                localStorage.setItem('sunsetEnd', e.target.value);
+            });
+        }
+
         sunsetToggle.addEventListener('change', (e) => {
             localStorage.setItem('sunsetTimerEnabled', e.target.checked);
 
             // Show feedback
             alert(e.target.checked
-                ? 'Sunset Timer enabled! The app will dim during evening hours (8 PM - 6 AM by default).'
+                ? `Sunset Timer enabled! The app will dim from ${startInput.value} to ${endInput.value}.`
                 : 'Sunset Timer disabled.');
         });
     }
