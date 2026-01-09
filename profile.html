@@ -265,15 +265,14 @@
 
             <div class="qr-content">
                 <div class="qr-code-placeholder" id="qr-code">
-                    <!-- In real app, would generate actual QR code -->
-                    <div class="qr-mock">
-                        <div style="font-size: 4rem;">📱</div>
-                        <p class="text-muted">QR Code would appear here</p>
-                    </div>
+                    <!-- QR Code will be generated here -->
                 </div>
                 <p class="text-center text-muted mt-md">
                     Let your friends scan this QR code to add you as Kin
                 </p>
+                <div class="text-center mt-md">
+                    <button class="btn btn-outline" id="download-qr-btn">Download QR Code</button>
+                </div>
             </div>
         </div>
     </div>
@@ -311,6 +310,7 @@
     </div>
 
     <script src="js/app.js"></script>
+    <script src="js/qrcode.min.js"></script>
     <script src="js/profile.js"></script>
 </body>
 
