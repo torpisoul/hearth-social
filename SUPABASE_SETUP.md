@@ -19,13 +19,26 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_SERVICE_KEY=your_service_role_key_here
 JWT_SECRET=generate_a_random_secret_here
+DATABASE_URL=postgresql://postgres:[PASSWORD]@[HOST]:[PORT]/postgres
 ```
 
-3. In Netlify dashboard, add these as environment variables under Site Settings > Environment Variables
+3. In Netlify dashboard, add these as environment variables under Site Settings > Environment Variables.
 
 ## 3. Create Database Tables
 
-Run these SQL commands in the Supabase SQL Editor:
+### Automated Setup (Recommended)
+
+You can run the included setup script to automatically create the tables, RLS policies, and indexes.
+
+1. Ensure your `.env` file has the `DATABASE_URL` set (you can find this in Supabase Settings > Database > Connection pooler or Transaction pooler, use Session mode for migrations if possible, or direct connection).
+2. Run the script:
+   ```bash
+   node scripts/setup_database.js
+   ```
+
+### Manual Setup
+
+Alternatively, run these SQL commands in the Supabase SQL Editor:
 
 ```sql
 -- Enable UUID extension
@@ -215,3 +228,29 @@ Each function will use the Supabase client to interact with the database.
 - Use environment variables in Netlify for production
 - Service key should only be used in backend functions, never exposed to client
 - RLS policies ensure users can only access data they're permitted to see
+
+-- Kin Requests table (pending connections)
+CREATE TABLE kin_requests (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  receiver_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'rejected')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(sender_id, receiver_id),
+  CHECK (sender_id != receiver_id)
+);
+
+-- RLS for Kin Requests
+ALTER TABLE kin_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can create requests" ON kin_requests
+  FOR INSERT WITH CHECK (auth.uid() = sender_id);
+
+CREATE POLICY "Users can view requests sent or received" ON kin_requests
+  FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+
+CREATE POLICY "Users can update received requests" ON kin_requests
+  FOR UPDATE USING (auth.uid() = receiver_id);
+
+CREATE POLICY "Users can delete sent or received requests" ON kin_requests
+  FOR DELETE USING (auth.uid() = sender_id OR auth.uid() = receiver_id);

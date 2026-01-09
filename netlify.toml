@@ -6,7 +6,24 @@
 
 [dev]
   framework = "#static"
-  
+
+# Specific redirect for Pulse Feed
+[[redirects]]
+  from = "/api/pulse"
+  to = "/.netlify/functions/pulse-feed"
+  status = 200
+
+# Specific redirect for Pulse sub-resources (like acknowledge)
+[[redirects]]
+  from = "/api/pulse/*"
+  to = "/.netlify/functions/pulse-feed"
+  status = 200
+
+[[redirects]]
+  from = "/api/kin/*"
+  to = "/.netlify/functions/kin-management"
+  status = 200
+
 [[redirects]]
   from = "/api/conversations"
   to = "/.netlify/functions/parlor"

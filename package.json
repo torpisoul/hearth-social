@@ -2,10 +2,31 @@
   "name": "hearth-functions",
   "version": "1.0.0",
   "description": "Netlify Functions for Hearth",
+  "main": "index.js",
   "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/torpisoul/hearth-social.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/torpisoul/hearth-social/issues"
+  },
+  "homepage": "https://github.com/torpisoul/hearth-social#readme",
   "dependencies": {
     "@supabase/supabase-js": "^2.90.0",
-    "buffer": "^6.0.3"
+    "bcryptjs": "^3.0.3",
+    "buffer": "^6.0.3",
+    "dotenv": "^17.2.3",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.16.3",
+    "pg-mem": "^3.0.5",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "esmock": "^2.7.3"
