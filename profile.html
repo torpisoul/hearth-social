@@ -204,15 +204,25 @@
                 <h3 class="section-title">Additional Settings</h3>
 
                 <div class="settings-list">
-                    <div class="setting-card card">
-                        <div>
-                            <h4>Sunset Timer</h4>
-                            <p class="text-muted">Dim the app in the evening (8 PM - 6 AM)</p>
+                    <div class="setting-card card" style="display: block;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div>
+                                <h4>Sunset Timer</h4>
+                                <p class="text-muted">Dim the app in the evening</p>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="setting-sunset-timer">
+                                <span class="toggle-slider"></span>
+                            </label>
                         </div>
-                        <label class="toggle">
-                            <input type="checkbox" id="setting-sunset-timer">
-                            <span class="toggle-slider"></span>
-                        </label>
+                        <div class="form-group" style="margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 10px;">
+                            <label class="text-muted" style="font-size: var(--font-size-sm);">Active Hours</label>
+                            <div class="time-range" style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                                <input type="time" id="sunset-start" class="input" style="width: auto;">
+                                <span class="text-muted">to</span>
+                                <input type="time" id="sunset-end" class="input" style="width: auto;">
+                            </div>
+                        </div>
                     </div>
 
                     <div class="setting-card card">
