@@ -246,7 +246,6 @@ function showQRCode() {
 
 // Initialize Kin management
 function initializeKinManagement() {
-    // Add Kin Modal
     const addKinBtn = document.getElementById('add-kin-btn');
     const addKinModal = document.getElementById('add-kin-modal');
     const closeKinBtn = document.getElementById('close-add-kin-modal');
@@ -272,201 +271,15 @@ function initializeKinManagement() {
         addKin();
         closeModal();
     });
-
-    // Load Kin List from Backend
-    fetchKinList();
-}
-
-// Fetch Kin List
-async function fetchKinList() {
-    const token = localStorage.getItem('hearthToken');
-    const kinListContainer = document.getElementById('kin-list');
-
-    if (!token) {
-        console.warn('No auth token found, using static placeholder or localStorage if available');
-        // Fallback for demo/mock mode if no real token
-        // In a real scenario, we might hide the section or show a login prompt
-        return;
-    }
-
-    try {
-        const response = await fetch('/api/kin', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (response.ok) {
-            const kinList = await response.json();
-            renderKinList(kinList);
-        } else {
-            console.error('Failed to fetch kin list:', await response.text());
-        }
-    } catch (err) {
-        console.error('Error fetching kin list:', err);
-    }
-}
-
-// Render Kin List
-function renderKinList(kinList) {
-    const container = document.getElementById('kin-list');
-    if (!container) return;
-
-    container.innerHTML = ''; // Clear placeholders
-
-    if (kinList.length === 0) {
-        container.innerHTML = '<p class="text-muted text-center">You haven\'t added any Kin yet.</p>';
-        return;
-    }
-
-    kinList.forEach(kin => {
-        const card = document.createElement('div');
-        card.className = 'kin-card card';
-
-        const tierBadgeClass = kin.tier === 'inner_circle' ? 'badge-primary' : 'badge';
-        const tierLabel = kin.tier === 'inner_circle' ? 'Inner Circle' : 'Kin';
-        const avatar = kin.avatarUrl || '😊'; // Default avatar
-
-        card.innerHTML = `
-            <div class="kin-header">
-                <div class="avatar">${avatar}</div>
-                <div class="kin-info-section">
-                    <h4 class="kin-name">${escapeHtml(kin.displayName)}</h4>
-                    <span class="badge ${tierBadgeClass}" id="tier-badge-${kin.id}">${tierLabel}</span>
-                </div>
-            </div>
-            <div class="kin-tier-control" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
-                <label style="font-size: 0.8rem; color: var(--text-muted);">Relationship:</label>
-                <select class="input input-small tier-select" data-id="${kin.id}" style="padding: 4px; width: auto;">
-                    <option value="kin" ${kin.tier === 'kin' ? 'selected' : ''}>Kin</option>
-                    <option value="inner_circle" ${kin.tier === 'inner_circle' ? 'selected' : ''}>Inner Circle</option>
-                </select>
-            </div>
-            <div class="kin-actions">
-                <button class="btn btn-small message-btn" data-id="${kin.id}" data-name="${escapeHtml(kin.displayName)}">Message</button>
-                <button class="btn btn-small remove-btn" data-id="${kin.id}" data-name="${escapeHtml(kin.displayName)}">Remove</button>
-            </div>
-        `;
-
-        container.appendChild(card);
-    });
-
-    // Attach event listeners
-    attachKinActionListeners();
-}
-
-function attachKinActionListeners() {
-    // Message Buttons
-    document.querySelectorAll('.message-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const kinId = e.target.getAttribute('data-id');
-            const kinName = e.target.getAttribute('data-name');
-            window.location.href = `parlor.html?chatWith=${kinId}&name=${encodeURIComponent(kinName)}`;
-        });
-    });
-
-    // Remove Buttons
-    document.querySelectorAll('.remove-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const kinId = e.target.getAttribute('data-id');
-            const kinName = e.target.getAttribute('data-name');
-
-            if (confirm(`Are you sure you want to remove ${kinName} from your Kin?`)) {
-                await removeKin(kinId, e.target.closest('.kin-card'));
-            }
-        });
-    });
-
-    // Tier Change
-    document.querySelectorAll('.tier-select').forEach(select => {
-        select.addEventListener('change', async (e) => {
-            const kinId = e.target.getAttribute('data-id');
-            const newTier = e.target.value;
-            await changeKinTier(kinId, newTier);
-        });
-    });
-}
-
-// Remove Kin
-async function removeKin(kinId, cardElement) {
-    const token = localStorage.getItem('hearthToken');
-    if (!token) return;
-
-    try {
-        const response = await fetch(`/api/kin/${kinId}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (response.ok) {
-            // Remove from UI
-            cardElement.remove();
-
-            // If empty, show message
-            const container = document.getElementById('kin-list');
-            if (container.children.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center">You haven\'t added any Kin yet.</p>';
-            }
-        } else {
-            alert('Failed to remove Kin. Please try again.');
-            console.error(await response.text());
-        }
-    } catch (err) {
-        console.error('Error removing kin:', err);
-    }
-}
-
-// Change Tier
-async function changeKinTier(kinId, newTier) {
-    const token = localStorage.getItem('hearthToken');
-    if (!token) return;
-
-    try {
-        const response = await fetch(`/api/kin/${kinId}/tier`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ tier: newTier })
-        });
-
-        if (response.ok) {
-            // Update UI badge
-            const badge = document.getElementById(`tier-badge-${kinId}`);
-            if (badge) {
-                badge.textContent = newTier === 'inner_circle' ? 'Inner Circle' : 'Kin';
-                badge.className = newTier === 'inner_circle' ? 'badge badge-primary' : 'badge';
-            }
-        } else {
-            alert('Failed to update tier.');
-            // Revert select?
-        }
-    } catch (err) {
-        console.error('Error changing tier:', err);
-    }
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
 }
 
 // Add Kin
 function addKin() {
     const hearthKey = document.getElementById('kin-hearth-key').value.trim();
-    // const tier = document.getElementById('kin-tier').value;
-    // Note: Request usually doesn't set tier immediately or defaults to 'kin'.
-    // The backend /request expects target_user_id, not hearthKey.
-    // So we would first need to resolve HearthKey to UserID.
-    // For now, let's keep the mock alert but note the limitation.
+    const tier = document.getElementById('kin-tier').value;
 
-    alert(`Kin request sent to ${hearthKey}!\n\n(Note: In this demo, this is a simulation. Real implementation requires resolving HearthKey to UserID via API first.)`);
+    // In real app, would send request to backend
+    alert(`Kin request sent!\n\nHearth Key: ${hearthKey}\nTier: ${tier}\n\nIn the full implementation, this would send a connection request to the user.`);
 }
 
 // Initialize additional settings
@@ -535,7 +348,6 @@ function initializeLogout() {
                 localStorage.removeItem('isAuthenticated');
                 localStorage.removeItem('hearthUser');
                 localStorage.removeItem('hearthKey');
-                localStorage.removeItem('hearthToken'); // Clear token
                 window.location.href = 'index.html';
             }
         });

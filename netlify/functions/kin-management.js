@@ -1,86 +1,49 @@
 const { createClient } = require('@supabase/supabase-js');
-const jwt = require('jsonwebtoken');
 
 exports.handler = async (event, context) => {
-  // Only allow GET, POST, DELETE, PATCH requests
-  if (!['GET', 'POST', 'DELETE', 'PATCH'].includes(event.httpMethod)) {
+  // Only allow POST, DELETE, PATCH requests
+  if (!['POST', 'DELETE', 'PATCH'].includes(event.httpMethod)) {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
+  // Initialize Supabase client
+  // We use the anon key but pass the user's JWT for authentication/RLS context
   const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-  const jwtSecret = process.env.JWT_SECRET || 'secret';
 
-  if (!supabaseUrl || !supabaseServiceKey) {
+  if (!supabaseUrl || !supabaseAnonKey) {
     return { statusCode: 500, body: 'Missing Supabase configuration' };
   }
 
-  // Use Service Key to bypass RLS since we are using custom JWTs
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  // Helper to get authenticated user
+  const getAuthUser = async (token) => {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: token } },
+    });
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) return null;
+    return { user, supabase };
+  };
 
-  // 1. Verify Token
   const authHeader = event.headers.authorization || event.headers.Authorization;
   if (!authHeader) {
     return { statusCode: 401, body: 'Unauthorized: Missing token' };
   }
 
-  const token = authHeader.replace('Bearer ', '');
-  let user;
-  try {
-    user = jwt.verify(token, jwtSecret);
-  } catch (err) {
+  const auth = await getAuthUser(authHeader);
+  if (!auth) {
     return { statusCode: 401, body: 'Unauthorized: Invalid token' };
   }
+  const { user, supabase: userSupabase } = auth;
+  const userId = user.id;
 
-  const userId = user.userId;
+  // Determine action based on path
+  // path could be /.netlify/functions/kin-management/request or /api/kin/request
+  // We look at the end of the path
   const path = event.path;
 
   try {
-    // GET /api/kin - List all Kin
-    // matches /api/kin or /.netlify/functions/kin-management
-    // Check if it's the root path (list)
-    const isRoot = path.endsWith('/kin-management') || path.endsWith('/api/kin');
-
-    if (event.httpMethod === 'GET' && isRoot) {
-      const { data: kinList, error } = await supabase
-        .from('kin_relationships')
-        .select(`
-          id,
-          kin_id,
-          relationship_tier,
-          created_at,
-          kin:kin_id (
-            id,
-            display_name,
-            hearth_key,
-            avatar_url
-          )
-        `)
-        .eq('user_id', userId);
-
-      if (error) {
-        console.error('Fetch kin error:', error);
-        throw error;
-      }
-
-      // Transform data for frontend
-      const formattedList = kinList.map(item => ({
-        id: item.kin.id, // We use the user_id of the kin as the ID for actions
-        relationshipId: item.id,
-        displayName: item.kin.display_name,
-        hearthKey: item.kin.hearth_key,
-        avatarUrl: item.kin.avatar_url,
-        tier: item.relationship_tier,
-        createdAt: item.created_at
-      }));
-
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formattedList)
-      };
-    }
-
     // POST /api/kin/request
     if (event.httpMethod === 'POST' && path.endsWith('/request')) {
       const { target_user_id } = JSON.parse(event.body);
@@ -92,7 +55,7 @@ exports.handler = async (event, context) => {
       }
 
       // Check if relationship already exists
-      const { data: existingRel } = await supabase
+      const { data: existingRel } = await userSupabase
         .from('kin_relationships')
         .select('id')
         .match({ user_id: userId, kin_id: target_user_id })
@@ -103,7 +66,7 @@ exports.handler = async (event, context) => {
       }
 
       // Check if request already exists (sent by me)
-      const { data: existingReq } = await supabase
+      const { data: existingReq } = await userSupabase
         .from('kin_requests')
         .select('id')
         .match({ sender_id: userId, receiver_id: target_user_id })
@@ -113,8 +76,11 @@ exports.handler = async (event, context) => {
         return { statusCode: 400, body: 'Request already pending' };
       }
 
-      // Check incoming
-      const { data: incomingReq } = await supabase
+      // Check if request already exists (received from them) - if so, auto-accept?
+      // Requirement says "Kin requests require mutual acceptance".
+      // Usually if A requests B and B has already requested A, we can treat it as accept.
+      // But let's stick to explicit accept for now, or just inform user.
+      const { data: incomingReq } = await userSupabase
         .from('kin_requests')
         .select('id')
         .match({ sender_id: target_user_id, receiver_id: userId })
@@ -125,7 +91,7 @@ exports.handler = async (event, context) => {
       }
 
       // Create request
-      const { error } = await supabase
+      const { error } = await userSupabase
         .from('kin_requests')
         .insert({ sender_id: userId, receiver_id: target_user_id });
 
@@ -136,13 +102,15 @@ exports.handler = async (event, context) => {
 
     // POST /api/kin/accept
     if (event.httpMethod === 'POST' && path.endsWith('/accept')) {
+      // Body can contain request_id OR target_user_id.
+      // Let's support target_user_id as it's more robust if UI doesn't have request_id handy.
       const { target_user_id } = JSON.parse(event.body);
       if (!target_user_id) {
         return { statusCode: 400, body: 'Missing target_user_id' };
       }
 
       // Find the request
-      const { data: request, error: fetchError } = await supabase
+      const { data: request, error: fetchError } = await userSupabase
         .from('kin_requests')
         .select('id')
         .match({ sender_id: target_user_id, receiver_id: userId, status: 'pending' })
@@ -152,8 +120,17 @@ exports.handler = async (event, context) => {
         return { statusCode: 404, body: 'No pending request found from this user' };
       }
 
+      // Use Service Role to ensure atomicity and mutual creation if RLS blocks creation for others
+      // Although usually users can only insert their own rows.
+      // Inserting A->B is fine for A (me). Inserting B->A (them->me) might be blocked by RLS if policy says "auth.uid() = user_id".
+      // Current RLS policy in SUPABASE_SETUP.md isn't fully defined for kin_relationships insert.
+      // We will use Service Key to ensure both rows are created.
+
+      const adminSupabase = createClient(supabaseUrl, supabaseServiceKey);
+
+      // Transaction-like operations
       // 1. Insert A->B and B->A
-      const { error: insertError } = await supabase
+      const { error: insertError } = await adminSupabase
         .from('kin_relationships')
         .insert([
           { user_id: userId, kin_id: target_user_id, relationship_tier: 'kin' },
@@ -161,31 +138,35 @@ exports.handler = async (event, context) => {
         ]);
 
       if (insertError) {
+        // If unique constraint fails, maybe they are already kin.
         console.error('Insert error:', insertError);
         return { statusCode: 500, body: 'Failed to create relationship' };
       }
 
       // 2. Delete request
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await adminSupabase
         .from('kin_requests')
         .delete()
         .eq('id', request.id);
 
       if (deleteError) {
          console.error('Delete request error:', deleteError);
+         // Relationship created but request not deleted. Not ideal but acceptable.
       }
 
       return { statusCode: 200, body: JSON.stringify({ message: 'Request accepted' }) };
     }
 
     // DELETE /api/kin/:id
+    // regex to capture ID at the end
     const deleteMatch = path.match(/\/api\/kin\/([a-zA-Z0-9-]+)$/) || path.match(/\/kin-management\/([a-zA-Z0-9-]+)$/);
     if (event.httpMethod === 'DELETE' && deleteMatch) {
       const targetUserId = deleteMatch[1];
 
-      // Delete BOTH sides of the relationship
-      // Since we are using Service Key, we can delete both
-      const { error } = await supabase
+      // Use Service Role to delete BOTH sides
+      const adminSupabase = createClient(supabaseUrl, supabaseServiceKey);
+
+      const { error } = await adminSupabase
         .from('kin_relationships')
         .delete()
         .or(`and(user_id.eq.${userId},kin_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},kin_id.eq.${userId})`);
@@ -206,7 +187,7 @@ exports.handler = async (event, context) => {
       }
 
       // Update ONLY my side of the relationship
-      const { error } = await supabase
+      const { error } = await userSupabase
         .from('kin_relationships')
         .update({ relationship_tier: tier })
         .match({ user_id: userId, kin_id: targetUserId });
@@ -220,6 +201,6 @@ exports.handler = async (event, context) => {
 
   } catch (err) {
     console.error('Error processing request:', err);
-    return { statusCode: 500, body: 'Internal Server Error: ' + err.message };
+    return { statusCode: 500, body: 'Internal Server Error' };
   }
 };
