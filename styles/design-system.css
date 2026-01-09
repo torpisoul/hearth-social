@@ -162,6 +162,17 @@ a:hover {
   color: var(--sage-green);
 }
 
+/* Accessibility: Touch Targets */
+@media (pointer: coarse), (max-width: 768px) {
+  button,
+  .btn,
+  .nav-item,
+  a.clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
 /* ============================================
    SUNSET TIMER - Dimming Effect
    ============================================ */

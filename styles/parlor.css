@@ -264,6 +264,7 @@
 .message-composer {
     position: sticky;
     bottom: calc(80px + var(--spacing-md));
+    z-index: 100;
     background: var(--background);
     padding: var(--spacing-md) 0;
     border-radius: var(--radius-soft);
@@ -366,5 +367,10 @@
 
     .message-composer {
         bottom: calc(80px + var(--spacing-sm));
+    }
+
+    .messages-container {
+        max-height: none;
+        overflow-y: visible;
     }
 }

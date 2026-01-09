@@ -210,22 +210,28 @@
 
 /* Responsive */
 @media (max-width: 600px) {
+    .profile-header {
+        padding: var(--spacing-md);
+    }
+
     .kin-card {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
     }
 
     .kin-actions {
         width: 100%;
+        margin-top: var(--spacing-sm);
     }
 
     .kin-actions .btn {
         flex: 1;
+        min-height: 44px;
     }
 
     .setting-card {
-        flex-direction: column;
-        align-items: flex-start;
+        /* Keep side-by-side to save vertical space */
+        align-items: center;
     }
 
     .life-update-footer {
