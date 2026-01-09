@@ -186,31 +186,6 @@
     font-size: var(--font-size-sm);
 }
 
-/* Privacy Controls (Mirroring Settings List) */
-.privacy-controls {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-}
-
-.privacy-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--spacing-md);
-}
-
-.privacy-title {
-    margin: 0 0 4px 0;
-    font-size: var(--font-size-base);
-    font-weight: var(--font-weight-medium);
-}
-
-.privacy-description {
-    margin: 0;
-    font-size: var(--font-size-sm);
-}
-
 /* QR Code Modal */
 .qr-content {
     text-align: center;
@@ -235,28 +210,22 @@
 
 /* Responsive */
 @media (max-width: 600px) {
-    .profile-header {
-        padding: var(--spacing-md);
-    }
-
     .kin-card {
         flex-direction: column;
-        align-items: stretch;
+        align-items: flex-start;
     }
 
     .kin-actions {
         width: 100%;
-        margin-top: var(--spacing-sm);
     }
 
     .kin-actions .btn {
         flex: 1;
-        min-height: 44px;
     }
 
     .setting-card {
-        /* Keep side-by-side to save vertical space */
-        align-items: center;
+        flex-direction: column;
+        align-items: flex-start;
     }
 
     .life-update-footer {
