@@ -176,25 +176,25 @@ a:hover {
 /* ============================================
    SUNSET TIMER - Dimming Effect
    ============================================ */
-/* Apply filter to children instead of body to preserve position: fixed context */
-body.sunset-active main,
-body.sunset-active .navbar,
-body.sunset-active .nav-tabs,
-body.sunset-active .modal-overlay {
-  filter: brightness(0.7) saturate(0.8);
-  transition: filter 1200ms ease-in-out;
-}
-
-body.sunset-active::after {
+/* Overlay for Sunset Mode - Uses backdrop-filter to avoid breaking position: fixed */
+body::after {
   content: '';
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0;
+  transition: opacity 1200ms ease-in-out, backdrop-filter 1200ms ease-in-out;
+  backdrop-filter: brightness(1) saturate(1);
+}
+
+body.sunset-active::after {
+  opacity: 1;
   background: linear-gradient(180deg, 
     rgba(61, 54, 48, 0) 0%, 
     rgba(61, 54, 48, 0.15) 100%);
-  pointer-events: none;
-  z-index: 9998;
+  backdrop-filter: brightness(0.7) saturate(0.8);
 }
