@@ -154,7 +154,10 @@ function initializeHearthKey() {
     }
 
     if (shareBtn && qrModal) {
-        shareBtn.addEventListener('click', () => qrModal.classList.add('active'));
+        shareBtn.addEventListener('click', () => {
+            qrModal.classList.add('active');
+            showQRCode();
+        });
     }
 
     if (closeQrBtn && qrModal) {
@@ -196,6 +199,49 @@ function showCopyFeedback() {
         btn.textContent = originalText;
         btn.classList.remove('btn-primary');
     }, 2000);
+}
+
+// Show QR Code
+function showQRCode() {
+    const user = getCurrentUser();
+    if (!user || !user.hearthKey) return;
+
+    const qrContainer = document.getElementById('qr-code');
+    const downloadBtn = document.getElementById('download-qr-btn');
+
+    if (qrContainer) {
+        qrContainer.innerHTML = ''; // Clear placeholder/previous code
+
+        // Generate QR Code
+        // eslint-disable-next-line no-new
+        new QRCode(qrContainer, {
+            text: user.hearthKey,
+            width: 256,
+            height: 256,
+            colorDark: "#2c3e50",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    }
+
+    // Set up download button
+    if (downloadBtn) {
+        // Remove old event listeners to prevent duplicates if function called multiple times
+        const newBtn = downloadBtn.cloneNode(true);
+        downloadBtn.parentNode.replaceChild(newBtn, downloadBtn);
+
+        newBtn.addEventListener('click', () => {
+            const qrImage = qrContainer.querySelector('img');
+            if (qrImage) {
+                const link = document.createElement('a');
+                link.href = qrImage.src;
+                link.download = `hearth-key-${user.displayName || 'user'}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        });
+    }
 }
 
 // Initialize Kin management
