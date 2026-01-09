@@ -176,7 +176,11 @@ a:hover {
 /* ============================================
    SUNSET TIMER - Dimming Effect
    ============================================ */
-body.sunset-active {
+/* Apply filter to children instead of body to preserve position: fixed context */
+body.sunset-active main,
+body.sunset-active .navbar,
+body.sunset-active .nav-tabs,
+body.sunset-active .modal-overlay {
   filter: brightness(0.7) saturate(0.8);
   transition: filter 1200ms ease-in-out;
 }
