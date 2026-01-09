@@ -19,13 +19,26 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_SERVICE_KEY=your_service_role_key_here
 JWT_SECRET=generate_a_random_secret_here
+DATABASE_URL=postgresql://postgres:[PASSWORD]@[HOST]:[PORT]/postgres
 ```
 
-3. In Netlify dashboard, add these as environment variables under Site Settings > Environment Variables
+3. In Netlify dashboard, add these as environment variables under Site Settings > Environment Variables.
 
 ## 3. Create Database Tables
 
-Run these SQL commands in the Supabase SQL Editor:
+### Automated Setup (Recommended)
+
+You can run the included setup script to automatically create the tables, RLS policies, and indexes.
+
+1. Ensure your `.env` file has the `DATABASE_URL` set (you can find this in Supabase Settings > Database > Connection pooler or Transaction pooler, use Session mode for migrations if possible, or direct connection).
+2. Run the script:
+   ```bash
+   node scripts/setup_database.js
+   ```
+
+### Manual Setup
+
+Alternatively, run these SQL commands in the Supabase SQL Editor:
 
 ```sql
 -- Enable UUID extension
