@@ -361,7 +361,7 @@ async function sendMessage(userId, conversationId, body, headers) {
     };
   }
 
-  let { content, mediaUrl, mediaData } = body;
+  let { content, mediaUrl, mediaData, expiration } = body;
 
   if (!content && !mediaUrl && !mediaData) {
       return {
@@ -459,15 +459,24 @@ async function sendMessage(userId, conversationId, body, headers) {
   }
 
   // Media Expiration Logic
-  // Default expiration? Let's say 24 hours for now, or maybe the client sends it?
-  // "Set media expiration timestamps" -> could mean automatic policy.
-  // I'll set it to 24 hours if media is present.
-
   let mediaExpiresAt = null;
   if (mediaUrl) {
-      const expirationDate = new Date();
-      expirationDate.setHours(expirationDate.getHours() + 24);
-      mediaExpiresAt = expirationDate.toISOString();
+      // Default to 24h if not specified, or respect "never"
+      if (!expiration) {
+          expiration = '24h';
+      }
+
+      if (expiration !== 'never') {
+          const now = new Date();
+          let durationHours = 24;
+
+          if (expiration === '1h') durationHours = 1;
+          else if (expiration === '24h') durationHours = 24;
+          else if (expiration === '7d') durationHours = 24 * 7;
+
+          now.setHours(now.getHours() + durationHours);
+          mediaExpiresAt = now.toISOString();
+      }
   }
 
   const { data: message, error: insertError } = await supabase

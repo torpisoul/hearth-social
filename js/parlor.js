@@ -302,6 +302,7 @@ function initializeMessageForm() {
 // Send message
 function sendMessage(mediaUrl = null) {
     const input = document.getElementById('message-input');
+    const expirationSelect = document.getElementById('media-expiration');
     const content = input.value.trim();
 
     if (!content && !mediaUrl) return;
@@ -310,6 +311,21 @@ function sendMessage(mediaUrl = null) {
     const conversation = conversations.find(c => c.id === currentConversationId);
     if (!conversation) return;
 
+    // Calculate expiration
+    let mediaExpiresAt = null;
+    if (mediaUrl && expirationSelect) {
+        const expirationValue = expirationSelect.value;
+        if (expirationValue !== 'never') {
+            const now = Date.now();
+            let duration = 0;
+            if (expirationValue === '1h') duration = 3600000;
+            else if (expirationValue === '24h') duration = 86400000;
+            else if (expirationValue === '7d') duration = 604800000;
+
+            mediaExpiresAt = now + duration;
+        }
+    }
+
     const currentUser = getCurrentUser();
     const newMessage = {
         id: `msg-${Date.now()}`,
@@ -317,7 +333,8 @@ function sendMessage(mediaUrl = null) {
         senderName: currentUser ? currentUser.displayName : 'You',
         content: content,
         timestamp: Date.now(),
-        mediaUrl: mediaUrl
+        mediaUrl: mediaUrl,
+        mediaExpiresAt: mediaExpiresAt
     };
 
     conversation.messages.push(newMessage);

@@ -92,6 +92,12 @@
                                 📎 Attach Media
                                 <input type="file" id="media-upload" accept="image/*,video/*" style="display: none;">
                             </label>
+                            <select id="media-expiration" class="input" style="width: auto; padding: 6px 12px; font-size: 0.9em; margin-right: auto; margin-left: 8px;">
+                                <option value="1h">1 Hour</option>
+                                <option value="24h" selected>24 Hours</option>
+                                <option value="7d">7 Days</option>
+                                <option value="never">Never</option>
+                            </select>
                             <button type="submit" class="btn btn-primary">Send</button>
                         </div>
                         <div class="media-preview" id="media-preview" style="display: none;">
