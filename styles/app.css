@@ -4,7 +4,7 @@
 
 .app-main {
     padding-top: calc(60px + var(--spacing-md));
-    padding-bottom: 120px; /* Increased to avoid bottom nav overlap on mobile */
+    padding-bottom: calc(80px + var(--spacing-md));
     min-height: 100vh;
 }
 
@@ -241,12 +241,6 @@
 }
 
 /* Responsive */
-@media (max-width: 400px) {
-    h1 { font-size: 1.75rem; }
-    h2 { font-size: 1.5rem; }
-    h3 { font-size: 1.25rem; }
-}
-
 @media (max-width: 600px) {
     .page-header {
         flex-direction: column;
@@ -261,7 +255,6 @@
     .modal {
         width: 95%;
         max-height: 90vh;
-        padding: var(--spacing-md);
     }
 
     .setting-item {
