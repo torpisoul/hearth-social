@@ -186,6 +186,31 @@
     font-size: var(--font-size-sm);
 }
 
+/* Privacy Controls (Mirroring Settings List) */
+.privacy-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.privacy-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.privacy-title {
+    margin: 0 0 4px 0;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+}
+
+.privacy-description {
+    margin: 0;
+    font-size: var(--font-size-sm);
+}
+
 /* QR Code Modal */
 .qr-content {
     text-align: center;
