@@ -4,16 +4,18 @@ import { createClient } from '@supabase/supabase-js';
 
 // Helper to generate a unique Hearth Key
 const generateHearthKey = () => {
-  // Generate a random string. For simplicity and readability, we can use a portion of a UUID
-  // or a random alphanumeric string.
   // Requirement: VARCHAR(20) UNIQUE.
-  // Let's generate a 12-char random string to be safe and short enough.
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 12; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  // Format: HEARTH-XXXX-XXXX (16 chars)
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const segments = [];
+  for (let i = 0; i < 2; i++) {
+    let segment = '';
+    for (let j = 0; j < 4; j++) {
+      segment += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    segments.push(segment);
   }
-  return result;
+  return `HEARTH-${segments.join('-')}`;
 };
 
 // Main logic decoupled from handler
@@ -274,7 +276,7 @@ export const authLogic = async (event, supabase) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Internal Server Error' })
+      body: JSON.stringify({ error: `Internal Server Error: ${error.message}` })
     };
   }
 };

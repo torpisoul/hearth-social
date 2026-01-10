@@ -124,7 +124,9 @@ function generateHearthKey() {
     const segments = [];
     const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-    for (let i = 0; i < 3; i++) {
+    // Generate 2 segments of 4 characters to keep total length <= 20
+    // HEARTH-XXXX-XXXX (16 chars)
+    for (let i = 0; i < 2; i++) {
         let segment = '';
         for (let j = 0; j < 4; j++) {
             segment += characters.charAt(Math.floor(Math.random() * characters.length));
