@@ -374,19 +374,32 @@ function initializeSettings() {
         });
     }
 
-    // Dark Mode
-    if (darkModeToggle) {
-        // Check current dark mode state
-        const darkModeEnabled = document.documentElement.getAttribute('data-theme') === 'dark';
-        darkModeToggle.checked = darkModeEnabled;
+    // Theme Selector
+    const themeSelect = document.getElementById('setting-theme');
+    if (themeSelect) {
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'oatmeal';
+        themeSelect.value = savedTheme;
 
-        darkModeToggle.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                localStorage.setItem('darkModeEnabled', 'true');
-            } else {
+        // Apply if not already applied (though theme-init.js handles this mostly)
+        // If savedTheme is oatmeal, we don't set data-theme usually, but explicit is fine.
+        if (savedTheme !== 'oatmeal') {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+        }
+
+        themeSelect.addEventListener('change', (e) => {
+            const theme = e.target.value;
+            localStorage.setItem('theme', theme);
+
+            // Clear legacy
+            localStorage.removeItem('darkModeEnabled');
+
+            if (theme === 'oatmeal') {
                 document.documentElement.removeAttribute('data-theme');
-                localStorage.setItem('darkModeEnabled', 'false');
+            } else {
+                document.documentElement.setAttribute('data-theme', theme);
             }
         });
     }

@@ -15,6 +15,9 @@
     <link rel="stylesheet" href="styles/app.css">
     <link rel="stylesheet" href="styles/profile.css">
     <link rel="stylesheet" href="styles/dark-mode.css">
+
+    <!-- Theme Init -->
+    <script src="js/theme-init.js"></script>
 </head>
 
 <body>
@@ -227,13 +230,16 @@
 
                     <div class="setting-card card">
                         <div>
-                            <h4>Dark Mode</h4>
-                            <p class="text-muted">Use dark color theme</p>
+                            <h4>Theme</h4>
+                            <p class="text-muted">Choose your color palette</p>
                         </div>
-                        <label class="toggle">
-                            <input type="checkbox" id="setting-dark-mode">
-                            <span class="toggle-slider"></span>
-                        </label>
+                        <select id="setting-theme" class="input" style="width: auto;">
+                            <option value="oatmeal">Oatmeal (Default)</option>
+                            <option value="clay">Clay</option>
+                            <option value="ocean">Ocean</option>
+                            <option value="forest">Forest</option>
+                            <option value="charcoal">Charcoal (Dark)</option>
+                        </select>
                     </div>
                 </div>
             </div>

@@ -1,6 +1,6 @@
 :root {
   /* ============================================
-     LIGHT MODE - Warm & Grounded
+     PALETTE DEFINITIONS
      ============================================ */
   --oatmeal: #F5F1E8;
   --sage-green: #A8B5A0;
@@ -8,18 +8,23 @@
   --warm-white: #FDFCFA;
   --text-primary-light: #3B3630;
   --text-secondary-light: #6B6560;
+
+  /* Clay Theme */
+  --clay-bg: #E6DCD3;
+  --clay-surface: #F0EAE5;
+  --clay-accent: #C29B82;
   
-  /* Neumorphic shadows for light mode */
-  --shadow-light-outer: 8px 8px 16px rgba(139, 149, 162, 0.15),
-                        -8px -8px 16px rgba(255, 255, 255, 0.7);
-  --shadow-light-inner: inset 4px 4px 8px rgba(139, 149, 162, 0.1),
-                        inset -4px -4px 8px rgba(255, 255, 255, 0.5);
-  --shadow-light-pressed: inset 6px 6px 12px rgba(139, 149, 162, 0.2),
-                          inset -6px -6px 12px rgba(255, 255, 255, 0.3);
+  /* Ocean Theme */
+  --ocean-bg: #E0E8F0;
+  --ocean-surface: #EEF4F8;
+  --ocean-accent: #7FA8C5;
+
+  /* Forest Theme */
+  --forest-bg: #E3E8E1;
+  --forest-surface: #EFF3EE;
+  --forest-accent: #8DA888;
   
-  /* ============================================
-     DARK MODE - Deep & Cozy
-     ============================================ */
+  /* Charcoal / Dark Mode */
   --deep-charcoal: #2A2D34;
   --midnight-moss: #3D4A42;
   --warm-ebony: #3B3630;
@@ -27,7 +32,15 @@
   --text-primary-dark: #E8E4DC;
   --text-secondary-dark: #B0ACA4;
   
-  /* Neumorphic shadows for dark mode */
+  /* Shadows - Light (Default/Oatmeal) */
+  --shadow-light-outer: 8px 8px 16px rgba(139, 149, 162, 0.15),
+                        -8px -8px 16px rgba(255, 255, 255, 0.7);
+  --shadow-light-inner: inset 4px 4px 8px rgba(139, 149, 162, 0.1),
+                        inset -4px -4px 8px rgba(255, 255, 255, 0.5);
+  --shadow-light-pressed: inset 6px 6px 12px rgba(139, 149, 162, 0.2),
+                          inset -6px -6px 12px rgba(255, 255, 255, 0.3);
+
+  /* Shadows - Dark */
   --shadow-dark-outer: 8px 8px 16px rgba(0, 0, 0, 0.4),
                        -8px -8px 16px rgba(70, 75, 85, 0.1);
   --shadow-dark-inner: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
@@ -36,7 +49,7 @@
                          inset -6px -6px 12px rgba(70, 75, 85, 0.03);
   
   /* ============================================
-     SEMANTIC COLORS
+     SEMANTIC COLORS (Default: Oatmeal)
      ============================================ */
   --accent-primary: var(--sage-green);
   --accent-secondary: var(--midnight-moss);
@@ -81,24 +94,8 @@
   --font-weight-bold: 700;
 }
 
-/* ============================================
-   DARK MODE OVERRIDES
-   ============================================ */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: var(--deep-charcoal);
-    --surface: var(--warm-ebony);
-    --text-primary: var(--text-primary-dark);
-    --text-secondary: var(--text-secondary-dark);
-    --shadow-outer: var(--shadow-dark-outer);
-    --shadow-inner: var(--shadow-dark-inner);
-    --shadow-pressed: var(--shadow-dark-pressed);
-    --accent-primary: var(--midnight-moss);
-  }
-}
-
-/* Manual dark mode toggle */
-[data-theme="dark"] {
+/* Theme: Dark / Charcoal */
+[data-theme="dark"], [data-theme="charcoal"] {
   --background: var(--deep-charcoal);
   --surface: var(--warm-ebony);
   --text-primary: var(--text-primary-dark);
@@ -107,6 +104,44 @@
   --shadow-inner: var(--shadow-dark-inner);
   --shadow-pressed: var(--shadow-dark-pressed);
   --accent-primary: var(--midnight-moss);
+}
+
+/* Theme: Clay */
+[data-theme="clay"] {
+  --background: var(--clay-bg);
+  --surface: var(--clay-surface);
+  --text-primary: #5D4037;
+  --text-secondary: #8D6E63;
+  --accent-primary: var(--clay-accent);
+
+  --shadow-outer: 8px 8px 16px rgba(141, 110, 99, 0.15),
+                  -8px -8px 16px rgba(255, 255, 255, 0.6);
+  --shadow-inner: inset 4px 4px 8px rgba(141, 110, 99, 0.1),
+                  inset -4px -4px 8px rgba(255, 255, 255, 0.4);
+}
+
+/* Theme: Ocean */
+[data-theme="ocean"] {
+  --background: var(--ocean-bg);
+  --surface: var(--ocean-surface);
+  --text-primary: #37474F;
+  --text-secondary: #607D8B;
+  --accent-primary: var(--ocean-accent);
+
+  --shadow-outer: 8px 8px 16px rgba(84, 110, 122, 0.15),
+                  -8px -8px 16px rgba(255, 255, 255, 0.7);
+}
+
+/* Theme: Forest */
+[data-theme="forest"] {
+  --background: var(--forest-bg);
+  --surface: var(--forest-surface);
+  --text-primary: #2E3B2F;
+  --text-secondary: #5E715F;
+  --accent-primary: var(--forest-accent);
+
+  --shadow-outer: 8px 8px 16px rgba(94, 113, 95, 0.15),
+                  -8px -8px 16px rgba(255, 255, 255, 0.6);
 }
 
 /* ============================================
