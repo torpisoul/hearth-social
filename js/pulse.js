@@ -29,7 +29,7 @@ function loadPulses() {
 
 // Sample pulses for demonstration
 function getSamplePulses() {
-    const currentUser = getCurrentUser();
+    const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
     const displayName = currentUser ? currentUser.displayName : 'You';
 
     return [
@@ -73,7 +73,7 @@ function renderPulses() {
     pulseFeed.innerHTML = '';
 
     if (pulses.length === 0) {
-        pulseFeed.appendChild(caughtUp);
+        if (caughtUp) pulseFeed.appendChild(caughtUp);
         return;
     }
 
@@ -86,7 +86,7 @@ function renderPulses() {
     });
 
     // Add caught-up message at the end
-    pulseFeed.appendChild(caughtUp);
+    if (caughtUp) pulseFeed.appendChild(caughtUp);
 }
 
 // Create pulse HTML element
@@ -179,15 +179,20 @@ function initializePulseForm() {
 async function handleNewPulse(e) {
     e.preventDefault();
 
-    const content = document.getElementById('pulse-content').value.trim();
-    const visibility = document.getElementById('pulse-visibility').value;
+    const contentInput = document.getElementById('pulse-content');
+    const visibilityInput = document.getElementById('pulse-visibility');
+
+    if (!contentInput || !visibilityInput) return;
+
+    const content = contentInput.value.trim();
+    const visibility = visibilityInput.value;
 
     if (!content) {
         alert('Please write something to share.');
         return;
     }
 
-    const currentUser = getCurrentUser();
+    const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
     const displayName = currentUser ? currentUser.displayName : 'Anonymous';
 
     const newPulse = {
@@ -210,8 +215,11 @@ async function handleNewPulse(e) {
     renderPulses();
 
     // Close modal and reset form
-    document.getElementById('new-pulse-modal').classList.remove('active');
-    document.getElementById('new-pulse-form').reset();
+    const modal = document.getElementById('new-pulse-modal');
+    const form = document.getElementById('new-pulse-form');
+
+    if (modal) modal.classList.remove('active');
+    if (form) form.reset();
 
     console.log('New pulse created:', newPulse);
 }
@@ -261,3 +269,14 @@ function respondToPulse(pulseId) {
     // Navigate to Parlor
     window.location.href = 'parlor.html';
 }
+
+// Export and attach to window
+window.handleNewPulse = handleNewPulse;
+window.acknowledgePulse = acknowledgePulse;
+window.respondToPulse = respondToPulse;
+window.renderPulses = renderPulses;
+window.createPulseElement = createPulseElement;
+window.getRelativeTime = getRelativeTime;
+window.escapeHtml = escapeHtml;
+
+export { handleNewPulse, acknowledgePulse, respondToPulse, renderPulses, createPulseElement, getRelativeTime, escapeHtml, loadPulses };

@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Load user profile
 function loadProfile() {
-    const user = getCurrentUser();
+    const user = window.getCurrentUser ? window.getCurrentUser() : null;
 
     if (!user) {
         window.location.href = 'index.html';
@@ -34,7 +34,7 @@ function loadProfile() {
 
 // Initialize privacy controls
 function initializePrivacyControls() {
-    const user = getCurrentUser();
+    const user = window.getCurrentUser ? window.getCurrentUser() : null;
     if (!user) return;
 
     // Backend returns privacySettings, frontend logic used privacy. Standardize on privacySettings.
@@ -63,7 +63,7 @@ function initializePrivacyControls() {
 
 // Save privacy setting
 async function savePrivacySetting(key, value) {
-    const user = getCurrentUser();
+    const user = window.getCurrentUser ? window.getCurrentUser() : null;
     if (!user) return;
 
     if (!user.privacySettings) user.privacySettings = user.privacy || {};
@@ -100,7 +100,7 @@ async function savePrivacySetting(key, value) {
 
 // Initialize life updates
 function initializeLifeUpdates() {
-    const user = getCurrentUser();
+    const user = window.getCurrentUser ? window.getCurrentUser() : null;
     if (!user) return;
 
     const lifeUpdates = user.lifeUpdates || {};
@@ -134,7 +134,7 @@ function initializeLifeUpdates() {
 
 // Save life updates
 async function saveLifeUpdates() {
-    const user = getCurrentUser();
+    const user = window.getCurrentUser ? window.getCurrentUser() : null;
     if (!user) return;
 
     // Get values
@@ -227,7 +227,7 @@ function initializeHearthKey() {
 
 // Copy Hearth Key
 function copyHearthKey() {
-    const user = getCurrentUser();
+    const user = window.getCurrentUser ? window.getCurrentUser() : null;
     if (!user) return;
 
     const hearthKey = user.hearthKey;
@@ -257,7 +257,7 @@ function showCopyFeedback() {
 
 // Show QR Code
 function showQRCode() {
-    const user = getCurrentUser();
+    const user = window.getCurrentUser ? window.getCurrentUser() : null;
     if (!user || !user.hearthKey) return;
 
     const qrContainer = document.getElementById('qr-code');
@@ -420,3 +420,26 @@ function initializeLogout() {
         });
     }
 }
+
+// Export and attach to window
+window.loadProfile = loadProfile;
+window.initializeLifeUpdates = initializeLifeUpdates;
+window.saveLifeUpdates = saveLifeUpdates;
+window.savePrivacySetting = savePrivacySetting;
+window.copyHearthKey = copyHearthKey;
+window.initializeKinManagement = initializeKinManagement;
+window.addKin = addKin;
+window.showQRCode = showQRCode;
+window.initializeSettings = initializeSettings;
+
+export {
+    loadProfile,
+    initializeLifeUpdates,
+    saveLifeUpdates,
+    savePrivacySetting,
+    copyHearthKey,
+    initializeKinManagement,
+    addKin,
+    showQRCode,
+    initializeSettings
+};
