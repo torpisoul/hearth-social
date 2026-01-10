@@ -60,7 +60,7 @@ function loadConversations() {
 
 // Sample conversations for demo
 function getSampleConversations() {
-    const currentUser = getCurrentUser();
+    const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
     const userName = currentUser ? currentUser.displayName : 'You';
 
     return [
@@ -145,7 +145,7 @@ function createConversationListItem(conv) {
     div.onclick = () => openConversation(conv.id);
 
     const otherParticipants = conv.participantNames.filter(name => {
-        const currentUser = getCurrentUser();
+        const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
         return name !== (currentUser ? currentUser.displayName : 'You');
     });
 
@@ -184,19 +184,24 @@ function openConversation(conversationId) {
     saveConversations();
 
     // Switch views
-    document.getElementById('conversations-view').style.display = 'none';
-    document.getElementById('conversation-view').style.display = 'block';
+    const conversationsView = document.getElementById('conversations-view');
+    const conversationView = document.getElementById('conversation-view');
+
+    if (conversationsView) conversationsView.style.display = 'none';
+    if (conversationView) conversationView.style.display = 'block';
 
     // Update header
     const otherParticipants = conversation.participantNames.filter(name => {
-        const currentUser = getCurrentUser();
+        const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
         return name !== (currentUser ? currentUser.displayName : 'You');
     });
 
     const displayName = conversation.name || otherParticipants.join(', ');
-    document.getElementById('conversation-name').textContent = displayName;
-    document.getElementById('conversation-participants').textContent =
-        `${conversation.participants.length} participant${conversation.participants.length > 1 ? 's' : ''}`;
+    const nameEl = document.getElementById('conversation-name');
+    const partsEl = document.getElementById('conversation-participants');
+
+    if (nameEl) nameEl.textContent = displayName;
+    if (partsEl) partsEl.textContent = `${conversation.participants.length} participant${conversation.participants.length > 1 ? 's' : ''}`;
 
     // Render messages
     renderMessages(conversation);
@@ -215,7 +220,7 @@ function renderMessages(conversation) {
     const container = document.getElementById('messages-container');
     if (!container) return;
 
-    const currentUser = getCurrentUser();
+    const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
     const currentUserId = 'current-user';
 
     container.innerHTML = '';
@@ -303,6 +308,8 @@ function initializeMessageForm() {
 function sendMessage(mediaUrl = null) {
     const input = document.getElementById('message-input');
     const expirationSelect = document.getElementById('media-expiration');
+    if (!input) return;
+
     const content = input.value.trim();
 
     if (!content && !mediaUrl) return;
@@ -326,7 +333,7 @@ function sendMessage(mediaUrl = null) {
         }
     }
 
-    const currentUser = getCurrentUser();
+    const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
     const newMessage = {
         id: `msg-${Date.now()}`,
         senderId: 'current-user',
@@ -396,7 +403,7 @@ function createNewConversation() {
     const nameInput = document.getElementById('conversation-name-input');
     const conversationName = nameInput?.value.trim() || null;
 
-    const currentUser = getCurrentUser();
+    const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
     const participants = ['current-user', ...selectedKin];
     const participantNames = [
         currentUser ? currentUser.displayName : 'You',
@@ -446,7 +453,7 @@ function checkPulseResponseContext() {
 
         if (!conversation) {
             // Create new 1-on-1 conversation
-            const currentUser = getCurrentUser();
+            const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
             conversation = {
                 id: `conv-${Date.now()}`,
                 participants: ['current-user', authorId],
@@ -498,3 +505,12 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// Export and attach to window
+window.sendMessage = sendMessage;
+window.openConversation = openConversation;
+window.createConversationListItem = createConversationListItem;
+window.checkPulseResponseContext = checkPulseResponseContext;
+window.createNewConversation = createNewConversation;
+
+export { sendMessage, openConversation, createConversationListItem, checkPulseResponseContext, loadConversations, createNewConversation };

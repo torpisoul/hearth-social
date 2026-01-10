@@ -17,7 +17,7 @@ function checkAuth() {
 
     if (!isAuthenticated || isAuthenticated !== 'true') {
         // Redirect to landing page if not authenticated
-        window.location.href = 'index.html';
+        window.navigate('index.html');
         return false;
     }
 
@@ -87,7 +87,12 @@ function logout() {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('hearthUser');
     localStorage.removeItem('hearthKey');
-    window.location.href = 'index.html';
+    window.navigate('index.html');
+}
+
+// Navigation Helper (for testability)
+function navigate(url) {
+    window.location.href = url;
 }
 
 // Sunset Timer
@@ -189,3 +194,11 @@ function getCurrentUser() {
     }
     return null;
 }
+
+// Export for tests and attach to window for other scripts
+window.getCurrentUser = getCurrentUser;
+window.checkAuth = checkAuth;
+window.logout = logout;
+window.navigate = navigate;
+
+export { getCurrentUser, checkAuth, logout, initializeSunsetTimer, checkAndApplySunsetMode, navigate };
