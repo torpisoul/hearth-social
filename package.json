@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/torpisoul/hearth-social#readme",
   "dependencies": {
-    "@supabase/supabase-js": "^2.90.0",
+    "@supabase/supabase-js": "^2.90.1",
     "bcryptjs": "^3.0.3",
     "buffer": "^6.0.3",
     "dotenv": "^17.2.3",

@@ -1,18 +1,21 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { createClient } = require('@supabase/supabase-js');
 
 // Helper to generate a unique Hearth Key
 const generateHearthKey = () => {
-  // Generate a random string. For simplicity and readability, we can use a portion of a UUID
-  // or a random alphanumeric string.
   // Requirement: VARCHAR(20) UNIQUE.
-  // Let's generate a 12-char random string to be safe and short enough.
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 12; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  // Format: HEARTH-XXXX-XXXX (16 chars)
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const segments = [];
+  for (let i = 0; i < 2; i++) {
+    let segment = '';
+    for (let j = 0; j < 4; j++) {
+      segment += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    segments.push(segment);
   }
-  return result;
+  return `HEARTH-${segments.join('-')}`;
 };
 
 // Main logic decoupled from handler
@@ -35,7 +38,7 @@ const authLogic = async (event, supabase) => {
 
   try {
     if (path.endsWith('/register') && method === 'POST') {
-      const { email, password, displayName } = JSON.parse(event.body);
+      const { email, password, displayName, hearthKey: providedHearthKey, privacySettings } = JSON.parse(event.body);
 
       // Validation
       if (!email || !password || !displayName) {
@@ -69,11 +72,18 @@ const authLogic = async (event, supabase) => {
         };
       }
 
-      // Generate Hearth Key
-      let hearthKey = generateHearthKey();
-      // Ideally we check uniqueness, but for simplicity we assume collision is rare enough
-      // or DB will throw error and we catch it.
-      // A retry loop could be added here.
+      // Use provided key or generate new one
+      const hearthKey = providedHearthKey || generateHearthKey();
+
+      // Use provided privacy settings or default
+      const finalPrivacySettings = privacySettings || {
+          discoverable: false,
+          readReceipts: false,
+          jobVisibility: "private",
+          locationVisibility: "private",
+          relationshipVisibility: "private",
+          cloudBackup: false
+      };
 
       // Hash password
       const passwordHash = await bcrypt.hash(password, 10);
@@ -87,14 +97,7 @@ const authLogic = async (event, supabase) => {
             password_hash: passwordHash,
             display_name: displayName,
             hearth_key: hearthKey,
-            privacy_settings: {
-                discoverable: false,
-                readReceipts: false,
-                jobVisibility: "private",
-                locationVisibility: "private",
-                relationshipVisibility: "private",
-                cloudBackup: false
-            }
+            privacy_settings: finalPrivacySettings
           }
         ])
         .select()
@@ -105,7 +108,7 @@ const authLogic = async (event, supabase) => {
         return {
           statusCode: 500,
           headers,
-          body: JSON.stringify({ error: 'Failed to create user' })
+          body: JSON.stringify({ error: `Failed to create user: ${createError.message} - ${createError.details || ''}` })
         };
       }
 
@@ -195,6 +198,72 @@ const authLogic = async (event, supabase) => {
         headers,
         body: JSON.stringify({ message: 'Logged out successfully' })
       };
+    } else if (path.endsWith('/user') && method === 'PATCH') {
+      // Verify token
+      const authHeader = event.headers.authorization || event.headers.Authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ error: 'Missing or invalid authorization header' })
+        };
+      }
+
+      const token = authHeader.split(' ')[1];
+      let decoded;
+      try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+      } catch (err) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ error: 'Invalid token' })
+        };
+      }
+
+      const { displayName, privacySettings } = JSON.parse(event.body);
+      const updates = {};
+      if (displayName) updates.display_name = displayName;
+      if (privacySettings) updates.privacy_settings = privacySettings;
+
+      if (Object.keys(updates).length === 0) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'No updates provided' })
+        };
+      }
+
+      const { data: updatedUser, error: updateError } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', decoded.userId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Update User Error:', updateError);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Failed to update user' })
+        };
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          user: {
+            id: updatedUser.id,
+            email: updatedUser.email,
+            displayName: updatedUser.display_name,
+            hearthKey: updatedUser.hearth_key,
+            privacySettings: updatedUser.privacy_settings
+          }
+        })
+      };
+
     } else {
       return {
         statusCode: 404,
@@ -207,7 +276,7 @@ const authLogic = async (event, supabase) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Internal Server Error' })
+      body: JSON.stringify({ error: `Internal Server Error: ${error.message}` })
     };
   }
 };
@@ -215,6 +284,31 @@ const authLogic = async (event, supabase) => {
 exports.authLogic = authLogic;
 
 exports.handler = async (event, context) => {
-  const supabase = require('./lib/supabase');
-  return authLogic(event, supabase);
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+        console.error('Missing Supabase Configuration');
+        return {
+            statusCode: 500,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ error: 'Configuration Error: Missing SUPABASE_URL or SUPABASE_SERVICE_KEY' })
+        };
+    }
+
+    try {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        return await authLogic(event, supabase);
+    } catch (err) {
+        console.error('Supabase Initialization Error:', err);
+        return {
+            statusCode: 500,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ error: `Initialization Error: ${err.message}` })
+        };
+    }
 };

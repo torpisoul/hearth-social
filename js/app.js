@@ -1,17 +1,7 @@
 // Main App Logic
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize theme from localStorage
-    const theme = localStorage.getItem('theme');
-    const darkModeEnabled = localStorage.getItem('darkModeEnabled') === 'true';
-
-    if (theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-    } else if (darkModeEnabled) {
-        // Migration path for legacy dark mode setting
-        document.documentElement.setAttribute('data-theme', 'charcoal');
-        localStorage.setItem('theme', 'charcoal');
-    }
+    // Theme initialization is now handled by js/theme-init.js to prevent flash of wrong theme
 
     // Check authentication
     checkAuth();

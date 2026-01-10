@@ -1,7 +1,12 @@
-require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
-const { Client } = require('pg');
+import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import pkg from 'pg';
+const { Client } = pkg;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function setupDatabase() {
   const mdPath = path.join(__dirname, '..', 'SUPABASE_SETUP.md');
@@ -22,8 +27,8 @@ async function setupDatabase() {
 
   // If we are running in a test environment (e.g. pg-mem), we skip the real connection
   if (process.env.TEST_MODE === 'true') {
-     console.log('Running in TEST_MODE, skipping real DB connection.');
-     return sqlBlocks;
+    console.log('Running in TEST_MODE, skipping real DB connection.');
+    return sqlBlocks;
   }
 
   if (!process.env.DATABASE_URL) {
@@ -35,7 +40,9 @@ async function setupDatabase() {
 
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false } // Supabase requires SSL
+    ssl: { rejectUnauthorized: false }, // Supabase requires SSL
+    // Force IPv4 to avoid IPv6 DNS issues
+    options: '-c search_path=public',
   });
 
   try {
@@ -61,9 +68,15 @@ async function setupDatabase() {
 }
 
 // Export for testing
-module.exports = { setupDatabase };
+export { setupDatabase };
 
-// Run if called directly
-if (require.main === module) {
-  setupDatabase();
+// Run if called directly (ES module compatible check)
+if (import.meta.url.startsWith('file:')) {
+  const modulePath = fileURLToPath(import.meta.url);
+  const scriptPath = process.argv[1];
+
+  if (modulePath === scriptPath || path.resolve(modulePath) === path.resolve(scriptPath)) {
+    setupDatabase();
+  }
 }
+

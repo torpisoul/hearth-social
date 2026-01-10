@@ -37,7 +37,8 @@ function initializePrivacyControls() {
     const user = getCurrentUser();
     if (!user) return;
 
-    const privacy = user.privacy || {};
+    // Backend returns privacySettings, frontend logic used privacy. Standardize on privacySettings.
+    const privacy = user.privacySettings || user.privacy || {};
 
     // Set toggle states
     const discoverableToggle = document.getElementById('setting-discoverable');
@@ -61,15 +62,40 @@ function initializePrivacyControls() {
 }
 
 // Save privacy setting
-function savePrivacySetting(key, value) {
+async function savePrivacySetting(key, value) {
     const user = getCurrentUser();
     if (!user) return;
 
-    if (!user.privacy) user.privacy = {};
-    user.privacy[key] = value;
+    if (!user.privacySettings) user.privacySettings = user.privacy || {};
+    user.privacySettings[key] = value;
+    // Keep legacy field if needed for other scripts, or clean it up.
+    user.privacy = user.privacySettings;
 
     localStorage.setItem('hearthUser', JSON.stringify(user));
     console.log('Privacy setting saved:', key, value);
+
+    // Persist to backend
+    const token = localStorage.getItem('hearthToken');
+    if (!token) return;
+
+    try {
+        const response = await fetch('/api/auth/user', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                privacySettings: user.privacySettings
+            })
+        });
+
+        if (!response.ok) {
+            console.error('Failed to sync privacy settings with backend');
+        }
+    } catch (error) {
+        console.error('Error syncing privacy settings:', error);
+    }
 }
 
 // Initialize life updates
@@ -93,7 +119,7 @@ function initializeLifeUpdates() {
     const locationVisibility = document.getElementById('location-visibility');
     const relationshipVisibility = document.getElementById('relationship-visibility');
 
-    const privacy = user.privacy || {};
+    const privacy = user.privacySettings || user.privacy || {};
 
     if (jobVisibility) jobVisibility.value = privacy.jobVisibility || 'private';
     if (locationVisibility) locationVisibility.value = privacy.locationVisibility || 'private';
@@ -107,7 +133,7 @@ function initializeLifeUpdates() {
 }
 
 // Save life updates
-function saveLifeUpdates() {
+async function saveLifeUpdates() {
     const user = getCurrentUser();
     if (!user) return;
 
@@ -123,10 +149,12 @@ function saveLifeUpdates() {
 
     // Save to user object
     user.lifeUpdates = { job, location, relationship };
-    user.privacy = user.privacy || {};
-    user.privacy.jobVisibility = jobVisibility;
-    user.privacy.locationVisibility = locationVisibility;
-    user.privacy.relationshipVisibility = relationshipVisibility;
+    user.privacySettings = user.privacySettings || user.privacy || {};
+    user.privacySettings.jobVisibility = jobVisibility;
+    user.privacySettings.locationVisibility = locationVisibility;
+    user.privacySettings.relationshipVisibility = relationshipVisibility;
+    // Keep sync
+    user.privacy = user.privacySettings;
 
     localStorage.setItem('hearthUser', JSON.stringify(user));
 
@@ -135,6 +163,32 @@ function saveLifeUpdates() {
     const originalText = saveBtn.textContent;
     saveBtn.textContent = '✓ Saved!';
     saveBtn.classList.add('btn-primary');
+
+    // Persist to backend
+    const token = localStorage.getItem('hearthToken');
+    if (token) {
+        try {
+            // Include lifeUpdates data in privacySettings to persist it
+            user.privacySettings.lifeUpdatesData = user.lifeUpdates;
+
+            const response = await fetch('/api/auth/user', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    privacySettings: user.privacySettings
+                })
+            });
+
+            if (!response.ok) {
+                console.error('Failed to sync life updates with backend');
+            }
+        } catch (error) {
+            console.error('Error syncing life updates:', error);
+        }
+    }
 
     setTimeout(() => {
         saveBtn.textContent = originalText;
@@ -285,7 +339,7 @@ function addKin() {
 // Initialize additional settings
 function initializeSettings() {
     const sunsetToggle = document.getElementById('setting-sunset-timer');
-    const themeSelect = document.getElementById('setting-theme');
+    const darkModeToggle = document.getElementById('setting-dark-mode');
 
     // Sunset Timer
     if (sunsetToggle) {
@@ -320,26 +374,32 @@ function initializeSettings() {
         });
     }
 
-    // Theme Selection
+    // Theme Selector
+    const themeSelect = document.getElementById('setting-theme');
     if (themeSelect) {
-        // Check current theme
-        const currentTheme = localStorage.getItem('theme') || 'oatmeal';
-        themeSelect.value = currentTheme;
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'oatmeal';
+        themeSelect.value = savedTheme;
+
+        // Apply if not already applied (though theme-init.js handles this mostly)
+        // If savedTheme is oatmeal, we don't set data-theme usually, but explicit is fine.
+        if (savedTheme !== 'oatmeal') {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+        }
 
         themeSelect.addEventListener('change', (e) => {
-            const selectedTheme = e.target.value;
+            const theme = e.target.value;
+            localStorage.setItem('theme', theme);
 
-            // Apply theme
-            document.documentElement.setAttribute('data-theme', selectedTheme);
+            // Clear legacy
+            localStorage.removeItem('darkModeEnabled');
 
-            // Save preference
-            localStorage.setItem('theme', selectedTheme);
-
-            // Maintain backward compatibility for now
-            if (selectedTheme === 'charcoal' || selectedTheme === 'forest') {
-                localStorage.setItem('darkModeEnabled', 'true');
+            if (theme === 'oatmeal') {
+                document.documentElement.removeAttribute('data-theme');
             } else {
-                localStorage.setItem('darkModeEnabled', 'false');
+                document.documentElement.setAttribute('data-theme', theme);
             }
         });
     }
