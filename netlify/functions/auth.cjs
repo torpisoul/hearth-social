@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { createClient } = require('@supabase/supabase-js');
+const { supabase } = require('./utils/supabase');
 
 // Helper to generate a unique Hearth Key
 const generateHearthKey = () => {
@@ -284,10 +284,5 @@ const authLogic = async (event, supabase) => {
 exports.authLogic = authLogic;
 
 exports.handler = async (event, context) => {
-    // Revert to using required client or creating one here.
-    const supabase = createClient(
-        process.env.SUPABASE_URL || 'https://example.supabase.co',
-        process.env.SUPABASE_SERVICE_KEY || 'example-key'
-    );
     return authLogic(event, supabase);
 };
