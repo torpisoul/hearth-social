@@ -108,7 +108,7 @@ const authLogic = async (event, supabase) => {
         return {
           statusCode: 500,
           headers,
-          body: JSON.stringify({ error: 'Failed to create user' })
+          body: JSON.stringify({ error: `Failed to create user: ${createError.message} - ${createError.details || ''}` })
         };
       }
 
