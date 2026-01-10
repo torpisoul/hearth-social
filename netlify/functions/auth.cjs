@@ -284,9 +284,31 @@ const authLogic = async (event, supabase) => {
 exports.authLogic = authLogic;
 
 exports.handler = async (event, context) => {
-    const supabase = createClient(
-        process.env.SUPABASE_URL || 'https://example.supabase.co',
-        process.env.SUPABASE_SERVICE_KEY || 'example-key'
-    );
-    return authLogic(event, supabase);
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+        console.error('Missing Supabase Configuration');
+        return {
+            statusCode: 500,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ error: 'Configuration Error: Missing SUPABASE_URL or SUPABASE_SERVICE_KEY' })
+        };
+    }
+
+    try {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        return await authLogic(event, supabase);
+    } catch (err) {
+        console.error('Supabase Initialization Error:', err);
+        return {
+            statusCode: 500,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ error: `Initialization Error: ${err.message}` })
+        };
+    }
 };
