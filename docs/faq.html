@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - Hearth Docs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles/design-system.css">
+    <link rel="stylesheet" href="../styles/components.css">
+    <link rel="stylesheet" href="../styles/app.css">
+    <link rel="stylesheet" href="../styles/dark-mode.css">
+    <script src="../js/theme-init.js"></script>
+    <style>
+        .faq-item {
+            margin-bottom: var(--spacing-lg);
+        }
+        .faq-question {
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+            color: var(--text-primary);
+        }
+        .faq-answer {
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <h1 class="nav-logo">🌿 Hearth Docs</h1>
+        </div>
+        <div class="nav-right">
+            <a href="index.html" class="btn btn-small">Back to Docs</a>
+        </div>
+    </nav>
+
+    <main class="app-main content-padding">
+        <div class="container-narrow">
+            <h2 class="section-title">Frequently Asked Questions</h2>
+
+            <div class="card">
+                <div class="faq-item">
+                    <div class="faq-question">How do I change my theme?</div>
+                    <div class="faq-answer">Go to your Profile and scroll down to "Additional Settings". Use the dropdown menu under "Theme" to select from options like Oatmeal, Clay, Ocean, Forest, or Charcoal.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I delete a Pulse?</div>
+                    <div class="faq-answer">Currently, Pulses are designed to be transient. They may expire or be pushed down by new updates. Manual deletion is a feature planned for the future.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">What is the "Sunset Timer"?</div>
+                    <div class="faq-answer">The Sunset Timer allows you to set specific hours during which the app interface will dim, helping you wind down in the evening and reducing blue light exposure.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Is my data secure?</div>
+                    <div class="faq-answer">Yes. We prioritize your privacy. Your data is stored securely, and we do not sell your information to advertisers. You have full control over who sees your profile updates.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do I remove a Kin connection?</div>
+                    <div class="faq-answer">Go to your Profile, find the person in your "My Kin" list, and click the "Remove" button on their card.</div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
