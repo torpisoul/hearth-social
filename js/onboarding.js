@@ -196,12 +196,46 @@ async function completeOnboarding() {
 
     console.log('Onboarding complete! User data:', userData);
 
-    // TODO: Send complete user data to Supabase via Netlify Function
-    // For now, store in localStorage as temporary solution
-    localStorage.setItem('hearthUser', JSON.stringify(userData));
-    localStorage.setItem('hearthKey', userData.hearthKey);
-    localStorage.setItem('isAuthenticated', 'true');
+    // Send complete user data to Supabase via Netlify Function
+    const submitBtn = document.querySelector('button[onclick="completeOnboarding()"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Creating Account...';
+    submitBtn.disabled = true;
 
-    // Redirect to main app
-    window.location.href = 'app.html';
+    try {
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email: userData.email,
+                password: userData.password,
+                displayName: userData.displayName,
+                hearthKey: userData.hearthKey,
+                privacySettings: userData.privacy
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Registration failed');
+        }
+
+        // Store user data and token
+        localStorage.setItem('hearthUser', JSON.stringify(data.user));
+        localStorage.setItem('hearthKey', data.user.hearthKey);
+        localStorage.setItem('hearthToken', data.token);
+        localStorage.setItem('isAuthenticated', 'true');
+
+        // Redirect to main app
+        window.location.href = 'app.html';
+
+    } catch (error) {
+        console.error('Registration error:', error);
+        alert('Failed to create account: ' + error.message);
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }
 }
