@@ -183,3 +183,102 @@ body.sunset-active::after {
   pointer-events: none;
   z-index: 9998;
 }
+
+/* ============================================
+   ADDITIONAL THEMES
+   ============================================ */
+
+/* OATMEAL (Default Light) */
+[data-theme="oatmeal"] {
+  --background: var(--oatmeal);
+  --surface: var(--warm-white);
+  --text-primary: var(--text-primary-light);
+  --text-secondary: var(--text-secondary-light);
+  --accent-primary: var(--sage-green);
+
+  --shadow-outer: var(--shadow-light-outer);
+  --shadow-inner: var(--shadow-light-inner);
+  --shadow-pressed: var(--shadow-light-pressed);
+}
+
+/* CLAY (Warm Earth) */
+[data-theme="clay"] {
+  /* Colors */
+  --clay-bg: #E6DDD0;
+  --clay-surface: #F5F0E6;
+  --clay-accent: #C78665; /* Terracotta */
+  --clay-text: #4A3B32;
+
+  --background: var(--clay-bg);
+  --surface: var(--clay-surface);
+  --text-primary: var(--clay-text);
+  --text-secondary: #7D6B5D;
+  --accent-primary: var(--clay-accent);
+
+  /* Shadows for #E6DDD0 */
+  --shadow-outer: 8px 8px 16px rgba(189, 178, 163, 0.3),
+                  -8px -8px 16px rgba(255, 255, 255, 0.6);
+  --shadow-inner: inset 4px 4px 8px rgba(189, 178, 163, 0.2),
+                  inset -4px -4px 8px rgba(255, 255, 255, 0.5);
+  --shadow-pressed: inset 6px 6px 12px rgba(189, 178, 163, 0.25),
+                    inset -6px -6px 12px rgba(255, 255, 255, 0.4);
+}
+
+/* OCEAN (Cool Earth) */
+[data-theme="ocean"] {
+  /* Colors */
+  --ocean-bg: #E3E9EA;
+  --ocean-surface: #F0F7F7;
+  --ocean-accent: #6B9AA2; /* Muted Teal */
+  --ocean-text: #2C3E42;
+
+  --background: var(--ocean-bg);
+  --surface: var(--ocean-surface);
+  --text-primary: var(--ocean-text);
+  --text-secondary: #5C7075;
+  --accent-primary: var(--ocean-accent);
+
+  /* Shadows for #E3E9EA */
+  --shadow-outer: 8px 8px 16px rgba(163, 177, 180, 0.35),
+                  -8px -8px 16px rgba(255, 255, 255, 0.8);
+  --shadow-inner: inset 4px 4px 8px rgba(163, 177, 180, 0.25),
+                  inset -4px -4px 8px rgba(255, 255, 255, 0.6);
+  --shadow-pressed: inset 6px 6px 12px rgba(163, 177, 180, 0.3),
+                    inset -6px -6px 12px rgba(255, 255, 255, 0.5);
+}
+
+/* CHARCOAL (Default Dark) */
+[data-theme="charcoal"] {
+  --background: var(--deep-charcoal);
+  --surface: var(--warm-ebony);
+  --text-primary: var(--text-primary-dark);
+  --text-secondary: var(--text-secondary-dark);
+  --accent-primary: var(--midnight-moss);
+
+  --shadow-outer: var(--shadow-dark-outer);
+  --shadow-inner: var(--shadow-dark-inner);
+  --shadow-pressed: var(--shadow-dark-pressed);
+}
+
+/* FOREST (Deep Green Dark) */
+[data-theme="forest"] {
+  /* Colors */
+  --forest-bg: #1C2621;
+  --forest-surface: #25332C;
+  --forest-accent: #5D8C71;
+  --forest-text: #E3E8E5;
+
+  --background: var(--forest-bg);
+  --surface: var(--forest-surface);
+  --text-primary: var(--forest-text);
+  --text-secondary: #9AA69F;
+  --accent-primary: var(--forest-accent);
+
+  /* Shadows for #1C2621 */
+  --shadow-outer: 8px 8px 16px rgba(0, 0, 0, 0.4),
+                  -8px -8px 16px rgba(45, 60, 52, 0.1);
+  --shadow-inner: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
+                  inset -4px -4px 8px rgba(45, 60, 52, 0.05);
+  --shadow-pressed: inset 6px 6px 12px rgba(0, 0, 0, 0.5),
+                    inset -6px -6px 12px rgba(45, 60, 52, 0.03);
+}
