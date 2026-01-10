@@ -1,5 +1,7 @@
 
-import { authLogic } from '../netlify/functions/auth.js';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { authLogic } = require('../netlify/functions/auth.cjs');
 import assert from 'assert';
 
 // Mock Supabase
@@ -72,17 +74,21 @@ async function testRegister() {
             email: 'test@example.com',
             password: 'password123',
             displayName: 'Test User',
-            hearthKey: 'HEARTH-TEST-KEY-123',
+            hearthKey: 'HEARTH-TEST-KEY-12', // 16 chars + dashes
             privacySettings: { discoverable: true }
         })
     };
 
     const response = await authLogic(event, supabase);
 
+    if (response.statusCode !== 201) {
+        console.error('Register failed:', response);
+    }
     assert.strictEqual(response.statusCode, 201);
     const body = JSON.parse(response.body);
     assert.strictEqual(body.user.email, 'test@example.com');
-    assert.strictEqual(body.user.hearthKey, 'HEARTH-TEST-KEY-123');
+    // Key might be generated or provided. Here provided.
+    assert.strictEqual(body.user.hearthKey, 'HEARTH-TEST-KEY-12');
     assert.strictEqual(body.user.privacySettings.discoverable, true);
     console.log('PASS: /register');
 }

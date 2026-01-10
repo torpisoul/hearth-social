@@ -1,6 +1,6 @@
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import { createClient } from '@supabase/supabase-js';
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const { createClient } = require('@supabase/supabase-js');
 
 // Helper to generate a unique Hearth Key
 const generateHearthKey = () => {
@@ -19,7 +19,7 @@ const generateHearthKey = () => {
 };
 
 // Main logic decoupled from handler
-export const authLogic = async (event, supabase) => {
+const authLogic = async (event, supabase) => {
   const path = event.path || '';
   const method = event.httpMethod;
   const headers = {
@@ -281,18 +281,10 @@ export const authLogic = async (event, supabase) => {
   }
 };
 
-export const handler = async (event, context) => {
-    // In ESM, we can't use require inside function easily unless we use createRequire,
-    // but better to import at top level if possible.
-    // However, netlify functions might need to be self-contained.
-    // We will import supabase here or use a helper.
-    // Since we converted to ESM, we should use import.
-    // But dynamic import is async.
+exports.authLogic = authLogic;
 
-    // We'll reimplement the supabase client creation here to avoid dependency on ./lib/supabase.js
-    // which is likely CJS. Or we can update ./lib/supabase.js too.
-    // Let's just create the client here.
-
+exports.handler = async (event, context) => {
+    // Revert to using required client or creating one here.
     const supabase = createClient(
         process.env.SUPABASE_URL || 'https://example.supabase.co',
         process.env.SUPABASE_SERVICE_KEY || 'example-key'
