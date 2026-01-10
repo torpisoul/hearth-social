@@ -1,10 +1,16 @@
 // Main App Logic
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize dark mode from localStorage
+    // Initialize theme from localStorage
+    const theme = localStorage.getItem('theme');
     const darkModeEnabled = localStorage.getItem('darkModeEnabled') === 'true';
-    if (darkModeEnabled) {
-        document.documentElement.setAttribute('data-theme', 'dark');
+
+    if (theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+    } else if (darkModeEnabled) {
+        // Migration path for legacy dark mode setting
+        document.documentElement.setAttribute('data-theme', 'charcoal');
+        localStorage.setItem('theme', 'charcoal');
     }
 
     // Check authentication

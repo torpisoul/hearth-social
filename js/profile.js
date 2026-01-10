@@ -285,7 +285,7 @@ function addKin() {
 // Initialize additional settings
 function initializeSettings() {
     const sunsetToggle = document.getElementById('setting-sunset-timer');
-    const darkModeToggle = document.getElementById('setting-dark-mode');
+    const themeSelect = document.getElementById('setting-theme');
 
     // Sunset Timer
     if (sunsetToggle) {
@@ -320,18 +320,25 @@ function initializeSettings() {
         });
     }
 
-    // Dark Mode
-    if (darkModeToggle) {
-        // Check current dark mode state
-        const darkModeEnabled = document.documentElement.getAttribute('data-theme') === 'dark';
-        darkModeToggle.checked = darkModeEnabled;
+    // Theme Selection
+    if (themeSelect) {
+        // Check current theme
+        const currentTheme = localStorage.getItem('theme') || 'oatmeal';
+        themeSelect.value = currentTheme;
 
-        darkModeToggle.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                document.documentElement.setAttribute('data-theme', 'dark');
+        themeSelect.addEventListener('change', (e) => {
+            const selectedTheme = e.target.value;
+
+            // Apply theme
+            document.documentElement.setAttribute('data-theme', selectedTheme);
+
+            // Save preference
+            localStorage.setItem('theme', selectedTheme);
+
+            // Maintain backward compatibility for now
+            if (selectedTheme === 'charcoal' || selectedTheme === 'forest') {
                 localStorage.setItem('darkModeEnabled', 'true');
             } else {
-                document.documentElement.removeAttribute('data-theme');
                 localStorage.setItem('darkModeEnabled', 'false');
             }
         });
