@@ -75,6 +75,7 @@ describe('pulse.js', () => {
         expect(getRelativeTime(now - 1000)).toBe('Just now');
         expect(getRelativeTime(now - 60000)).toBe('1 minute ago');
         expect(getRelativeTime(now - 3600000)).toBe('1 hour ago');
+        expect(getRelativeTime(now - 86400000)).toBe('1 day ago');
     });
 
     it('escapeHtml should escape special characters', () => {
@@ -131,11 +132,6 @@ describe('pulse.js', () => {
 
     it('acknowledgePulse should toggle acknowledgment', () => {
         const { acknowledgePulse, renderPulses } = pulseModule;
-
-        // We need to populate internal state of pulse.js
-        // We can do this by mocking localStorage and triggering loadPulses?
-        // Or since we can't easily access 'pulses' variable directly,
-        // we can rely on handleNewPulse to add one first.
 
         // Add a pulse first
         const event = { preventDefault: vi.fn() };

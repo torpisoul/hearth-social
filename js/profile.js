@@ -441,5 +441,7 @@ export {
     initializeKinManagement,
     addKin,
     showQRCode,
-    initializeSettings
+    initializeSettings,
+    initializePrivacyControls,
+    initializeLogout
 };
