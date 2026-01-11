@@ -54,9 +54,18 @@ describe('profile.js', () => {
                 <option value="">None</option>
             </select>
 
-            <select id="job-visibility"><option value="private">Private</option></select>
-            <select id="location-visibility"><option value="private">Private</option></select>
-            <select id="relationship-visibility"><option value="private">Private</option></select>
+            <select id="job-visibility">
+                <option value="private">Private</option>
+                <option value="all-kin">All Kin</option>
+            </select>
+            <select id="location-visibility">
+                <option value="private">Private</option>
+                <option value="all-kin">All Kin</option>
+            </select>
+            <select id="relationship-visibility">
+                <option value="private">Private</option>
+                <option value="all-kin">All Kin</option>
+            </select>
 
             <button id="save-life-updates">Save</button>
             <button id="copy-hearth-key">Copy</button>
@@ -157,5 +166,77 @@ describe('profile.js', () => {
 
         expect(global.localStorage.setItem).toHaveBeenCalledWith('theme', 'clay');
         expect(document.documentElement.getAttribute('data-theme')).toBe('clay');
+    });
+
+    it('initializeLogout should handle logout confirmation', () => {
+        const { initializeLogout } = profileModule;
+        initializeLogout();
+
+        const logoutBtn = document.getElementById('logout-btn-profile');
+        global.confirm.mockReturnValue(true);
+
+        logoutBtn.click();
+
+        expect(global.confirm).toHaveBeenCalled();
+        expect(global.localStorage.removeItem).toHaveBeenCalledWith('isAuthenticated');
+    });
+
+    it('initializeSettings should handle sunset timer updates', () => {
+        const { initializeSettings } = profileModule;
+        initializeSettings();
+
+        const startInput = document.getElementById('sunset-start');
+        startInput.value = '21:00';
+        startInput.dispatchEvent(new dom.window.Event('change'));
+
+        expect(global.localStorage.setItem).toHaveBeenCalledWith('sunsetStart', '21:00');
+
+        const toggle = document.getElementById('setting-sunset-timer');
+        toggle.checked = true;
+        toggle.dispatchEvent(new dom.window.Event('change'));
+
+        expect(global.localStorage.setItem).toHaveBeenCalledWith('sunsetTimerEnabled', true);
+    });
+
+    it('initializePrivacyControls should attach listeners', () => {
+        const { initializePrivacyControls } = profileModule;
+
+        initializePrivacyControls();
+
+        const toggle = document.getElementById('setting-read-receipts');
+        toggle.checked = true;
+        toggle.dispatchEvent(new dom.window.Event('change'));
+
+        expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('initializeKinManagement should handle modal logic', () => {
+        const { initializeKinManagement } = profileModule;
+        initializeKinManagement();
+
+        const openBtn = document.getElementById('add-kin-btn');
+        const modal = document.getElementById('add-kin-modal');
+        const closeBtn = document.getElementById('close-add-kin-modal');
+
+        openBtn.click();
+        expect(modal.classList.contains('active')).toBe(true);
+
+        closeBtn.click();
+        expect(modal.classList.contains('active')).toBe(false);
+    });
+
+    it('initializeLifeUpdates should populate inputs', () => {
+        const { initializeLifeUpdates } = profileModule;
+
+        global.window.getCurrentUser.mockReturnValue({
+            displayName: 'Test',
+            lifeUpdates: { job: 'Engineer', location: 'Home' },
+            privacySettings: { jobVisibility: 'all-kin' }
+        });
+
+        initializeLifeUpdates();
+
+        expect(document.getElementById('job-value').value).toBe('Engineer');
+        expect(document.getElementById('job-visibility').value).toBe('all-kin');
     });
 });

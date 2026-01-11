@@ -513,4 +513,4 @@ window.createConversationListItem = createConversationListItem;
 window.checkPulseResponseContext = checkPulseResponseContext;
 window.createNewConversation = createNewConversation;
 
-export { sendMessage, openConversation, createConversationListItem, checkPulseResponseContext, loadConversations, createNewConversation };
+export { sendMessage, openConversation, createConversationListItem, checkPulseResponseContext, loadConversations, createNewConversation, initializeQuietMode, renderMessages };
