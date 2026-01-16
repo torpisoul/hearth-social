@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPulses();
     initializePulseForm();
     loadAcknowledgments();
+    initializeCategoryFilters();
 });
 
 // Load pulses (from localStorage for now, will be Supabase later)
@@ -71,17 +72,47 @@ function renderPulses() {
     const pulseFeed = document.getElementById('pulse-feed');
     if (!pulseFeed) return;
 
-    // Clear existing pulses (keep caught-up message)
-    const caughtUp = document.getElementById('caught-up');
+    // Get user preferences
+    const user = window.getCurrentUser ? window.getCurrentUser() : null;
+    const preferences = user ? (user.feedPreferences || []) : [];
+
+    // Clear existing pulses
     pulseFeed.innerHTML = '';
 
-    if (pulses.length === 0) {
-        if (caughtUp) pulseFeed.appendChild(caughtUp);
+    if (preferences.length === 0) {
+        pulseFeed.innerHTML = `
+            <div class="empty-state" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                <h3>Your feed is waiting 🌱</h3>
+                <p>Select some categories above to start seeing pulses from your Kin.</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Filter pulses based on preferences
+    const showMine = preferences.some(p => p.toLowerCase() === 'mine');
+
+    const visiblePulses = pulses.filter(pulse => {
+        // Special "Mine" category logic
+        if (pulse.authorId === 'current-user') {
+            return showMine;
+        }
+
+        if (!pulse.category) return false;
+        return preferences.some(pref => pref.toLowerCase() === pulse.category.toLowerCase());
+    });
+
+    if (visiblePulses.length === 0) {
+        pulseFeed.innerHTML = `
+            <div class="empty-state" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                <p>No pulses found for your selected categories yet.</p>
+            </div>
+        `;
         return;
     }
 
     // Sort chronologically (newest first)
-    const sortedPulses = [...pulses].sort((a, b) => b.timestamp - a.timestamp);
+    const sortedPulses = [...visiblePulses].sort((a, b) => b.timestamp - a.timestamp);
 
     sortedPulses.forEach(pulse => {
         const pulseElement = createPulseElement(pulse);
@@ -89,7 +120,84 @@ function renderPulses() {
     });
 
     // Add caught-up message at the end
-    if (caughtUp) pulseFeed.appendChild(caughtUp);
+    const caughtUpDiv = document.createElement('div');
+    caughtUpDiv.className = 'caught-up-message';
+    caughtUpDiv.id = 'caught-up';
+    caughtUpDiv.innerHTML = `
+        <div class="caught-up-icon">☕</div>
+        <h3 class="caught-up-title">You're all caught up</h3>
+        <p class="caught-up-text">No more updates in these categories. Go enjoy your day! 🌿</p>
+    `;
+    pulseFeed.appendChild(caughtUpDiv);
+}
+
+// Initialize Category Filters
+function initializeCategoryFilters() {
+    renderCategoryFilters();
+}
+
+// Render Category Filters
+function renderCategoryFilters() {
+    const container = document.getElementById('category-filters');
+    if (!container) return;
+
+    const user = window.getCurrentUser ? window.getCurrentUser() : null;
+    const preferences = user ? (user.feedPreferences || []) : [];
+
+    const categories = ['Mine', 'Life', 'Tech', 'Art', 'Food', 'Nature', 'Music', 'Travel', 'Wellness', 'Politics', 'Science', 'Pet', 'Other'];
+
+    container.innerHTML = '';
+
+    categories.forEach(category => {
+        const isActive = preferences.includes(category);
+
+        const pill = document.createElement('button');
+        pill.className = `filter-pill ${isActive ? 'active' : ''}`;
+        pill.textContent = category;
+        pill.onclick = () => toggleCategoryFilter(category);
+
+        container.appendChild(pill);
+    });
+}
+
+// Toggle Category Filter
+async function toggleCategoryFilter(category) {
+    const user = window.getCurrentUser ? window.getCurrentUser() : null;
+    if (!user) return;
+
+    if (!user.feedPreferences) user.feedPreferences = [];
+
+    if (user.feedPreferences.includes(category)) {
+        user.feedPreferences = user.feedPreferences.filter(c => c !== category);
+    } else {
+        user.feedPreferences.push(category);
+    }
+
+    // Save locally
+    localStorage.setItem('hearthUser', JSON.stringify(user));
+
+    // Update UI
+    renderCategoryFilters();
+    renderPulses();
+
+    // Sync with backend
+    const token = localStorage.getItem('hearthToken');
+    if (token) {
+        try {
+            await fetch('/api/auth/user', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    feedPreferences: user.feedPreferences
+                })
+            });
+        } catch (e) {
+            console.error('Failed to sync preferences', e);
+        }
+    }
 }
 
 // Create pulse HTML element
@@ -289,5 +397,7 @@ window.renderPulses = renderPulses;
 window.createPulseElement = createPulseElement;
 window.getRelativeTime = getRelativeTime;
 window.escapeHtml = escapeHtml;
+window.initializeCategoryFilters = initializeCategoryFilters;
+window.toggleCategoryFilter = toggleCategoryFilter;
 
-export { handleNewPulse, acknowledgePulse, respondToPulse, renderPulses, createPulseElement, getRelativeTime, escapeHtml, loadPulses };
+export { handleNewPulse, acknowledgePulse, respondToPulse, renderPulses, createPulseElement, getRelativeTime, escapeHtml, loadPulses, initializeCategoryFilters, toggleCategoryFilter };

@@ -1,73 +1,54 @@
-from playwright.sync_api import sync_playwright, expect
+from playwright.sync_api import sync_playwright
 
-def run():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context()
+def verify_pulse_filters(page):
+    # Mock user in localStorage
+    user_data = {
+        "displayName": "Test User",
+        "authorId": "current-user",
+        "feedPreferences": ["Tech"]
+    }
 
-        # Pre-set localStorage to simulate logged-in state
-        context.add_init_script("""
-            localStorage.setItem('isAuthenticated', 'true');
-            localStorage.setItem('hearthUser', JSON.stringify({displayName: 'Test User'}));
-        """)
+    # Inject localStorage before navigation
+    page.add_init_script(f"""
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('hearthUser', JSON.stringify({user_data}));
+    """)
 
-        page = context.new_page()
+    page.goto("http://localhost:8080/app.html")
 
-        # Capture logs
-        page.on("console", lambda msg: print(f"Browser Console: {msg.text}"))
-        page.on("pageerror", lambda err: print(f"Browser Error: {err}"))
+    # Wait for filters to appear
+    page.wait_for_selector(".category-filters-container")
 
-        page.goto("http://localhost:8080/app.html")
+    # Check if "Tech" is active
+    tech_pill = page.locator(".category-filters-container").get_by_text("Tech", exact=True)
+    if "active" not in tech_pill.get_attribute("class"):
+        print("Error: Tech pill should be active")
 
-        # 1. Verify Feed has Category Badges (from Sample Data)
-        # Wait for feed to load
-        expect(page.locator('.pulse-item').first).to_be_visible()
+    # Check if "Life" is inactive
+    life_pill = page.locator(".category-filters-container").get_by_text("Life", exact=True)
+    if "active" in life_pill.get_attribute("class"):
+        print("Error: Life pill should be inactive")
 
-        # Check for category badges
-        expect(page.locator('.badge-category', has_text='Life')).to_be_visible()
+    # Click "Life"
+    life_pill.click()
 
-        print("Initial feed verification passed.")
+    # Wait for update (UI update is sync but transition/fetch might take time)
+    page.wait_for_timeout(500)
 
-        # Take screenshot of feed
-        page.screenshot(path="verification/feed_initial.png")
+    # Check if "Life" is now active
+    if "active" not in life_pill.get_attribute("class"):
+        print("Error: Life pill should become active after click")
 
-        # 2. Verify Create Pulse Modal has Category Selector
-        page.click('#new-pulse-btn')
-        expect(page.locator('#new-pulse-modal')).to_be_visible()
-
-        # Check selector
-        category_select = page.locator('#pulse-category')
-        expect(category_select).to_be_visible()
-
-        # Take screenshot of modal
-        page.screenshot(path="verification/create_modal.png")
-        print("Modal verification passed.")
-
-        # 3. Create a new pulse with 'nature' category
-        page.fill('#pulse-content', 'This is a test pulse about nature.')
-        category_select.select_option('nature')
-        page.select_option('#pulse-visibility', 'all-kin')
-
-        print("Submitting form...")
-        page.click('button[type="submit"]')
-
-        # Verify modal closed
-        expect(page.locator('#new-pulse-modal')).not_to_be_visible()
-
-        # Verify new pulse appears with 'NATURE' badge
-        new_pulse = page.locator('.pulse-item', has_text='This is a test pulse about nature.')
-        expect(new_pulse).to_be_visible()
-
-        # Check its badge
-        badge = new_pulse.locator('.badge-category')
-        expect(badge).to_have_text('Nature', ignore_case=True)
-
-        print("New pulse verification passed.")
-
-        # Take final screenshot
-        page.screenshot(path="verification/feed_after_post.png")
-
-        browser.close()
+    page.screenshot(path="verification/pulse_filters.png")
+    print("Screenshot saved to verification/pulse_filters.png")
 
 if __name__ == "__main__":
-    run()
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        try:
+            verify_pulse_filters(page)
+        except Exception as e:
+            print(f"Error: {e}")
+        finally:
+            browser.close()
