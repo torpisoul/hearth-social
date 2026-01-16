@@ -19,7 +19,10 @@
     display: flex;
     gap: var(--spacing-md);
     align-items: center;
-    background: linear-gradient(135deg, rgba(168, 181, 160, 0.1), rgba(168, 181, 160, 0.05));
+    background: var(--surface);
+    border-radius: var(--radius-medium);
+    box-shadow: var(--shadow-inner);
+    padding: var(--spacing-md);
 }
 
 .notice-icon {
@@ -264,9 +267,11 @@
 .message-composer {
     position: sticky;
     bottom: calc(80px + var(--spacing-md));
-    background: var(--background);
-    padding: var(--spacing-md) 0;
-    border-radius: var(--radius-soft);
+    background: var(--surface);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-medium);
+    box-shadow: var(--shadow-outer);
+    margin-bottom: var(--spacing-sm);
 }
 
 .message-composer form {
