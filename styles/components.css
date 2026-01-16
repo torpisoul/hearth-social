@@ -258,6 +258,17 @@ textarea.input {
     color: var(--warm-white);
 }
 
+.badge-category {
+    background: var(--surface);
+    border: 1px solid var(--text-secondary);
+    color: var(--text-secondary);
+    box-shadow: none;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+}
+
 /* ============================================
    MODALS & OVERLAYS
    ============================================ */

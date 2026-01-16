@@ -86,6 +86,7 @@ async function handleGetFeed(userId) {
       user_id,
       content,
       visibility,
+      category,
       created_at,
       users (
         display_name,
@@ -148,6 +149,7 @@ async function handleGetFeed(userId) {
     authorAvatar: pulse.users ? pulse.users.avatar_url : null,
     content: pulse.content,
     visibility: pulse.visibility,
+    category: pulse.category,
     timestamp: pulse.created_at, // Client expects timestamp, send ISO string
     isAcknowledged: acknowledgedSet.has(pulse.id)
   }));
@@ -160,7 +162,7 @@ async function handleGetFeed(userId) {
 }
 
 async function handleCreatePulse(userId, body) {
-  const { content, visibility } = JSON.parse(body);
+  const { content, visibility, category } = JSON.parse(body);
 
   if (!content) {
     return {
@@ -175,7 +177,7 @@ async function handleCreatePulse(userId, body) {
   const { data, error } = await supabase
     .from('pulses')
     .insert([
-      { user_id: userId, content, visibility: vis }
+      { user_id: userId, content, visibility: vis, category }
     ])
     .select()
     .single();
