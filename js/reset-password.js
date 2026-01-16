@@ -65,12 +65,6 @@ async function handleRequestReset(e) {
 
         showMessage('Check your Email', data.message || 'If that email exists, a reset link has been sent.');
 
-        // For demo purposes, if debugLink is present, log it prominently
-        if (data.debugLink) {
-            console.log('DEBUG: Reset Link:', data.debugLink);
-            alert(`DEBUG: The reset link has been logged to the console (and here): \n${data.debugLink}`);
-        }
-
     } catch (error) {
         console.error('Request Reset Error:', error);
         alert('Error: ' + error.message);

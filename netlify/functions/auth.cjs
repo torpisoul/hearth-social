@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { createClient } = require('@supabase/supabase-js');
+const nodemailer = require('nodemailer');
 
 // Helper to generate a unique Hearth Key
 const generateHearthKey = () => {
@@ -19,7 +20,7 @@ const generateHearthKey = () => {
 };
 
 // Main logic decoupled from handler
-const authLogic = async (event, supabase) => {
+const authLogic = async (event, supabase, transporter) => {
   const path = event.path || '';
   const method = event.httpMethod;
   const headers = {
@@ -301,14 +302,32 @@ const authLogic = async (event, supabase) => {
       const origin = event.headers.origin || `https://${event.headers.host}`;
       const resetLink = `${origin}/reset-password.html?token=${token}`;
 
-      console.log(`Password Reset Link for ${email}: ${resetLink}`);
+      console.log(`Password Reset Link generated for ${email}`);
+
+      // Send email if transporter is provided
+      if (transporter) {
+          try {
+              await transporter.sendMail({
+                  from: process.env.SMTP_FROM || 'noreply@hearth.social',
+                  to: email,
+                  subject: 'Reset your Hearth password',
+                  text: `Click the link to reset your password: ${resetLink}`,
+                  html: `<p>Click the link to reset your password:</p><a href="${resetLink}">${resetLink}</a>`
+              });
+              console.log(`Email sent to ${email}`);
+          } catch (emailErr) {
+              console.error('Failed to send email:', emailErr);
+              // We do not return error to user, just log it.
+          }
+      } else {
+          console.warn('No email transporter available. Link:', resetLink);
+      }
 
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
-            message: 'If that email exists, a reset link has been sent.',
-            debugLink: resetLink // For development convenience
+            message: 'If that email exists, a reset link has been sent.'
         })
       };
 
@@ -401,9 +420,23 @@ exports.handler = async (event, context) => {
         };
     }
 
+    // Configure Nodemailer
+    let transporter = null;
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+        transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: process.env.SMTP_PORT || 587,
+            secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            }
+        });
+    }
+
     try {
         const supabase = createClient(supabaseUrl, supabaseKey);
-        return await authLogic(event, supabase);
+        return await authLogic(event, supabase, transporter);
     } catch (err) {
         console.error('Supabase Initialization Error:', err);
         return {
