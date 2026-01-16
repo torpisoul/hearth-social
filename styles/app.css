@@ -163,21 +163,8 @@
 .caught-up-icon {
     font-size: 4rem;
     margin-bottom: var(--spacing-md);
-    animation: gentle-float 3s ease-in-out infinite;
-    will-change: transform;
 }
 
-@keyframes gentle-float {
-
-    0%,
-    100% {
-        transform: translateY(0px);
-    }
-
-    50% {
-        transform: translateY(-10px);
-    }
-}
 
 .caught-up-title {
     font-size: var(--font-size-xl);
