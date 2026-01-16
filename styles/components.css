@@ -213,6 +213,7 @@ textarea.input {
     display: flex;
     justify-content: space-around;
     padding: var(--spacing-sm);
+    padding-bottom: calc(var(--spacing-sm) + env(safe-area-inset-bottom));
     background: var(--surface);
     box-shadow: 0 -8px 16px rgba(166, 160, 149, 0.1),
                 0 -4px 4px rgba(255, 255, 255, 0.8);

@@ -5,7 +5,6 @@
 .app-main {
     padding-top: calc(60px + var(--spacing-md));
     padding-bottom: calc(80px + var(--spacing-md));
-    min-height: 100vh;
 }
 
 /* Page Header */
@@ -165,6 +164,7 @@
     font-size: 4rem;
     margin-bottom: var(--spacing-md);
     animation: gentle-float 3s ease-in-out infinite;
+    will-change: transform;
 }
 
 @keyframes gentle-float {
