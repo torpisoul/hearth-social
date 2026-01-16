@@ -260,9 +260,9 @@ textarea.input {
 
 .badge-category {
     background: var(--surface);
-    border: 1px solid var(--text-secondary);
+    border: none;
     color: var(--text-secondary);
-    box-shadow: none;
+    box-shadow: var(--shadow-outer);
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
