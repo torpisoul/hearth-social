@@ -130,7 +130,8 @@ const authLogic = async (event, supabase) => {
             displayName: newUser.display_name,
             hearthKey: newUser.hearth_key,
             privacySettings: newUser.privacy_settings,
-            feedPreferences: newUser.feed_preferences || []
+            feedPreferences: newUser.feed_preferences || [],
+            avatarUrl: newUser.avatar_url
           },
           token
         })
@@ -189,7 +190,8 @@ const authLogic = async (event, supabase) => {
             displayName: user.display_name,
             hearthKey: user.hearth_key,
             privacySettings: user.privacy_settings,
-            feedPreferences: user.feed_preferences || []
+            feedPreferences: user.feed_preferences || [],
+            avatarUrl: user.avatar_url
           },
           token
         })
@@ -224,11 +226,48 @@ const authLogic = async (event, supabase) => {
         };
       }
 
-      const { displayName, privacySettings, feedPreferences } = JSON.parse(event.body);
+      const { displayName, privacySettings, feedPreferences, avatarData } = JSON.parse(event.body);
       const updates = {};
       if (displayName) updates.display_name = displayName;
       if (privacySettings) updates.privacy_settings = privacySettings;
       if (feedPreferences) updates.feed_preferences = feedPreferences;
+
+      if (avatarData) {
+        try {
+            // avatarData is expected to be "data:image/jpeg;base64,..."
+            const matches = avatarData.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
+            if (matches) {
+                const fileExt = matches[1];
+                const base64Data = matches[2];
+                const buffer = Buffer.from(base64Data, 'base64');
+                const fileName = `avatars/${decoded.userId}-${Date.now()}.${fileExt}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('parlor-media')
+                    .upload(fileName, buffer, {
+                        contentType: `image/${fileExt}`,
+                        upsert: true
+                    });
+
+                if (uploadError) {
+                    throw uploadError;
+                }
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('parlor-media')
+                    .getPublicUrl(fileName);
+
+                updates.avatar_url = publicUrl;
+            }
+        } catch (e) {
+            console.error('Avatar upload error:', e);
+             return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Failed to upload avatar' })
+            };
+        }
+      }
 
       if (Object.keys(updates).length === 0) {
         return {
@@ -264,7 +303,8 @@ const authLogic = async (event, supabase) => {
             displayName: updatedUser.display_name,
             hearthKey: updatedUser.hearth_key,
             privacySettings: updatedUser.privacy_settings,
-            feedPreferences: updatedUser.feed_preferences || []
+            feedPreferences: updatedUser.feed_preferences || [],
+            avatarUrl: updatedUser.avatar_url
           }
         })
       };
