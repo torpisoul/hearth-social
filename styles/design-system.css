@@ -2,12 +2,14 @@
   /* ============================================
      PALETTE DEFINITIONS
      ============================================ */
-  --oatmeal: #F5F1E8;
-  --sage-green: #A8B5A0;
-  --soft-slate: #8B95A2;
-  --warm-white: #FDFCFA;
-  --text-primary-light: #3B3630;
-  --text-secondary-light: #6B6560;
+  --oatmeal: #FAF9F6;
+  --sage-green: #B2C2B0;
+  --soft-slate: #B0B8C1;
+  --terra-cotta: #E6C2BF;
+  --soft-clay: #E8DCCA;
+  --warm-white: #FFFFFF;
+  --text-primary-light: #5C5550;
+  --text-secondary-light: #948C85;
 
   /* Clay Theme */
   --clay-bg: #E6DCD3;
@@ -33,12 +35,12 @@
   --text-secondary-dark: #B0ACA4;
   
   /* Shadows - Light (Default/Oatmeal) */
-  --shadow-light-outer: 8px 8px 16px rgba(139, 149, 162, 0.15),
-                        -8px -8px 16px rgba(255, 255, 255, 0.7);
-  --shadow-light-inner: inset 4px 4px 8px rgba(139, 149, 162, 0.1),
-                        inset -4px -4px 8px rgba(255, 255, 255, 0.5);
-  --shadow-light-pressed: inset 6px 6px 12px rgba(139, 149, 162, 0.2),
-                          inset -6px -6px 12px rgba(255, 255, 255, 0.3);
+  --shadow-light-outer: 8px 8px 16px rgba(166, 160, 149, 0.15),
+                        -8px -8px 16px rgba(255, 255, 255, 0.9);
+  --shadow-light-inner: inset 4px 4px 8px rgba(166, 160, 149, 0.1),
+                        inset -4px -4px 8px rgba(255, 255, 255, 0.6);
+  --shadow-light-pressed: inset 6px 6px 12px rgba(166, 160, 149, 0.2),
+                          inset -6px -6px 12px rgba(255, 255, 255, 0.4);
 
   /* Shadows - Dark */
   --shadow-dark-outer: 8px 8px 16px rgba(0, 0, 0, 0.4),
@@ -52,7 +54,7 @@
      SEMANTIC COLORS (Default: Oatmeal)
      ============================================ */
   --accent-primary: var(--sage-green);
-  --accent-secondary: var(--midnight-moss);
+  --accent-secondary: var(--terra-cotta);
   --background: var(--oatmeal);
   --surface: var(--warm-white);
   --text-primary: var(--text-primary-light);
