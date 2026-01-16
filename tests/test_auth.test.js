@@ -65,6 +65,19 @@ const createMockSupabase = () => {
                     }
                 }
             };
+        },
+        storage: {
+            from: (bucket) => {
+                if (bucket !== 'parlor-media') throw new Error(`Unknown bucket ${bucket}`);
+                return {
+                    upload: async (path, buffer, options) => {
+                        return { data: { path }, error: null };
+                    },
+                    getPublicUrl: (path) => {
+                        return { data: { publicUrl: `https://example.com/${bucket}/${path}` } };
+                    }
+                };
+            }
         }
     };
 };
@@ -200,5 +213,39 @@ describe('Auth Logic', () => {
         }, supabase);
 
         expect(loginRes.statusCode).toBe(200);
+    });
+
+    it('should update user avatar', async () => {
+        const supabase = createMockSupabase();
+
+        // 1. Register User
+        const registerRes = await authLogic({
+            httpMethod: 'POST',
+            path: '/api/auth/register',
+            body: JSON.stringify({
+                email: 'avatar@example.com',
+                password: 'password123',
+                displayName: 'Avatar User'
+            })
+        }, supabase);
+
+        const { token, user } = JSON.parse(registerRes.body);
+
+        // 2. Upload Avatar
+        const updateRes = await authLogic({
+            httpMethod: 'PATCH',
+            path: '/api/auth/user',
+            headers: {
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                avatarData: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...'
+            })
+        }, supabase);
+
+        expect(updateRes.statusCode).toBe(200);
+        const body = JSON.parse(updateRes.body);
+        expect(body.user.avatarUrl).toBeDefined();
+        expect(body.user.avatarUrl).toContain('https://example.com/parlor-media/avatars/');
     });
 });

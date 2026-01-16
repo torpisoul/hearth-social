@@ -2,6 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     loadProfile();
+    initializeAvatarUpload();
     initializePrivacyControls();
     initializeFeedPreferences();
     initializeLifeUpdates();
@@ -26,11 +27,141 @@ function loadProfile() {
         nameElement.textContent = user.displayName || 'Hearth Dweller';
     }
 
+    // Avatar
+    const avatarElement = document.getElementById('profile-avatar');
+    if (avatarElement) {
+        if (user.avatarUrl) {
+            avatarElement.innerHTML = `<img src="${user.avatarUrl}" alt="Profile Avatar">`;
+        } else {
+            avatarElement.innerHTML = '😊';
+        }
+    }
+
     // Hearth Key
     const hearthKeyElement = document.getElementById('profile-hearth-key');
     if (hearthKeyElement) {
         hearthKeyElement.textContent = user.hearthKey || 'HEARTH-XXXX-XXXX-XXXX';
     }
+}
+
+// Initialize Avatar Upload
+function initializeAvatarUpload() {
+    const avatarContainer = document.querySelector('.profile-avatar-container');
+    const fileInput = document.getElementById('avatar-upload');
+
+    if (avatarContainer && fileInput) {
+        avatarContainer.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', handleAvatarUpload);
+    }
+}
+
+async function handleAvatarUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        alert('File size too large. Please select an image under 5MB.');
+        return;
+    }
+
+    // Show loading state
+    const avatarElement = document.getElementById('profile-avatar');
+    const originalContent = avatarElement.innerHTML;
+    avatarElement.innerHTML = '<span style="font-size: 1.5rem;">⌛</span>';
+
+    try {
+        // Compress/Resize Image
+        const base64 = await resizeImage(file);
+
+        // Upload
+        const user = window.getCurrentUser();
+        if (!user) return;
+
+        const token = localStorage.getItem('hearthToken');
+        if (!token) return;
+
+        const response = await fetch('/api/auth/user', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                avatarData: base64
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Upload failed');
+        }
+
+        const data = await response.json();
+
+        // Update User object
+        user.avatarUrl = data.user.avatarUrl || data.user.avatar_url;
+
+        localStorage.setItem('hearthUser', JSON.stringify(user));
+
+        // Update UI
+        updateAvatarDisplay(user.avatarUrl);
+
+    } catch (error) {
+        console.error('Avatar upload error:', error);
+        alert('Failed to upload avatar. Please try again.');
+        avatarElement.innerHTML = originalContent;
+    }
+}
+
+function updateAvatarDisplay(url) {
+    const avatarElement = document.getElementById('profile-avatar');
+    if (!avatarElement) return;
+
+    if (url) {
+        avatarElement.innerHTML = `<img src="${url}" alt="Profile Avatar">`;
+    } else {
+        avatarElement.innerHTML = '😊';
+    }
+}
+
+function resizeImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 256;
+                const MAX_HEIGHT = 256;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.8)); // Return Base64
+            };
+            img.onerror = reject;
+        };
+        reader.onerror = reject;
+    });
 }
 
 // Initialize privacy controls

@@ -33,7 +33,13 @@
 
             <!-- Profile Header -->
             <div class="profile-header card mb-lg">
-                <div class="profile-avatar-large" id="profile-avatar">😊</div>
+                <div class="profile-avatar-container">
+                    <div class="profile-avatar-large" id="profile-avatar">😊</div>
+                    <div class="avatar-overlay">
+                        <span>Change</span>
+                    </div>
+                    <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
+                </div>
                 <h2 class="profile-name" id="profile-name">Loading...</h2>
                 <div class="hearth-key-display">
                     <div class="hearth-key-label">Your Hearth Key</div>
