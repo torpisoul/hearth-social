@@ -2,7 +2,7 @@
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { authLogic } = require('../netlify/functions/auth.cjs');
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 // Mock Supabase
 const createMockSupabase = () => {
@@ -69,6 +69,13 @@ const createMockSupabase = () => {
     };
 };
 
+// Mock Transporter
+const createMockTransporter = () => {
+    return {
+        sendMail: vi.fn().mockResolvedValue({ messageId: 'test-message-id' })
+    };
+};
+
 describe('Auth Logic', () => {
 
     it('should register a new user', async () => {
@@ -83,7 +90,7 @@ describe('Auth Logic', () => {
             })
         };
 
-        const response = await authLogic(event, supabase);
+        const response = await authLogic(event, supabase, null);
         expect(response.statusCode).toBe(201);
         const body = JSON.parse(response.body);
         expect(body.user.email).toBe('test@example.com');
@@ -100,7 +107,7 @@ describe('Auth Logic', () => {
                 password: 'password123',
                 displayName: 'Login User'
             })
-        }, supabase);
+        }, supabase, null);
 
         const event = {
             httpMethod: 'POST',
@@ -111,15 +118,16 @@ describe('Auth Logic', () => {
             })
         };
 
-        const response = await authLogic(event, supabase);
+        const response = await authLogic(event, supabase, null);
         expect(response.statusCode).toBe(200);
         const body = JSON.parse(response.body);
         expect(body.user.email).toBe('login@example.com');
         expect(body.token).toBeDefined();
     });
 
-    it('should request a password reset', async () => {
+    it('should request a password reset and send email', async () => {
         const supabase = createMockSupabase();
+        const transporter = createMockTransporter();
 
         // Register user first
         await authLogic({
@@ -131,7 +139,7 @@ describe('Auth Logic', () => {
                 displayName: 'Reset User'
             }),
             headers: {}
-        }, supabase);
+        }, supabase, null);
 
         // Request reset
         const event = {
@@ -143,17 +151,33 @@ describe('Auth Logic', () => {
             })
         };
 
-        const response = await authLogic(event, supabase);
+        const response = await authLogic(event, supabase, transporter);
         expect(response.statusCode).toBe(200);
 
         const body = JSON.parse(response.body);
         expect(body.message).toContain('reset link has been sent');
-        expect(body.debugLink).toBeDefined();
-        expect(body.debugLink).toContain('reset-password.html?token=');
+
+        // Verify debugLink is NOT present
+        expect(body.debugLink).toBeUndefined();
+
+        // Verify sendMail was called
+        expect(transporter.sendMail).toHaveBeenCalled();
+        const mailOptions = transporter.sendMail.mock.calls[0][0];
+        expect(mailOptions.to).toBe('reset@example.com');
+        expect(mailOptions.text).toContain('reset-password.html?token=');
     });
 
-    it('should reset password with valid token', async () => {
+    it('should reset password with valid token (simulating token retrieval)', async () => {
         const supabase = createMockSupabase();
+        // Use a transporter that captures the link so we can use it
+        let capturedLink = '';
+        const transporter = {
+            sendMail: async (options) => {
+                const match = options.text.match(/(https?:\/\/[^\s]+)/);
+                if (match) capturedLink = match[1];
+                return { messageId: 'test' };
+            }
+        };
 
         // 1. Register
         await authLogic({
@@ -165,17 +189,18 @@ describe('Auth Logic', () => {
                 displayName: 'Reset User 2'
             }),
             headers: {}
-        }, supabase);
+        }, supabase, null);
 
         // 2. Request Token
-        const reqRes = await authLogic({
+        await authLogic({
             httpMethod: 'POST',
             path: '/api/auth/reset-password-request',
             headers: { host: 'localhost:8888' },
             body: JSON.stringify({ email: 'reset2@example.com' })
-        }, supabase);
+        }, supabase, transporter);
 
-        const token = JSON.parse(reqRes.body).debugLink.split('token=')[1];
+        expect(capturedLink).toContain('token=');
+        const token = capturedLink.split('token=')[1];
 
         // 3. Reset Password
         const resetRes = await authLogic({
@@ -185,7 +210,7 @@ describe('Auth Logic', () => {
                 token: token,
                 newPassword: 'newpassword123'
             })
-        }, supabase);
+        }, supabase, null);
 
         expect(resetRes.statusCode).toBe(200);
 
@@ -197,7 +222,7 @@ describe('Auth Logic', () => {
                 email: 'reset2@example.com',
                 password: 'newpassword123'
             })
-        }, supabase);
+        }, supabase, null);
 
         expect(loginRes.statusCode).toBe(200);
     });
