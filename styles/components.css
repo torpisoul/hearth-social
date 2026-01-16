@@ -116,7 +116,8 @@
 
 .input:focus {
     box-shadow: var(--shadow-inner),
-        0 0 0 3px rgba(168, 181, 160, 0.2);
+        inset 1px 1px 2px rgba(168, 181, 160, 0.1),
+        inset -1px -1px 2px rgba(168, 181, 160, 0.1);
 }
 
 .input::placeholder {
@@ -183,8 +184,7 @@ textarea.input {
 }
 
 .toggle input:focus+.toggle-slider {
-    box-shadow: var(--shadow-inner),
-        0 0 0 3px rgba(168, 181, 160, 0.2);
+    box-shadow: var(--shadow-inner);
 }
 
 /* ============================================
@@ -209,12 +209,14 @@ textarea.input {
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 100;
+    z-index: 900;
     display: flex;
     justify-content: space-around;
     padding: var(--spacing-sm);
+    padding-bottom: calc(var(--spacing-sm) + env(safe-area-inset-bottom));
     background: var(--surface);
-    box-shadow: 0 -8px 16px rgba(139, 149, 162, 0.1);
+    box-shadow: 0 -8px 16px rgba(166, 160, 149, 0.1),
+                0 -4px 4px rgba(255, 255, 255, 0.8);
 }
 
 .nav-tab {
@@ -266,7 +268,7 @@ textarea.input {
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 2px 8px;
+    padding: 4px 10px;
 }
 
 /* ============================================

@@ -79,6 +79,9 @@
 
 .life-update-item {
     padding: var(--spacing-lg);
+    background: var(--surface);
+    border-radius: var(--radius-medium);
+    box-shadow: var(--shadow-outer);
 }
 
 .life-update-header {
@@ -130,6 +133,9 @@
     align-items: center;
     padding: var(--spacing-md);
     gap: var(--spacing-md);
+    background: var(--surface);
+    border-radius: var(--radius-medium);
+    box-shadow: var(--shadow-outer);
 }
 
 .kin-header {
@@ -173,6 +179,9 @@
     align-items: center;
     padding: var(--spacing-md);
     gap: var(--spacing-md);
+    background: var(--surface);
+    border-radius: var(--radius-medium);
+    box-shadow: var(--shadow-outer);
 }
 
 .setting-card h4 {
