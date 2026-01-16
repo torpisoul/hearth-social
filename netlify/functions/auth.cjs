@@ -39,7 +39,7 @@ const authLogic = async (event, supabase, transporter) => {
 
   try {
     if (path.endsWith('/register') && method === 'POST') {
-      const { email, password, displayName, hearthKey: providedHearthKey, privacySettings } = JSON.parse(event.body);
+      const { email, password, displayName, hearthKey: providedHearthKey, privacySettings, feedPreferences } = JSON.parse(event.body);
 
       // Validation
       if (!email || !password || !displayName) {
@@ -98,7 +98,8 @@ const authLogic = async (event, supabase, transporter) => {
             password_hash: passwordHash,
             display_name: displayName,
             hearth_key: hearthKey,
-            privacy_settings: finalPrivacySettings
+            privacy_settings: finalPrivacySettings,
+            feed_preferences: feedPreferences || []
           }
         ])
         .select()
@@ -129,7 +130,8 @@ const authLogic = async (event, supabase, transporter) => {
             email: newUser.email,
             displayName: newUser.display_name,
             hearthKey: newUser.hearth_key,
-            privacySettings: newUser.privacy_settings
+            privacySettings: newUser.privacy_settings,
+            feedPreferences: newUser.feed_preferences || []
           },
           token
         })
@@ -187,7 +189,8 @@ const authLogic = async (event, supabase, transporter) => {
             email: user.email,
             displayName: user.display_name,
             hearthKey: user.hearth_key,
-            privacySettings: user.privacy_settings
+            privacySettings: user.privacy_settings,
+            feedPreferences: user.feed_preferences || []
           },
           token
         })
@@ -222,10 +225,11 @@ const authLogic = async (event, supabase, transporter) => {
         };
       }
 
-      const { displayName, privacySettings } = JSON.parse(event.body);
+      const { displayName, privacySettings, feedPreferences } = JSON.parse(event.body);
       const updates = {};
       if (displayName) updates.display_name = displayName;
       if (privacySettings) updates.privacy_settings = privacySettings;
+      if (feedPreferences) updates.feed_preferences = feedPreferences;
 
       if (Object.keys(updates).length === 0) {
         return {
@@ -260,7 +264,8 @@ const authLogic = async (event, supabase, transporter) => {
             email: updatedUser.email,
             displayName: updatedUser.display_name,
             hearthKey: updatedUser.hearth_key,
-            privacySettings: updatedUser.privacy_settings
+            privacySettings: updatedUser.privacy_settings,
+            feedPreferences: updatedUser.feed_preferences || []
           }
         })
       };

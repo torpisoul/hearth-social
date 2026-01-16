@@ -3,6 +3,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     loadProfile();
     initializePrivacyControls();
+    initializeFeedPreferences();
     initializeLifeUpdates();
     initializeHearthKey();
     initializeKinManagement();
@@ -58,6 +59,89 @@ function initializePrivacyControls() {
     if (cloudBackupToggle) {
         cloudBackupToggle.checked = privacy.cloudBackup || false;
         cloudBackupToggle.addEventListener('change', () => savePrivacySetting('cloudBackup', cloudBackupToggle.checked));
+    }
+}
+
+// Initialize Feed Preferences
+function initializeFeedPreferences() {
+    const user = window.getCurrentUser ? window.getCurrentUser() : null;
+    if (!user) return;
+
+    const container = document.getElementById('feed-preferences-container');
+    if (!container) return;
+
+    const categories = ['Mine', 'Life', 'Tech', 'Art', 'Food', 'Nature', 'Music', 'Travel', 'Wellness', 'Politics', 'Science', 'Pet', 'Other'];
+    // Default to empty array if undefined
+    const preferences = user.feedPreferences || [];
+
+    container.innerHTML = '';
+
+    categories.forEach(category => {
+        const isChecked = preferences.includes(category);
+
+        const item = document.createElement('div');
+        item.className = 'card privacy-item'; // Reuse privacy item styling
+        item.style.marginBottom = '10px';
+
+        item.innerHTML = `
+            <div class="privacy-header">
+                <div>
+                    <h4 class="privacy-title">${category}</h4>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" class="feed-pref-toggle" data-category="${category}">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        `;
+
+        const checkbox = item.querySelector('input');
+        checkbox.checked = isChecked;
+        checkbox.addEventListener('change', (e) => toggleFeedPreference(category, e.target.checked));
+
+        container.appendChild(item);
+    });
+}
+
+// Toggle Feed Preference
+async function toggleFeedPreference(category, isChecked) {
+    const user = window.getCurrentUser ? window.getCurrentUser() : null;
+    if (!user) return;
+
+    if (!user.feedPreferences) user.feedPreferences = [];
+
+    if (isChecked) {
+        if (!user.feedPreferences.includes(category)) {
+            user.feedPreferences.push(category);
+        }
+    } else {
+        user.feedPreferences = user.feedPreferences.filter(c => c !== category);
+    }
+
+    localStorage.setItem('hearthUser', JSON.stringify(user));
+    console.log('Feed preference saved:', category, isChecked);
+
+    // Persist to backend
+    const token = localStorage.getItem('hearthToken');
+    if (!token) return;
+
+    try {
+        const response = await fetch('/api/auth/user', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                feedPreferences: user.feedPreferences
+            })
+        });
+
+        if (!response.ok) {
+            console.error('Failed to sync feed preferences with backend');
+        }
+    } catch (error) {
+        console.error('Error syncing feed preferences:', error);
     }
 }
 
@@ -443,5 +527,6 @@ export {
     showQRCode,
     initializeSettings,
     initializePrivacyControls,
+    initializeFeedPreferences,
     initializeLogout
 };
