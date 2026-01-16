@@ -394,3 +394,51 @@ html {
 .hide-scrollbar::-webkit-scrollbar {
     display: none;
 }
+
+/* ============================================
+   CATEGORY FILTERS
+   ============================================ */
+.category-filters-container {
+    display: flex;
+    overflow-x: auto;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) 0;
+    margin-bottom: var(--spacing-md);
+    /* Hide scrollbar */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.category-filters-container::-webkit-scrollbar {
+    display: none;
+}
+
+.filter-pill {
+    flex-shrink: 0;
+    padding: 6px 16px;
+    border-radius: var(--radius-pill);
+    border: none;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: all var(--transition-gentle);
+
+    /* Default: De-saturated / Disabled look */
+    background: var(--surface);
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-outer);
+    opacity: 0.7;
+}
+
+.filter-pill:hover {
+    transform: translateY(-2px);
+    opacity: 1;
+}
+
+.filter-pill.active {
+    /* Enabled: Saturated look */
+    background: linear-gradient(135deg, var(--sage-green), var(--accent-primary));
+    color: var(--warm-white);
+    opacity: 1;
+    box-shadow: var(--shadow-outer), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}

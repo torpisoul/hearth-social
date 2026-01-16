@@ -49,6 +49,26 @@ exports.handler = async (event, context) => {
 };
 
 async function handleGetFeed(userId) {
+  // 0. Get User Preferences
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('feed_preferences')
+    .eq('id', userId)
+    .single();
+
+  if (userError) throw userError;
+
+  const feedPreferences = userData.feed_preferences || [];
+
+  // If strict opt-in and no preferences, return empty feed immediately
+  if (feedPreferences.length === 0) {
+     return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([]),
+    };
+  }
+
   // 1. Get Kin relationships to determine visibility
   // Find all users who are kin with the current user
   const { data: kinData, error: kinError } = await supabase
@@ -125,8 +145,23 @@ async function handleGetFeed(userId) {
     return false;
   });
 
+  // 3b. Filter by Category Preferences
+  // feedPreferences is array of strings (e.g. ['life', 'tech'])
+  // We assume case-insensitive match for robustness, though data should be consistent.
+  const preferredCategories = new Set(feedPreferences.map(c => c.toLowerCase()));
+
+  const categoryFilteredPulses = visiblePulses.filter(pulse => {
+    // If pulse has no category, do we show it?
+    // Requirement says "opt in to whichever categories they wish to see".
+    // Implies if I didn't opt in to "Uncategorized", I don't see it.
+    // Assuming pulses have categories. If not, we might hide them or show them if 'misc' is selected.
+    // Let's assume strict filtering: if category not in list, hide.
+    if (!pulse.category) return false;
+    return preferredCategories.has(pulse.category.toLowerCase());
+  });
+
   // 4. Fetch acknowledgments for these pulses to see if current user acknowledged them
-  const pulseIds = visiblePulses.map(p => p.id);
+  const pulseIds = categoryFilteredPulses.map(p => p.id);
   let acknowledgedSet = new Set();
 
   if (pulseIds.length > 0) {
@@ -142,7 +177,7 @@ async function handleGetFeed(userId) {
   }
 
   // 5. Format response
-  const feed = visiblePulses.map(pulse => ({
+  const feed = categoryFilteredPulses.map(pulse => ({
     id: pulse.id,
     author: pulse.users ? pulse.users.display_name : 'Unknown',
     authorId: pulse.user_id,
