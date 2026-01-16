@@ -216,7 +216,7 @@ function createPulseElement(pulse) {
             : '<span class="badge">All Kin</span>';
 
     const categoryBadge = pulse.category
-        ? `<span class="badge badge-category" style="margin-left: auto;">${escapeHtml(pulse.category)}</span>`
+        ? `<span class="badge badge-category">${escapeHtml(pulse.category)}</span>`
         : '';
 
     div.innerHTML = `
@@ -228,7 +228,10 @@ function createPulseElement(pulse) {
           <div class="pulse-time">${getRelativeTime(pulse.timestamp)}</div>
         </div>
       </div>
-      ${visibilityBadge}
+      <div class="pulse-meta">
+        ${visibilityBadge}
+        ${categoryBadge}
+      </div>
     </div>
     
     <div class="pulse-content">
@@ -244,7 +247,6 @@ function createPulseElement(pulse) {
         <span class="action-icon">💬</span>
         <span class="action-label">Respond</span>
       </button>
-      ${categoryBadge}
     </div>
   `;
 
