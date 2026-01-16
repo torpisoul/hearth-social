@@ -62,11 +62,6 @@ async function handleAvatarUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-        alert('File size too large. Please select an image under 5MB.');
-        return;
-    }
-
     // Show loading state
     const avatarElement = document.getElementById('profile-avatar');
     const originalContent = avatarElement.innerHTML;
