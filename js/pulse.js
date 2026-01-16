@@ -39,6 +39,7 @@ function getSamplePulses() {
             authorId: 'current-user',
             content: "Setting up my Hearth for the first time. This feels right. 🌿",
             visibility: 'all-kin',
+            category: 'life',
             timestamp: Date.now() - 3600000,
             acknowledgedBy: []
         },
@@ -48,6 +49,7 @@ function getSamplePulses() {
             authorId: 'demo-user-1',
             content: "Just finished a great book. Sometimes it's nice to unplug and read.",
             visibility: 'all-kin',
+            category: 'art',
             timestamp: Date.now() - 7200000,
             acknowledgedBy: []
         },
@@ -57,6 +59,7 @@ function getSamplePulses() {
             authorId: 'demo-user-2',
             content: "Coffee and quiet mornings. That's the life. ☕",
             visibility: 'inner-circle',
+            category: 'food',
             timestamp: Date.now() - 10800000,
             acknowledgedBy: []
         }
@@ -104,6 +107,10 @@ function createPulseElement(pulse) {
             ? '<span class="badge">Private</span>'
             : '<span class="badge">All Kin</span>';
 
+    const categoryBadge = pulse.category
+        ? `<span class="badge badge-category" style="margin-left: auto;">${escapeHtml(pulse.category)}</span>`
+        : '';
+
     div.innerHTML = `
     <div class="pulse-header">
       <div class="pulse-author">
@@ -129,6 +136,7 @@ function createPulseElement(pulse) {
         <span class="action-icon">💬</span>
         <span class="action-label">Respond</span>
       </button>
+      ${categoryBadge}
     </div>
   `;
 
@@ -181,11 +189,13 @@ async function handleNewPulse(e) {
 
     const contentInput = document.getElementById('pulse-content');
     const visibilityInput = document.getElementById('pulse-visibility');
+    const categoryInput = document.getElementById('pulse-category');
 
     if (!contentInput || !visibilityInput) return;
 
     const content = contentInput.value.trim();
     const visibility = visibilityInput.value;
+    const category = categoryInput ? categoryInput.value : 'life';
 
     if (!content) {
         alert('Please write something to share.');
@@ -201,6 +211,7 @@ async function handleNewPulse(e) {
         authorId: 'current-user',
         content: content,
         visibility: visibility,
+        category: category,
         timestamp: Date.now(),
         acknowledgedBy: []
     };
