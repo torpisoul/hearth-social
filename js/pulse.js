@@ -90,11 +90,13 @@ function renderPulses() {
     }
 
     // Filter pulses based on preferences
+    const showMine = preferences.some(p => p.toLowerCase() === 'mine');
+
     const visiblePulses = pulses.filter(pulse => {
-        // Always show own pulses? Maybe, but usually feed filters apply to consumption.
-        // If I wrote it, I probably want to see it?
-        // Backend logic says "Always show own pulses". Let's match that.
-        if (pulse.authorId === 'current-user') return true;
+        // Special "Mine" category logic
+        if (pulse.authorId === 'current-user') {
+            return showMine;
+        }
 
         if (!pulse.category) return false;
         return preferences.some(pref => pref.toLowerCase() === pulse.category.toLowerCase());
@@ -142,7 +144,7 @@ function renderCategoryFilters() {
     const user = window.getCurrentUser ? window.getCurrentUser() : null;
     const preferences = user ? (user.feedPreferences || []) : [];
 
-    const categories = ['Life', 'Tech', 'Art', 'Food', 'Nature', 'Music', 'Travel', 'Wellness', 'Politics', 'Science'];
+    const categories = ['Mine', 'Life', 'Tech', 'Art', 'Food', 'Nature', 'Music', 'Travel', 'Wellness', 'Politics', 'Science', 'Pet', 'Other'];
 
     container.innerHTML = '';
 

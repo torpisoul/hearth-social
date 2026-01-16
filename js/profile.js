@@ -70,7 +70,7 @@ function initializeFeedPreferences() {
     const container = document.getElementById('feed-preferences-container');
     if (!container) return;
 
-    const categories = ['Life', 'Tech', 'Art', 'Food', 'Nature', 'Music', 'Travel', 'Wellness', 'Politics', 'Science'];
+    const categories = ['Mine', 'Life', 'Tech', 'Art', 'Food', 'Nature', 'Music', 'Travel', 'Wellness', 'Politics', 'Science', 'Pet', 'Other'];
     // Default to empty array if undefined
     const preferences = user.feedPreferences || [];
 

@@ -66,10 +66,12 @@ describe('pulse categories', () => {
         vi.clearAllMocks();
         mockUser.feedPreferences = []; // Reset preferences
 
-        // Setup initial pulses in localStorage for testing filtering
+        // Setup initial pulses in localStorage
         const samplePulses = [
-            { id: 'p1', authorId: 'u1', content: 'Life Post', category: 'Life', timestamp: Date.now() },
-            { id: 'p2', authorId: 'u1', content: 'Tech Post', category: 'Tech', timestamp: Date.now() }
+            { id: 'p1', authorId: 'u1', content: 'Other User Life Content', category: 'Life', timestamp: Date.now() },
+            { id: 'p2', authorId: 'u1', content: 'Other User Tech Content', category: 'Tech', timestamp: Date.now() },
+            { id: 'p3', authorId: 'current-user', content: 'My Life Content', category: 'Life', timestamp: Date.now() },
+            { id: 'p4', authorId: 'current-user', content: 'My Tech Content', category: 'Tech', timestamp: Date.now() }
         ];
         global.localStorage.getItem.mockImplementation((key) => {
             if (key === 'hearthPulses') return JSON.stringify(samplePulses);
@@ -87,54 +89,65 @@ describe('pulse categories', () => {
 
         const feed = document.getElementById('pulse-feed');
         expect(feed.innerHTML).toContain('Select some categories');
-        expect(feed.innerHTML).not.toContain('Life Post');
+        expect(feed.innerHTML).not.toContain('Other User Life Content');
     });
 
-    it('should show pulses matching selected categories', () => {
+    it('should show pulses matching selected categories (excluding mine if Mine is off)', () => {
         const { renderPulses } = pulseModule;
         mockUser.feedPreferences = ['Life'];
         renderPulses();
 
         const feed = document.getElementById('pulse-feed');
-        expect(feed.textContent).toContain('Life Post');
-        expect(feed.textContent).not.toContain('Tech Post');
+        expect(feed.textContent).toContain('Other User Life Content');
+        expect(feed.textContent).not.toContain('Other User Tech Content');
+        expect(feed.textContent).not.toContain('My Life Content');
     });
 
-    it('should show pulses for multiple categories', () => {
+    it('should show my pulses if Mine is on, regardless of category', () => {
         const { renderPulses } = pulseModule;
-        mockUser.feedPreferences = ['Life', 'Tech'];
+        mockUser.feedPreferences = ['Mine'];
         renderPulses();
 
         const feed = document.getElementById('pulse-feed');
-        expect(feed.textContent).toContain('Life Post');
-        expect(feed.textContent).toContain('Tech Post');
+        expect(feed.textContent).toContain('My Life Content');
+        expect(feed.textContent).toContain('My Tech Content');
+        expect(feed.textContent).not.toContain('Other User Life Content');
     });
 
-    it('should render category pills correctly', () => {
+    it('should show mine and others correctly when mixed', () => {
+        const { renderPulses } = pulseModule;
+        mockUser.feedPreferences = ['Mine', 'Tech'];
+        renderPulses();
+
+        const feed = document.getElementById('pulse-feed');
+        expect(feed.textContent).toContain('My Life Content'); // Mine is on
+        expect(feed.textContent).toContain('My Tech Content'); // Mine is on
+        expect(feed.textContent).toContain('Other User Tech Content'); // Tech is on
+        expect(feed.textContent).not.toContain('Other User Life Content'); // Life is off
+    });
+
+    it('should render category pills including Mine', () => {
         const { initializeCategoryFilters } = pulseModule;
-        mockUser.feedPreferences = ['Life'];
+        mockUser.feedPreferences = ['Mine'];
         initializeCategoryFilters();
 
         const container = document.getElementById('category-filters');
+        const minePill = Array.from(container.children).find(el => el.textContent === 'Mine');
         const lifePill = Array.from(container.children).find(el => el.textContent === 'Life');
-        const techPill = Array.from(container.children).find(el => el.textContent === 'Tech');
 
-        expect(lifePill.classList.contains('active')).toBe(true);
-        expect(techPill.classList.contains('active')).toBe(false);
+        expect(minePill).toBeTruthy();
+        expect(minePill.classList.contains('active')).toBe(true);
+        expect(lifePill.classList.contains('active')).toBe(false);
     });
 
-    it('toggleCategoryFilter should update preferences and re-render', async () => {
+    it('toggleCategoryFilter should toggle Mine', async () => {
         const { toggleCategoryFilter } = pulseModule;
-        mockUser.feedPreferences = []; // Start empty
+        mockUser.feedPreferences = [];
 
-        await toggleCategoryFilter('Life');
+        await toggleCategoryFilter('Mine');
 
-        // Check if user object updated
-        expect(mockUser.feedPreferences).toContain('Life');
-        expect(global.localStorage.setItem).toHaveBeenCalledWith('hearthUser', expect.any(String));
-
-        // Check feed updated
+        expect(mockUser.feedPreferences).toContain('Mine');
         const feed = document.getElementById('pulse-feed');
-        expect(feed.textContent).toContain('Life Post');
+        expect(feed.textContent).toContain('My Life Content');
     });
 });

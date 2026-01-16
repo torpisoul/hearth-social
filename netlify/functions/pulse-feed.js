@@ -149,13 +149,13 @@ async function handleGetFeed(userId) {
   // feedPreferences is array of strings (e.g. ['life', 'tech'])
   // We assume case-insensitive match for robustness, though data should be consistent.
   const preferredCategories = new Set(feedPreferences.map(c => c.toLowerCase()));
+  const showMine = preferredCategories.has('mine');
 
   const categoryFilteredPulses = visiblePulses.filter(pulse => {
-    // If pulse has no category, do we show it?
-    // Requirement says "opt in to whichever categories they wish to see".
-    // Implies if I didn't opt in to "Uncategorized", I don't see it.
-    // Assuming pulses have categories. If not, we might hide them or show them if 'misc' is selected.
-    // Let's assume strict filtering: if category not in list, hide.
+    if (pulse.user_id === userId) {
+        return showMine;
+    }
+
     if (!pulse.category) return false;
     return preferredCategories.has(pulse.category.toLowerCase());
   });
