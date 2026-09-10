@@ -31,6 +31,7 @@
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.16.3",
     "pg-mem": "^3.0.5",
+    "qrcode": "1.5.4",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
@@ -40,6 +41,7 @@
     "esbuild": "^0.28.2",
     "esmock": "^2.7.3",
     "jsdom": "^27.4.0",
+    "jsqr": "1.4.0",
     "vitest": "^5.0.0"
   }
 }
