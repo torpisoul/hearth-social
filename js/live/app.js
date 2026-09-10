@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { readInvite, inviteUrl } from "./invites.js";
 import { topics } from "../hearth-store.js";
 import {
   createIdentity,
@@ -20,6 +21,19 @@ const $ = (s) => document.querySelector(s),
           "'": "&#39;",
         })[c],
     );
+const inviteStorageKey = "hearth-pending-invite";
+let referral = readInvite(location.href);
+try {
+  if (referral) sessionStorage.setItem(inviteStorageKey, referral);
+  else referral = readInvite(new URL(`?ref=${sessionStorage.getItem(inviteStorageKey) || ""}`, location.href));
+} catch { /* Invitations still work when browser storage is unavailable. */ }
+function clearInvite() {
+  referral = null;
+  try { sessionStorage.removeItem(inviteStorageKey); } catch {}
+  const url = new URL(location.href);
+  url.searchParams.delete("ref");
+  history.replaceState(null, "", url);
+}
 let emailDeliveryEnabled = false;
 let client,
   user,
@@ -35,7 +49,7 @@ let client,
   messages = [],
   peer = "",
   tab = "pulse",
-  mode = "login",
+  mode = referral ? "signup" : "login",
   busy = false,
   page = 0,
   msgPage = 0,
@@ -63,7 +77,7 @@ const button = (text, action, extra = "") =>
   `<button data-action="${action}" ${extra}>${text}</button>`;
 function authView() {
   $("#app").innerHTML =
-    `<main id="main" class="auth"><a class="brand" href="./index.html">hearth</a><div class="eyebrow">A place for your people</div><h1>A little closer,<br>at your own pace.</h1><p>Real moments. Quiet conversations. A small circle that feels like home.</p><section class="panel"><div class="live-auth-tabs">${button("Sign in", "login", `aria-pressed="${mode === "login"}"`)}${button("Create account", "signup", `aria-pressed="${mode === "signup"}"`)}</div><h2>${mode === "signup" ? "Come as you are." : mode === "reset" ? "Find your way back." : "Welcome home."}</h2><form id="auth" class="live-form">${field("Email", '<input name="email" type="email" autocomplete="email" required maxlength="254">')}${mode === "reset" ? "" : field("Password", '<input name="password" type="password" autocomplete="' + (mode === "signup" ? "new-password" : "current-password") + '" required minlength="12" maxlength="128">')}<button class="primary">${mode === "signup" ? "Create my account" : mode === "reset" ? "Send reset link" : "Sign in"}</button></form>${emailDeliveryEnabled ? button("Forgot password?", "reset") : "<p>Email confirmation and password-reset emails are unavailable in this friends beta. Save your password and only accept friend codes from people you know.</p>"}<p class="live-muted">Friends beta · No public directory or popularity scores.</p></section><p><a href="./demo.html">Explore the fictional demo</a></p></main>`;
+    `<main id="main" class="auth"><a class="brand" href="./index.html">hearth</a><div class="eyebrow">A place for your people</div><h1>A little closer,<br>at your own pace.</h1><p>Real moments. Quiet conversations. A small circle that feels like home.</p><section class="panel"><div class="live-auth-tabs">${button("Sign in", "login", `aria-pressed="${mode === "login"}"`)}${button("Create account", "signup", `aria-pressed="${mode === "signup"}"`)}</div><p>${referral ? "Someone has invited you to Hearth. Create an account or sign in, then choose whether to connect." : ""}</p><h2>${mode === "signup" ? "Come as you are." : mode === "reset" ? "Find your way back." : "Welcome home."}</h2><form id="auth" class="live-form">${field("Email", '<input name="email" type="email" autocomplete="email" required maxlength="254">')}${mode === "reset" ? "" : field("Password", '<input name="password" type="password" autocomplete="' + (mode === "signup" ? "new-password" : "current-password") + '" required minlength="12" maxlength="128">')}<button class="primary">${mode === "signup" ? "Create my account" : mode === "reset" ? "Send reset link" : "Sign in"}</button></form>${emailDeliveryEnabled ? button("Forgot password?", "reset") : "<p>Email confirmation and password-reset emails are unavailable in this friends beta. Save your password and only accept friend codes from people you know.</p>"}<p class="live-muted">Friends beta · No public directory or popularity scores.</p></section><p><a href="./demo.html">Explore the fictional demo</a></p></main>`;
 }
 function profileView() {
   $("#app").innerHTML =
@@ -90,13 +104,19 @@ function render() {
       )
       .join(
         "",
-      )}</nav><div class="sidebar-bottom"><p>Less scrolling.<br>More living.</p><strong>${esc(profile.name)}</strong></div></aside><div><div class="topbar"><span class="demo"><span class="dot"></span> Friends beta · Connected</span><div>${button("Refresh", "refresh")}${button("Sign out", "logout")}</div></div><main id="main" class="content"><header class="heading"><div><div class="eyebrow">A little closer, at your own pace</div><h1>${{ pulse: "Make yourself at home.", kin: "Your people.", parlor: "The parlor.", settings: "Your little corner." }[tab]}</h1><p>${{ pulse: "Real life, shared with the people who matter.", kin: "A small circle. A meaningful connection.", parlor: "Good conversations don’t need an audience.", settings: "Your choices. Your attention. Your space." }[tab]}</p></div></header>${{ pulse: feed, kin: kin, parlor: parlor, settings: settings }[tab]()}</main><footer class="footer">Made for connection. Built with intention.</footer></div></div>`;
+      )}</nav><div class="sidebar-bottom"><p>Less scrolling.<br>More living.</p><strong>${esc(profile.name)}</strong></div></aside><div><div class="topbar"><span class="demo"><span class="dot"></span> Friends beta · Connected</span><div>${button("Refresh", "refresh")}${button("Sign out", "logout")}</div></div><main id="main" class="content"><header class="heading"><div><div class="eyebrow">A little closer, at your own pace</div><h1>${{ pulse: "Make yourself at home.", kin: "Your people.", parlor: "The parlor.", settings: "Your little corner." }[tab]}</h1><p>${{ pulse: "Real life, shared with the people who matter.", kin: "A small circle. A meaningful connection.", parlor: "Good conversations don’t need an audience.", settings: "Your choices. Your attention. Your space." }[tab]}</p></div></header>${invitePrompt()}${{ pulse: feed, kin: kin, parlor: parlor, settings: settings }[tab]()}</main><footer class="footer">Made for connection. Built with intention.</footer></div></div>`;
 }
 function feed() {
   return `<div class="narrow"><section class="welcome"><h2>A quieter kind of connected.</h2><p>No algorithm to keep up with. Just little moments from your people.</p></section><form id="status" class="panel live-form">${field("A little moment from your day", '<textarea name="content" required maxlength="1500" placeholder="Something you made, a small joy, or simply how you’re doing…"></textarea>')}<div class="live-pair">${field("Who is this for?", '<select name="audience"><option>Only me</option><option>Inner circle</option><option>All kin</option></select>')}${field("A little about", `<select name="topic">${topics.map((t) => `<option>${esc(t)}</option>`).join("")}</select>`)}</div><small>Audience access is enforced by the server. Status text is not end-to-end encrypted.</small><button class="primary">Share moment</button></form>${statuses.map((p) => `<article class="post"><div class="post-head"><strong>${esc(p.author === user.id ? profile.name : name(p.author))}</strong><span class="badge">${esc(p.audience)}</span></div><p class="live-text">${esc(p.content)}</p><div class="post-footer"><small>${esc(date(p.created_at))} · ${esc(p.topic)}</small>${p.author === user.id ? `<button data-delete="${p.id}">Delete</button>` : `<button data-chat="${p.author}">Reply privately</button>`}</div></article>`).join("")}<div class="end"><h3>${statuses.length === pageSize ? "A good place to pause." : "You’re all caught up."}</h3><p>The rest of the day is yours.</p><div class="live-actions">${button("Previous", "prev", page === 0 ? "disabled" : "")}${button("Next moments", "next", statuses.length < pageSize ? "disabled" : "")}</div></div></div>`;
 }
+function invitePrompt() {
+  if (!referral || referral === user.id) return "";
+  const connection = connections.find(c => c.requester === referral || c.recipient === referral);
+  const incoming = connection && !connection.accepted && connection.recipient === user.id;
+  return `<section class="panel narrow"><h2>${connection?.accepted ? "You’re connected." : connection && !incoming ? "Your request is on its way." : "Say hello to the person who invited you."}</h2><p>${connection ? connection.accepted ? "Find your friend in Your kin." : incoming ? "They have already asked to connect. Accept to start sharing." : "They can accept your request in Your kin. You don’t need to send your code separately." : "Send them a connection request here—no need to copy your friend code back. They’ll accept before you share moments or messages."}</p><p class="live-code">${esc(referral)}</p><div class="live-actions">${!connection || incoming ? button(incoming ? "Accept connection" : "Connect with my inviter", "connect-inviter", 'class="primary"') : ""}${button(connection ? "Done" : "Not now", "dismiss-invite")}</div></section>`;
+}
 function kin() {
-  return `<div class="narrow"><section class="panel"><h2>Invite your people.</h2><p>Share the site link and your friend code with someone you know. Both people must accept before sharing.</p><p class="live-code">${esc(user.id)}</p><form id="friend" class="live-form">${field("Their friend code", '<input name="person" required placeholder="Paste their friend code">')}<button class="primary">Send connection request</button></form></section>${
+  return `<div class="narrow"><section class="panel"><h2>Invite your people.</h2><p>Send one invite link, or let a friend scan your QR code. They’ll be guided to create an account and send you a connection request.</p><div class="live-actions">${button("Copy invite link", "copy-invite", 'class="primary"')}</div><label class="field">Your invite link<input id="invite-link" readonly value="${esc(inviteUrl(location.href, user.id))}"></label><details><summary>Use a friend code instead</summary><p class="live-code">${esc(user.id)}</p></details><form id="friend" class="live-form">${field("Their friend code", '<input name="person" required placeholder="Paste their friend code">')}<button class="primary">Send connection request</button></form></section>${
     connections
       .map((c) => {
         const id = c.requester === user.id ? c.recipient : c.requester;
@@ -409,6 +429,24 @@ document.addEventListener("click", (event) => {
       mode = d.action;
       render();
       return;
+    }
+    if (d.action === "copy-invite") {
+      try {
+        await navigator.clipboard.writeText(inviteUrl(location.href, user.id));
+        setTimeout(() => say("Invite link copied. Send it to your friend."), 0);
+      } catch {
+        $("#invite-link").focus();
+        $("#invite-link").select();
+        setTimeout(() => say("Select and copy the invite link above."), 0);
+      }
+      return;
+    }
+    if (d.action === "dismiss-invite") { clearInvite(); render(); return; }
+    if (d.action === "connect-inviter" && referral) {
+      const incoming = connections.some(c => c.requester === referral && c.recipient === user.id && !c.accepted);
+      check(await client.rpc(incoming ? "hearth_accept_friend" : "hearth_request_friend", { person: referral }));
+      tab = "kin";
+      await refresh(); render(); return;
     }
     if (d.action === "logout") {
       await signOut();
