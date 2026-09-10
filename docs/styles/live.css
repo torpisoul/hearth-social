@@ -95,3 +95,10 @@ summary {
     padding: 20px;
   }
 }
+
+.live-auth-tabs button[aria-pressed="true"] {
+  background: #293d33;
+  color: #fff;
+  border-color: #293d33;
+  box-shadow: inset 0 -3px 0 #a6c4ad;
+}
