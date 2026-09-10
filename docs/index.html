@@ -1,89 +1,23 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hearth Documentation</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../styles/design-system.css">
-    <link rel="stylesheet" href="../styles/components.css">
-    <link rel="stylesheet" href="../styles/app.css">
-    <link rel="stylesheet" href="../styles/profile.css"> <!-- Reusing for card styles -->
-    <link rel="stylesheet" href="../styles/dark-mode.css">
-    <script src="../js/theme-init.js"></script>
-    <style>
-        .docs-nav {
-            margin-bottom: var(--spacing-lg);
-        }
-        .docs-nav a {
-            color: var(--text-muted);
-            text-decoration: none;
-            margin-right: var(--spacing-md);
-        }
-        .docs-nav a:hover {
-            color: var(--primary-color);
-        }
-        .doc-card {
-            margin-bottom: var(--spacing-md);
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .doc-card:hover {
-            transform: translateY(-2px);
-        }
-    </style>
-</head>
-<body>
-    <nav class="navbar">
-        <div class="nav-left">
-            <h1 class="nav-logo">🌿 Hearth Docs</h1>
-        </div>
-        <div class="nav-right">
-            <a href="../profile.html" class="btn btn-small">Back to App</a>
-        </div>
-    </nav>
-
-    <main class="app-main content-padding">
-        <div class="container-narrow">
-            <h2 class="section-title">Help & Documentation</h2>
-
-            <a href="getting-started.html" style="text-decoration: none; color: inherit;">
-                <div class="card doc-card">
-                    <h3>🚀 Getting Started</h3>
-                    <p class="text-muted">New to Hearth? Start here to set up your profile and connect with Kin.</p>
-                </div>
-            </a>
-
-            <a href="privacy-controls.html" style="text-decoration: none; color: inherit;">
-                <div class="card doc-card">
-                    <h3>🔒 Privacy Controls</h3>
-                    <p class="text-muted">Learn how to manage who sees your updates and how to stay private.</p>
-                </div>
-            </a>
-
-            <a href="hearth-key.html" style="text-decoration: none; color: inherit;">
-                <div class="card doc-card">
-                    <h3>🔑 The Hearth Key System</h3>
-                    <p class="text-muted">Everything you need to know about your unique key and connecting with others.</p>
-                </div>
-            </a>
-
-            <a href="pulse-visibility.html" style="text-decoration: none; color: inherit;">
-                <div class="card doc-card">
-                    <h3>💭 Pulse Visibility</h3>
-                    <p class="text-muted">Understand how the Pulse feed works and who sees your thoughts.</p>
-                </div>
-            </a>
-
-            <a href="faq.html" style="text-decoration: none; color: inherit;">
-                <div class="card doc-card">
-                    <h3>❓ FAQ</h3>
-                    <p class="text-muted">Frequently Asked Questions about Hearth features and troubleshooting.</p>
-                </div>
-            </a>
-        </div>
-    </main>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#f6f3eb" />
+    <title>Hearth · A place for your people</title>
+    <link rel="stylesheet" href="styles/hearth.css" />
+    <link rel="stylesheet" href="styles/live.css" />
+    <script type="module" src="js/live-app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <div id="app">
+      <main class="content">
+        <h1>Welcome to Hearth.</h1>
+        <p>Opening your little corner…</p>
+      </main>
+    </div>
+    <p id="notice" role="status" aria-live="polite"></p>
+    <noscript>Enable JavaScript to use Hearth.</noscript>
+  </body>
 </html>

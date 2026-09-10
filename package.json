@@ -1,11 +1,16 @@
 {
   "name": "hearth-functions",
   "version": "1.0.0",
-  "description": "Netlify Functions for Hearth",
+  "description": "Hearth — an intentional social space and encrypted friends beta",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "vitest run --coverage"
+    "test": "npm run test:demo && npm run test:backend",
+    "test:demo": "node --test tests/demo/*.test.mjs",
+    "build": "node scripts/build-pages.mjs",
+    "preview": "python3 -m http.server 4173 --directory docs",
+    "test:backend": "node --test tests/backend/*.test.mjs",
+    "test:legacy": "vitest run --coverage"
   },
   "repository": {
     "type": "git",
@@ -19,7 +24,7 @@
   },
   "homepage": "https://github.com/torpisoul/hearth-social#readme",
   "dependencies": {
-    "@supabase/supabase-js": "^2.90.1",
+    "@supabase/supabase-js": "2.116.0",
     "bcryptjs": "^3.0.3",
     "buffer": "^6.0.3",
     "dotenv": "^17.2.3",
@@ -29,10 +34,12 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@testing-library/dom": "^10.4.1",
-    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/coverage-v8": "^5.0.0",
+    "esbuild": "^0.28.2",
     "esmock": "^2.7.3",
     "jsdom": "^27.4.0",
-    "vitest": "^4.0.16"
+    "vitest": "^5.0.0"
   }
 }
