@@ -96,12 +96,52 @@ summary {
   }
 }
 
-.live-auth-tabs button[aria-pressed="true"] {
-  background: #293d33;
-  color: #fff;
-  border-color: #293d33;
-  box-shadow: inset 0 -3px 0 #a6c4ad;
+/* Soft surfaces share the same light direction; selected controls sink in. */
+:root {
+  --soft-raised: 5px 5px 12px #dedbd3, -5px -5px 12px #ffffff;
+  --soft-pressed: inset 3px 3px 7px #d6dbcf, inset -3px -3px 7px #ffffff;
 }
+button {
+  background: var(--paper);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  box-shadow: var(--soft-raised);
+  min-height: 44px;
+}
+button:hover { background: #eeeee4; }
+button:active { box-shadow: var(--soft-pressed); }
+button.primary {
+  background: #e3e9db;
+  color: #30472e;
+  border-color: #ced8c5;
+  font-weight: 600;
+}
+button.primary:hover { background: #dae3d1; }
+.live-auth-tabs {
+  padding: 8px;
+  border-radius: 20px;
+  background: var(--paper);
+}
+.live-auth-tabs button { flex: 1; }
+.live-auth-tabs button[aria-pressed="true"],
+.nav button.active {
+  background: #e3e9db;
+  color: #30472e;
+  border-color: #cbd5c3;
+  box-shadow: var(--soft-pressed);
+  font-weight: 700;
+}
+.live-auth-tabs button[aria-pressed="true"]::after {
+  content: "";
+  display: block;
+  width: 20px;
+  height: 3px;
+  margin: 4px auto 0;
+  border-radius: 4px;
+  background: #62785b;
+}
+.auth .panel { background: var(--paper); box-shadow: var(--soft-raised); border-color: transparent; }
+
 
 .invite-code { margin: 24px 0; text-align: center; }
 .invite-qr { display: block; width: 256px; max-width: 100%; height: auto; margin: 0 auto 12px; }
