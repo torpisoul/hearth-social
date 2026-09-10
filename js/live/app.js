@@ -1,3 +1,4 @@
+import { deviceKey } from "./device-key.js";
 import { icon, brand, sprig } from "./art.js";
 import { prepareAvatar } from "./avatar.js";
 import { createClient } from "@supabase/supabase-js";
@@ -145,12 +146,12 @@ function kin() {
   }<p>Inner circle controls who can read your inner-circle moments. Blocking stops new messages and hides shared statuses; messages already delivered remain in each person’s history.</p></div>`;
 }
 function unlockForm() {
-  return `<section class="panel"><h2>${vault ? "Unlock your conversations." : "Make a private space."}</h2><p>${vault ? "Enter your separate messaging passphrase." : "Choose a separate messaging passphrase of at least 16 characters and save it in your password manager. It protects the backup of your message key."}</p><form id="unlock" class="live-form">${field("Messaging passphrase", `<input name="passphrase" type="password" required minlength="16" maxlength="512" autocomplete="${vault ? "current-password" : "new-password"}">`)}${vault ? "" : field("Confirm messaging passphrase", '<input name="confirm" type="password" required minlength="16" maxlength="512" autocomplete="new-password">')}<button class="primary">${vault ? "Unlock messages" : "Set up encrypted messages"}</button></form><p>We cannot recover a forgotten messaging passphrase. Account password resets do not unlock message history.</p></section>`;
+  return `<section class="panel"><h2>${vault ? "Unlock your conversations." : "Make a private space."}</h2><p>${vault ? "Enter your separate messaging passphrase." : "Choose a separate messaging passphrase of at least 16 characters and save it in your password manager. It protects the backup of your message key."}</p><form id="unlock" class="live-form">${field("Messaging passphrase", `<input name="passphrase" type="password" required minlength="16" maxlength="512" autocomplete="${vault ? "current-password" : "new-password"}">`)}${vault ? "" : field("Confirm messaging passphrase", '<input name="confirm" type="password" required minlength="16" maxlength="512" autocomplete="new-password">')}<label class="setting"><input name="remember" type="checkbox"> Remember messages on this personal device</label><small>Skip the extra unlock next time. Anyone using this browser while signed in as you could read your messages. Keep your passphrase for other devices.</small><button class="primary">${vault ? "Unlock messages" : "Set up encrypted messages"}</button></form><p>We cannot recover a forgotten messaging passphrase. Account password resets do not unlock message history.</p></section>`;
 }
 function parlor() {
-  return `<div class="narrow"><div class="notice">Messages are encrypted in your browser before sending. Your message key stays in memory while unlocked; lock messages when you leave this device.</div>${
+  return `<div class="narrow"><div class="notice">Messages are encrypted in your browser before sending. Your message key is remembered only if you choose to trust this device. Lock and forget it before sharing the device.</div>${
     privateKey
-      ? `${button("Lock messages", "lock")}<section class="panel">${field(
+      ? `${button("Lock and forget this device", "lock")}<section class="panel">${field(
           "Conversation",
           `<select id="peer"><option value="">Choose a friend</option>${friends()
             .map(
@@ -208,6 +209,12 @@ async function refresh() {
       .order("id", { ascending: false })
       .range(page * pageSize, (page + 1) * pageSize - 1),
   );
+  if (!privateKey && ownPublicKey) {
+    try {
+      const saved = await deviceKey("get",user.id);
+      if (saved?.fingerprint === await fingerprint(ownPublicKey)) privateKey = saved.key;
+    } catch { /* Device storage is optional; passphrase unlock remains available. */ }
+  }
   if (peer && !friends().includes(peer)) {
     peer = "";
     messages = [];
@@ -341,6 +348,7 @@ document.addEventListener("submit", (event) => {
       if (data.confirmation !== "DELETE")
         throw Error("Type DELETE to confirm.");
       check(await client.rpc("hearth_delete_account"));
+      try { await deviceKey("delete",user.id); } catch {}
       await client.auth.signOut({ scope: "local" });
       privateKey = null;
       user = null;
@@ -431,6 +439,11 @@ document.addEventListener("submit", (event) => {
         );
         privateKey = identity.privateKey;
       }
+    }
+    if (form.id === "unlock" && data.remember) {
+      const key = check(await client.rpc("hearth_public_key", {person:user.id}));
+      try { await deviceKey("put",user.id,{key:privateKey,fingerprint:await fingerprint(key)}); }
+      catch { throw Error("Messages unlocked, but this browser could not remember them. You can still use messages after refreshing."); }
     }
     if (form.id === "message") {
       if (!privateKey || !peer)
@@ -538,6 +551,7 @@ document.addEventListener("click", (event) => {
       return;
     }
     if (d.action === "lock") {
+      try { await deviceKey("delete",user.id); } catch { throw Error("Could not forget this device. Clear this site’s browser storage before sharing the device."); }
       privateKey = null;
       messages = [];
       peer = "";
