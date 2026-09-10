@@ -1,3 +1,4 @@
+import { icon, brand, sprig } from "./art.js";
 import { prepareAvatar } from "./avatar.js";
 import { createClient } from "@supabase/supabase-js";
 import { inviteQrSvg } from "./invite-qr.js";
@@ -36,6 +37,7 @@ function clearInvite() {
   url.searchParams.delete("ref");
   history.replaceState(null, "", url);
 }
+let events = [], rsvps = [];
 let preferences = {topics: [], update_mode: "manual"};
 let emailDeliveryEnabled = false;
 let client,
@@ -80,7 +82,7 @@ const button = (text, action, extra = "") =>
   `<button data-action="${action}" ${extra}>${text}</button>`;
 function authView() {
   $("#app").innerHTML =
-    `<main id="main" class="auth"><a class="brand" href="./index.html">hearth</a><div class="eyebrow">A place for your people</div><h1>A little closer,<br>at your own pace.</h1><p>Real moments. Quiet conversations. A small circle that feels like home.</p><section class="panel"><div class="live-auth-tabs">${button("Sign in", "login", `aria-pressed="${mode === "login"}"`)}${button("Create account", "signup", `aria-pressed="${mode === "signup"}"`)}</div><p>${referral ? "Someone has invited you to Hearth. Create an account or sign in, then choose whether to connect." : ""}</p><h2>${mode === "signup" ? "Come as you are." : mode === "reset" ? "Find your way back." : "Welcome home."}</h2><form id="auth" class="live-form">${field("Email", '<input name="email" type="email" autocomplete="email" required maxlength="254">')}${mode === "reset" ? "" : field("Password", '<input name="password" type="password" autocomplete="' + (mode === "signup" ? "new-password" : "current-password") + '" required minlength="12" maxlength="128">')}<button class="primary">${mode === "signup" ? "Create my account" : mode === "reset" ? "Send reset link" : "Sign in"}</button></form>${emailDeliveryEnabled ? button("Forgot password?", "reset") : "<p>Email confirmation and password-reset emails are unavailable in this friends beta. Save your password and only accept friend codes from people you know.</p>"}<p class="live-muted">Friends beta · No public directory or popularity scores.</p></section><p><a href="./demo.html">Explore the fictional demo</a></p></main>`;
+    `<main id="main" class="auth"><a class="brand" href="./index.html">${brand}hearth</a><div class="eyebrow">A place for your people</div><h1>A little closer,<br>at your own pace.</h1><p>Real moments. Quiet conversations. A small circle that feels like home.</p><section class="panel"><div class="live-auth-tabs">${button("Sign in", "login", `aria-pressed="${mode === "login"}"`)}${button("Create account", "signup", `aria-pressed="${mode === "signup"}"`)}</div><p>${referral ? "Someone has invited you to Hearth. Create an account or sign in, then choose whether to connect." : ""}</p><h2>${mode === "signup" ? "Come as you are." : mode === "reset" ? "Find your way back." : "Welcome home."}</h2><form id="auth" class="live-form">${field("Email", '<input name="email" type="email" autocomplete="email" required maxlength="254">')}${mode === "reset" ? "" : field("Password", '<input name="password" type="password" autocomplete="' + (mode === "signup" ? "new-password" : "current-password") + '" required minlength="12" maxlength="128">')}<button class="primary">${mode === "signup" ? "Create my account" : mode === "reset" ? "Send reset link" : "Sign in"}</button></form>${emailDeliveryEnabled ? button("Forgot password?", "reset") : "<p>Email confirmation and password-reset emails are unavailable in this friends beta. Save your password and only accept friend codes from people you know.</p>"}<p class="live-muted">Friends beta · No public directory or popularity scores.</p></section><p><a href="./demo.html">Explore the fictional demo</a></p></main>`;
 }
 function profileView() {
   $("#app").innerHTML =
@@ -95,28 +97,35 @@ function navigationLinks() {
       ["pulse", "The living room"],
       ["parlor", "The parlor"],
       ["kin", "Your kin"],
+      ["gatherings", "Gatherings"],
       ["settings", "Your preferences"],
     ]
       .map(
         ([id, label]) =>
-          `<button data-tab="${id}" class="${tab === id ? "active" : ""}" ${tab === id ? 'aria-current="page"' : ""}>${label}</button>`,
+          `<button data-tab="${id}" class="${tab === id ? "active" : ""}" ${tab === id ? 'aria-current="page"' : ""}>${icon(id)}<span>${label}</span></button>`,
       )
       .join(
         "",
-      )}<a href="./demo.html#gatherings">Gatherings · demo</a>`;
+      )}`;
 }
 function render() {
   if (recovery) return recoveryView();
   if (!user) return authView();
   if (!profile) return profileView();
   $("#app").innerHTML =
-    `<header class="mobile-header"><a class="brand" href="./live.html">hearth</a><button data-action="open-menu" aria-label="Open menu" aria-haspopup="dialog" aria-controls="mobile-menu" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span><span>Menu</span></button></header><dialog id="mobile-menu" aria-labelledby="menu-title"><div class="menu-heading"><h2 id="menu-title">Make yourself at home.</h2>${button("Close", "close-menu", 'aria-label="Close menu" autofocus')}</div><nav class="nav" aria-label="Mobile navigation">${navigationLinks()}</nav><div class="menu-actions">${button("Refresh", "refresh")}${button("Sign out", "logout")}</div><p class="live-muted">A little space for you and your people.</p></dialog><div class="shell"><aside class="sidebar"><a class="brand" href="./live.html">hearth</a><p class="tagline">A place for your people.</p><nav class="nav" aria-label="Main navigation">${navigationLinks()}</nav><div class="sidebar-bottom"><p>Less scrolling.<br>More living.</p><strong>${esc(profile.name)}</strong></div></aside><div><div class="topbar"><span class="demo"><span class="dot"></span> Friends beta · Connected</span><div>${button("Refresh", "refresh")}${button("Sign out", "logout")}</div></div><main id="main" class="content" tabindex="-1"><header class="heading"><div><div class="eyebrow">A little closer, at your own pace</div><h1>${{ pulse: "Make yourself at home.", kin: "Your people.", parlor: "The parlor.", settings: "Your little corner." }[tab]}</h1><p>${{ pulse: "Real life, shared with the people who matter.", kin: "A small circle. A meaningful connection.", parlor: "Good conversations don’t need an audience.", settings: "Your choices. Your attention. Your space." }[tab]}</p></div></header>${invitePrompt()}${{ pulse: feed, kin: kin, parlor: parlor, settings: settings }[tab]()}</main><footer class="footer">Made for connection. Built with intention.</footer></div></div>`;
+    `<header class="mobile-header"><a class="brand" href="./live.html">${brand}hearth</a><button data-action="open-menu" aria-label="Open menu" aria-haspopup="dialog" aria-controls="mobile-menu" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span><span>Menu</span></button></header><dialog id="mobile-menu" aria-labelledby="menu-title"><div class="menu-heading"><h2 id="menu-title">Make yourself at home.</h2>${button("Close", "close-menu", 'aria-label="Close menu" autofocus')}</div><nav class="nav" aria-label="Mobile navigation">${navigationLinks()}</nav><div class="menu-actions">${button("Refresh", "refresh")}${button("Sign out", "logout")}</div><p class="live-muted">A little space for you and your people.</p></dialog><div class="shell"><aside class="sidebar"><a class="brand" href="./live.html">${brand}hearth</a><p class="tagline">A place for your people.</p><nav class="nav" aria-label="Main navigation">${navigationLinks()}</nav><div class="sidebar-bottom"><p>Less scrolling.<br>More living.</p><strong>${esc(profile.name)}</strong></div></aside><div><div class="topbar"><span class="demo"><span class="dot"></span> Friends beta · Connected</span><div>${button("Refresh", "refresh")}${button("Sign out", "logout")}</div></div><main id="main" class="content" tabindex="-1"><header class="heading"><div><div class="eyebrow">A little closer, at your own pace</div><h1>${{ gatherings: "Something to look forward to.", pulse: "Make yourself at home.", kin: "Your people.", parlor: "The parlor.", settings: "Your little corner." }[tab]}</h1><p>${{ gatherings: "A little plan. Good company.", pulse: "Real life, shared with the people who matter.", kin: "A small circle. A meaningful connection.", parlor: "Good conversations don’t need an audience.", settings: "Your choices. Your attention. Your space." }[tab]}</p></div></header>${invitePrompt()}${{ gatherings: gatherings, pulse: feed, kin: kin, parlor: parlor, settings: settings }[tab]()}</main><footer class="footer">Made for connection. Built with intention.</footer></div></div>`;
 }
 function topicChoices() {
   return `<div class="topic-pills" role="group" aria-label="Topics in your living room">${topics.map(t => `<button data-topic="${esc(t)}" aria-pressed="${(preferences.topics || []).includes(t)}">${esc(t)}</button>`).join("")}</div><p class="live-muted">Choose what comes into your living room. Everything starts switched off.</p>`;
 }
+function companionCards() {
+ return `<aside class="live-companions"><section class="panel"><div class="eyebrow">The people, not the numbers</div><h2>A few familiar faces.</h2>${friends().slice(0,3).map(id => `<div class="kin-row">${avatar(id)}<strong>${esc(name(id))}</strong></div>`).join("") || '<p>A little room for your people. Invite someone you know.</p>'}<button data-tab="kin">Visit your kin</button></section><section class="panel"><div class="eyebrow">Something to look forward to</div><h2>Room at the table.</h2>${events[0] ? `<p><strong>${esc(events[0].title)}</strong><br>${esc(date(events[0].starts_at))}<br>${esc(events[0].place)}</p>` : '<p>No plans yet. A walk or a cup of tea is a good place to start.</p>'}<button data-tab="gatherings">See your gatherings</button></section><section class="panel"><div class="eyebrow">A little peace of mind</div><h2>Your attention is yours.</h2><p>No read receipts. No pressure to reply. Choose what comes into your living room and when to check in.</p><button data-tab="settings">Make this space yours</button></section></aside>`;
+}
+function gatherings() {
+ return `<div class="narrow"><section class="panel"><h2>Fancy making a little plan?</h2><form id="event" class="live-form">${field("What shall we do?",'<input name="title" required maxlength="100" placeholder="A walk, dinner, a game…">')}${field("Where?",'<input name="place" required maxlength="200">')}${field("When?",'<input name="starts_at" type="datetime-local" required>')}${field("Anything else?",'<textarea name="details" maxlength="1500"></textarea>')}<small>Shared with all your kin. They can see the plan and who’s coming. Times are shown in each person’s local time.</small><button class="primary">Share the plan</button></form></section>${events.map(e => `<section class="panel"><h2>${esc(e.title)}</h2><p>${esc(date(e.starts_at))} · ${esc(e.place)}</p><p class="live-text">${esc(e.details)}</p><p>Hosted by ${esc(e.owner === user.id ? profile.name : name(e.owner))}</p><p>${rsvps.filter(r=>r.event===e.id).map(r=>esc(r.person===user.id ? 'You' : name(r.person))).join(', ') || 'No replies yet. No rush.'}</p><div class="live-actions"><button data-rsvp="${e.id}">${rsvps.some(r=>r.event===e.id && r.person===user.id) ? 'I can’t make it now' : 'I’d like to come'}</button>${e.owner===user.id ? `<button data-cancel-event="${e.id}">Cancel this plan</button>` : ''}</div></section>`).join('') || '<p>A quiet calendar, for now.</p>'}<p class="live-muted">Showing the next 20 upcoming gatherings.</p></div>`;
+}
 function feed() {
-  return `<div class="narrow">${topicChoices()}<section class="welcome"><h2>A quieter kind of connected.</h2><p>No algorithm to keep up with. Just little moments from your people.</p></section><form id="status" class="panel live-form">${field("A little moment from your day", '<textarea name="content" required maxlength="1500" placeholder="Something you made, a small joy, or simply how you’re doing…"></textarea>')}<div class="live-pair">${field("Who is this for?", '<select name="audience"><option>Only me</option><option>Inner circle</option><option>All kin</option></select>')}${field("A little about", `<select name="topic">${topics.map((t) => `<option>${esc(t)}</option>`).join("")}</select>`)}</div><small>Audience access is enforced by the server. Status text is not end-to-end encrypted.</small><button class="primary">Share moment</button></form>${statuses.map((p) => `<article class="post"><div class="post-head">${avatar(p.author)}<strong>${esc(p.author === user.id ? profile.name : name(p.author))}</strong><span class="badge">${esc(p.audience)}</span></div><p class="live-text">${esc(p.content)}</p><div class="post-footer"><small>${esc(date(p.created_at))} · ${esc(p.topic)}</small>${p.author === user.id ? `<button data-delete="${p.id}">Delete</button>` : `<button data-chat="${p.author}">Reply privately</button>`}</div></article>`).join("")}<div class="end"><h3>${statuses.length === pageSize ? "A good place to pause." : "You’re all caught up."}</h3><p>The rest of the day is yours.</p><div class="live-actions">${button("Previous", "prev", page === 0 ? "disabled" : "")}${button("Next moments", "next", statuses.length < pageSize ? "disabled" : "")}</div></div></div>`;
+  return `<div class="live-feed-layout"><div class="narrow">${topicChoices()}<section class="welcome"><div class="eyebrow">Your digital living room</div><h2>A quieter kind of connected.</h2><p>No algorithm to keep up with. Just little moments from your people.</p>${sprig}</section><form id="status" class="panel live-form">${field("A little moment from your day", '<textarea name="content" required maxlength="1500" placeholder="Something you made, a small joy, or simply how you’re doing…"></textarea>')}<div class="live-pair">${field("Who is this for?", '<select name="audience"><option>Only me</option><option>Inner circle</option><option>All kin</option></select>')}${field("A little about", `<select name="topic">${topics.map((t) => `<option>${esc(t)}</option>`).join("")}</select>`)}</div><small>Audience access is enforced by the server. Status text is not end-to-end encrypted.</small><button class="primary">Share moment</button></form>${statuses.map((p) => `<article class="post"><div class="post-head">${avatar(p.author)}<strong>${esc(p.author === user.id ? profile.name : name(p.author))}</strong><span class="badge">${esc(p.audience)}</span></div><p class="live-text">${esc(p.content)}</p><div class="post-footer"><small>${esc(date(p.created_at))} · ${esc(p.topic)}</small>${p.author === user.id ? `<button data-delete="${p.id}">Delete</button>` : `<button data-chat="${p.author}">Reply privately</button>`}</div></article>`).join("")}<div class="end"><h3>${statuses.length === pageSize ? "A good place to pause." : "You’re all caught up."}</h3><p>The rest of the day is yours.</p><div class="live-actions">${button("Previous", "prev", page === 0 ? "disabled" : "")}${button("Next moments", "next", statuses.length < pageSize ? "disabled" : "")}</div></div></div>${companionCards()}</div>`;
 }
 function invitePrompt() {
   if (!referral || referral === user.id) return "";
@@ -189,6 +198,8 @@ async function refresh() {
       ].map(async (p) => check(await p)),
     );
   let statusQuery = client.from("hearth_statuses").select("*");
+  events = check(await client.from("hearth_events").select("*").gte("starts_at",new Date().toISOString()).order("starts_at").limit(20));
+  rsvps = events.length ? check(await client.from("hearth_rsvps").select("*").in("event",events.map(e=>e.id))) : [];
   const selectedTopics = (preferences.topics || []).filter(t => topics.includes(t));
   statusQuery = selectedTopics.length ? statusQuery.in("topic", selectedTopics) : statusQuery.eq("id", "00000000-0000-0000-0000-000000000000");
   statuses = check(
@@ -351,6 +362,11 @@ document.addEventListener("submit", (event) => {
           .insert({ id: user.id, name: data.name.trim() }),
       );
     }
+    if (form.id === "event") {
+      const starts = new Date(data.starts_at);
+      if (!Number.isFinite(starts.getTime()) || starts <= new Date()) throw Error("Choose a time in the future.");
+      check(await client.from("hearth_events").insert({title:data.title.trim(),place:data.place.trim(),details:data.details.trim(),starts_at:starts.toISOString()}));
+    }
     if (form.id === "avatar") {
       const picture = await prepareAvatar(form.elements.photo.files[0]);
       check(await client.from("hearth_profiles").update({avatar:picture}).eq("id",user.id));
@@ -468,6 +484,16 @@ document.addEventListener("click", (event) => {
   if (d.action === "close-menu") { $("#mobile-menu").close(); return; }
   if (b.closest("dialog")) $("#mobile-menu").close();
   run(async () => {
+    if (d.rsvp) {
+      const going = rsvps.some(r=>r.event===d.rsvp && r.person===user.id);
+      check(await (going ? client.from("hearth_rsvps").delete().eq("event",d.rsvp).eq("person",user.id) : client.from("hearth_rsvps").insert({event:d.rsvp})));
+      await refresh(); render(); return;
+    }
+    if (d.cancelEvent) {
+      if (!confirm("Cancel this gathering and remove its replies?")) return;
+      check(await client.from("hearth_events").delete().eq("id",d.cancelEvent).eq("owner",user.id));
+      await refresh(); render(); return;
+    }
     if (d.action === "remove-avatar") {
       check(await client.from("hearth_profiles").update({avatar:null}).eq("id",user.id));
       await refresh(); render(); return;
@@ -636,7 +662,7 @@ async function start() {
     const config = await response.json();
     if (!config.supabaseUrl || !config.supabasePublishableKey) {
       $("#app").innerHTML =
-        '<main id="main" class="auth"><a class="brand" href="./index.html">hearth</a><h1>A little space is taking shape.</h1><p>The live friends beta is waiting for its backend connection. Accounts and shared messages are not available yet.</p><a href="./demo.html">Explore the fictional demo →</a></main>';
+        '<main id="main" class="auth"><a class="brand" href="./index.html">${brand}hearth</a><h1>A little space is taking shape.</h1><p>The live friends beta is waiting for its backend connection. Accounts and shared messages are not available yet.</p><a href="./demo.html">Explore the fictional demo →</a></main>';
       return;
     }
     emailDeliveryEnabled = config.emailDeliveryEnabled === true;

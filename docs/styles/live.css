@@ -194,3 +194,12 @@ button.primary:hover { background: #dae3d1; }
 .live-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: var(--soft-raised); }
 .live-avatar.initials { display: inline-grid; place-items: center; background: #e3e9db; color: #30472e; font-weight: 600; }
 #avatar { margin-top: 24px; }
+.nav button { display: flex; align-items: center; gap: 12px; }
+.nav button svg { display: block; width: 21px; height: 21px; flex-shrink: 0; }
+.brand > svg { width: 30px; height: 36px; }
+.live-feed-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 32px; align-items: start; }
+.live-feed-layout .narrow { width: 100%; min-width: 0; }
+.live-companions { display: grid; gap: 24px; padding-top: 12px; }
+.live-companions .panel { margin: 0; }
+.live-companions h2 { font-size: 24px; }
+@media(max-width:1200px) { .live-feed-layout { grid-template-columns: minmax(0,1fr); } .live-companions { grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); } }
