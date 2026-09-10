@@ -38,7 +38,8 @@ function clearInvite() {
   url.searchParams.delete("ref");
   history.replaceState(null, "", url);
 }
-let events = [], rsvps = [];
+let events = [], rsvps = [], waitingNotes = [];
+let peerReady = true, waitingError = "";
 let preferences = {topics: [], update_mode: "manual"};
 let emailDeliveryEnabled = false;
 let client,
@@ -149,7 +150,7 @@ function unlockForm() {
   return `<section class="panel"><h2>${vault ? "Unlock your conversations." : "Make a private space."}</h2><p>${vault ? "Enter your separate messaging passphrase." : "Choose a separate messaging passphrase of at least 16 characters and save it in your password manager. It protects the backup of your message key."}</p><form id="unlock" class="live-form">${field("Messaging passphrase", `<input name="passphrase" type="password" required minlength="16" maxlength="512" autocomplete="${vault ? "current-password" : "new-password"}">`)}${vault ? "" : field("Confirm messaging passphrase", '<input name="confirm" type="password" required minlength="16" maxlength="512" autocomplete="new-password">')}<label class="setting"><input name="remember" type="checkbox"> Remember messages on this personal device</label><small>Skip the extra unlock next time. Anyone using this browser while signed in as you could read your messages. Keep your passphrase for other devices.</small><button class="primary">${vault ? "Unlock messages" : "Set up encrypted messages"}</button></form><p>We cannot recover a forgotten messaging passphrase. Account password resets do not unlock message history.</p></section>`;
 }
 function parlor() {
-  return `<div class="narrow"><div class="notice">Messages are encrypted in your browser before sending. Your message key is remembered only if you choose to trust this device. Lock and forget it before sharing the device.</div>${
+  return `<div class="narrow">${waitingError ? `<p class="notice">${esc(waitingError)}</p>` : ""}${waitingNotes.some(n=>n.recipient===user.id) ? `<section class="panel"><h2>A friend has reached out.</h2><p>There’s a note waiting for you. ${vault ? "Your messaging space is ready; your friend’s next unlocked check-in will bring it through." : "Set up your private space below when you’re ready. Your friend can then deliver it on their next unlocked check-in."}</p></section>` : ""}<div class="notice">Messages are encrypted in your browser before sending. Your message key is remembered only if you choose to trust this device. Lock and forget it before sharing the device.</div>${
     privateKey
       ? `${button("Lock and forget this device", "lock")}<section class="panel">${field(
           "Conversation",
@@ -159,7 +160,7 @@ function parlor() {
                 `<option value="${id}" ${peer === id ? "selected" : ""}>${esc(name(id))}</option>`,
             )
             .join("")}</select>`,
-        )}${!friends().length ? "<p>Connect with a friend in Your kin first.</p>" : ""}</section>${peer ? `<section class="panel"><div class="messages">${messages.map((m) => `<div class="bubble ${m.sender === user.id ? "mine" : ""}"><span class="live-text">${esc(m.text)}</span><small>${m.sender === user.id ? "You" : esc(name(peer))} · ${esc(date(m.created_at))}</small></div>`).join("") || "<p>A fresh conversation. Start with a hello.</p>"}</div><div class="live-actions">${button("Newer", "newer", msgPage === 0 ? "disabled" : "")}${button("Older", "older", messages.length < pageSize ? "disabled" : "")}</div><form id="message" class="live-form">${field("A little note", '<textarea name="text" required maxlength="2000" placeholder="Take your time. Say it your way."></textarea>')}<button class="primary">Send encrypted note</button></form>${button("Compare security fingerprints", "fingerprints")}</section>` : ""}`
+        )}${!friends().length ? "<p>Connect with a friend in Your kin first.</p>" : ""}</section>${peer ? `<section class="panel">${!peerReady ? '<p>Your friend hasn’t set up messages yet. You can leave an encrypted waiting note. It arrives after they set up and you next check in with messages unlocked.</p>' : ""}<div class="messages">${messages.map((m) => `<div class="bubble ${m.sender === user.id ? "mine" : ""}"><span class="live-text">${esc(m.text)}</span><small>${m.sender === user.id ? "You" : esc(name(peer))} · ${esc(date(m.created_at))}${m.pending ? " · Waiting to be delivered" : ""}</small></div>`).join("") || "<p>A fresh conversation. Start with a hello.</p>"}</div><div class="live-actions">${button("Newer", "newer", msgPage === 0 ? "disabled" : "")}${button("Older", "older", messages.length < pageSize ? "disabled" : "")}</div><form id="message" class="live-form">${field("A little note", '<textarea name="text" required maxlength="2000" placeholder="Take your time. Say it your way."></textarea>')}<button class="primary">Send encrypted note</button></form>${button("Compare security fingerprints", "fingerprints")}</section>` : ""}`
       : unlockForm()
   }</div>`;
 }
@@ -219,16 +220,20 @@ async function refresh() {
     peer = "";
     messages = [];
   }
+  waitingNotes = check(await client.from("hearth_waiting_notes").select("*").order("created_at").limit(100));
+  waitingError = "";
+  try { await deliverWaitingNotes(); } catch { waitingError = "Some waiting notes couldn’t be delivered yet. They’re still saved; try Refresh when you’re ready."; }
   if (privateKey && peer) await loadMessages();
 }
-async function peerKey() {
-  const key = check(await client.rpc("hearth_public_key", { person: peer }));
+async function peerKey(required = true, person = peer) {
+  const key = check(await client.rpc("hearth_public_key", { person }));
+  if (!key && !required) return null;
   if (!key)
     throw Error(
       "Your friend needs to set up encrypted messages in The parlor first.",
     );
   const print = await fingerprint(key),
-    pinKey = `hearth-key:${user.id}:${peer}`;
+    pinKey = `hearth-key:${user.id}:${person}`;
   const pinned = localStorage.getItem(pinKey);
   if (pinned && pinned !== print)
     throw Error(
@@ -239,8 +244,9 @@ async function peerKey() {
 }
 async function loadMessages() {
   messages = [];
-  const key = await peerKey();
-  const rows = check(
+  const key = await peerKey(false);
+  peerReady = Boolean(key);
+  const rows = key ? check(
     await client
       .from("hearth_messages")
       .select("*")
@@ -250,7 +256,7 @@ async function loadMessages() {
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .range(msgPage * pageSize, (msgPage + 1) * pageSize - 1),
-  );
+  ) : [];
   messages = await Promise.all(
     rows.reverse().map(async (m) => {
       try {
@@ -263,6 +269,26 @@ async function loadMessages() {
       }
     }),
   );
+  for (const note of waitingNotes.filter(n=>n.sender===user.id && n.recipient===peer)) {
+    messages.push({...note,text:await decryptMessage(privateKey,ownPublicKey,note),pending:true});
+  }
+
+}
+async function deliverWaitingNotes() {
+  if (!privateKey) return;
+  for (const note of waitingNotes.filter(n=>n.sender===user.id && friends().includes(n.recipient))) {
+    const key = await peerKey(false,note.recipient);
+    if (!key) continue;
+    const text = await decryptMessage(privateKey,ownPublicKey,note);
+    const envelope = await encryptMessage(privateKey,key,{id:note.id,sender:user.id,recipient:note.recipient},text);
+    const result = await client.from("hearth_messages").insert(envelope);
+    if (result.error?.code === "23505") {
+      const existing = check(await client.from("hearth_messages").select("id").eq("id",note.id).eq("sender",user.id).eq("recipient",note.recipient).maybeSingle());
+      if (!existing) throw result.error;
+    } else check(result);
+    check(await client.from("hearth_waiting_notes").delete().eq("id",note.id).eq("sender",user.id));
+    waitingNotes = waitingNotes.filter(n=>n.id!==note.id);
+  }
 }
 async function run(action) {
   if (busy) return;
@@ -448,13 +474,14 @@ document.addEventListener("submit", (event) => {
     if (form.id === "message") {
       if (!privateKey || !peer)
         throw Error("Unlock messages and choose a friend first.");
+      const recipientKey = await peerKey(false);
       const envelope = await encryptMessage(
         privateKey,
-        await peerKey(),
+        recipientKey || ownPublicKey,
         { id: crypto.randomUUID(), sender: user.id, recipient: peer },
         data.text.trim(),
       );
-      check(await client.from("hearth_messages").insert(envelope));
+      check(await client.from(recipientKey ? "hearth_messages" : "hearth_waiting_notes").insert(envelope));
       form.reset();
       msgPage = 0;
     }
@@ -595,6 +622,7 @@ document.addEventListener("click", (event) => {
         public_key: ownPublicKey,
         statuses: await allRows("hearth_statuses", true),
         feedback: await allRows("hearth_feedback"),
+        waiting_notes: await allRows("hearth_waiting_notes"),
         messages: await allRows("hearth_messages"),
       };
       const url = URL.createObjectURL(

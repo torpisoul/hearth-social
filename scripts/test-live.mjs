@@ -77,6 +77,19 @@ try {
     1,
   );
   const alice = await createIdentity("Disposable Alice messaging passphrase");
+  const pending = await encryptMessage(alice.privateKey,alice.public_key,{id:crypto.randomUUID(),sender:a.id,recipient:b.id},'A waiting hello');
+  check(await a.client.from('hearth_waiting_notes').insert(pending));
+  assert.equal(check(await b.client.from('hearth_waiting_notes').select('*')).length,1);
+  assert.equal(check(await c.client.from('hearth_waiting_notes').select('*')).length,0);
+  check(await a.client.from('hearth_preferences').insert({owner:a.id}));
+  assert.deepEqual(check(await a.client.from('hearth_preferences').select('topics')).at(0).topics,[]);
+  assert.equal(check(await b.client.from('hearth_preferences').select('*')).length,0);
+  check(await a.client.from('hearth_profiles').update({avatar:'data:image/png;base64,aGVsbG8='}).eq('id',a.id));
+  assert.equal(check(await b.client.from('hearth_profiles').select('avatar').eq('id',a.id)).at(0).avatar,'data:image/png;base64,aGVsbG8=');
+  const event=check(await a.client.from('hearth_events').insert({title:'Test walk',place:'Test park',starts_at:new Date(Date.now()+86400000).toISOString()}).select('id')).at(0);
+  check(await b.client.from('hearth_rsvps').insert({event:event.id}));
+  assert.equal(check(await a.client.from('hearth_rsvps').select('*')).length,1);
+  assert.equal(check(await c.client.from('hearth_rsvps').select('*')).length,0);
   const bob = await createIdentity("Disposable Bob messaging passphrase");
   for (const [u, key] of [
     [a, alice],
@@ -87,6 +100,11 @@ try {
         .from("hearth_keys")
         .insert({ owner: u.id, public_key: key.public_key, vault: key.vault }),
     );
+  const pendingText = await decryptMessage(alice.privateKey,alice.public_key,pending);
+  const forwarded = await encryptMessage(alice.privateKey,bob.public_key,{id:pending.id,sender:a.id,recipient:b.id},pendingText);
+  check(await a.client.from('hearth_messages').insert(forwarded));
+  assert.equal(await decryptMessage(bob.privateKey,alice.public_key,forwarded),'A waiting hello');
+  check(await a.client.from('hearth_waiting_notes').delete().eq('id',pending.id));
   const pub = check(await a.client.rpc("hearth_public_key", { person: b.id }));
   assert.deepEqual(pub, bob.public_key);
   const envelope = await encryptMessage(
@@ -135,7 +153,7 @@ try {
     ).error,
   );
   console.log(
-    "PASS: hosted signup, profiles, friendship consent, audience isolation, encrypted send/read, restored vault, outsider denial, blocking.",
+    "PASS: hosted signup, profiles, friendship consent, audience isolation, encrypted send/read, restored vault, outsider denial, blocking, topic preferences, avatars, gatherings, RSVP privacy and waiting-note forwarding.",
   );
 } finally {
   let failed = false;

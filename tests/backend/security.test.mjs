@@ -127,6 +127,15 @@ test("gatherings and RSVPs are visible only to the host and connected kin", asyn
  await as(a,"delete from hearth_blocks where owner=$1 and target=$2",[a,b]);
  await as(a,"delete from hearth_events where id=$1",[event.id]);
 });
+test("waiting notes allow only connected participants and reject forged senders", async () => {
+ const id='00000000-0000-4000-9000-000000000999';
+ await as(a,"insert into hearth_waiting_notes(id,sender,recipient,version,iv,ciphertext) values($1,$2,$3,1,repeat('a',16),repeat('b',30))",[id,a,b]);
+ assert.equal((await as(b,"select * from hearth_waiting_notes")).length,1);
+ assert.equal((await as(c,"select * from hearth_waiting_notes")).length,0);
+ await assert.rejects(as(c,"insert into hearth_waiting_notes(id,sender,recipient,version,iv,ciphertext) values(gen_random_uuid(),$1,$2,1,repeat('a',16),repeat('b',30))",[a,b]),/row-level security/);
+ assert.equal((await as(b,"delete from hearth_waiting_notes returning id")).length,0);
+ await as(a,"delete from hearth_waiting_notes where id=$1",[id]);
+});
 test("inner-circle access is controlled by author, not reader", async () => {
   await as(b, "insert into hearth_circle values($1,$2)", [b, a]);
   assert.equal((await as(b, "select * from hearth_statuses")).length, 1);
@@ -260,7 +269,7 @@ test("all exposed tables have RLS; public API functions are invoker functions", 
       "select relname,relrowsecurity from pg_class join pg_namespace n on n.oid=relnamespace where n.nspname='public' and relkind='r' and relname like 'hearth_%' ",
     )
   ).rows;
-  assert.equal(rows.length, 11);
+  assert.equal(rows.length, 12);
   assert.ok(rows.every((r) => r.relrowsecurity));
   assert.equal(
     (
