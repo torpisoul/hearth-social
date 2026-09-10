@@ -26,7 +26,7 @@ The configured project is Hearth (`nkpzdvpzlxiwrtivpiwv`) in Frankfurt. Its publ
 For a new project:
 
 1. Create a Supabase project with the Data API enabled, automatic table exposure disabled and RLS enabled.
-2. Run both SQL files in `supabase/migrations/` in filename order against the empty database. This defines the seven Hearth tables, access policies, guarded RPCs, and write limits. The initial Hearth project was provisioned through the dashboard SQL editor; it is not recorded in the Supabase migration-history table. Reconcile migration history before adopting automatic CLI deployment; do not blindly replay the initial migration. The account-deletion/policy-hardening migration is recorded in hosted history.
+2. Run all SQL files in `supabase/migrations/` in filename order against the empty database. This defines the eight Hearth tables, access policies, guarded RPCs, and write limits. The initial Hearth project was provisioned through the dashboard SQL editor; it is not recorded in the Supabase migration-history table. Reconcile migration history before adopting automatic CLI deployment; do not blindly replay the initial migration. The account-deletion/policy-hardening migration is recorded in hosted history.
 3. Set `supabaseUrl` and `supabasePublishableKey` in `public-config.json`. The build rejects secret keys and incomplete settings.
 4. Set Auth Site URL and allowed redirect URL to `https://torpisoul.github.io/hearth-social/live.html`. For a different host, use its exact `live.html` URL. The site works at the repository subpath.
 5. Configure custom SMTP before relying on email confirmation or password resets for friends. Supabase's default sender only delivers to project-team addresses. See https://supabase.com/docs/guides/auth/auth-smtp.
@@ -75,3 +75,20 @@ Push to `main`. In GitHub Settings → Pages, choose **GitHub Actions** as the s
 The older HTML/Netlify implementation and tests remain in source as reference, and are excluded from published assets. Old login/profile/parlor URLs serve the live app; the old notice board points to fictional demo gatherings.
 
 Hosted verification on 10 September 2026 passed signup, profile storage, mutual connections, status isolation, encrypted delivery, key-backup unlock, outsider denial and blocking with three disposable accounts; all were cleaned up. Supabase Security Advisor reports only leaked-password protection disabled (an Auth setting); database policy/function warnings were resolved.
+
+## Feedback notes
+
+Your preferences includes a short **What would you like to do here?** form. Notes go to the host, not to kin; they are ordinary private database records, not encrypted messages. The author is assigned by the server. Signed-in users can only read their own notes; anonymous access and forged authors are denied. Each account can send up to five notes per hour. Notes are included in data exports and deleted with the account.
+
+As host, read `hearth_feedback` in the Supabase Table Editor, or run this in the dashboard SQL editor:
+
+```sql
+select f.created_at, p.name, f.content
+from public.hearth_feedback f
+left join public.hearth_profiles p on p.id = f.author
+order by f.created_at desc;
+```
+
+No email delivery or notification automation is configured for feedback. The feedback migration is recorded in hosted migration history.
+
+On viewports up to 800px wide, navigation and account actions move into a hamburger menu. The native modal dialog supports keyboard focus containment, Escape to close, and focus return. Opening and closing it preserves the current form draft.

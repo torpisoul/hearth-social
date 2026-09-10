@@ -148,8 +148,11 @@ function parlor() {
       : unlockForm()
   }</div>`;
 }
+function feedbackForm() {
+  return `<section class="panel feedback-panel"><h2>What would you like to do here?</h2><p>Anything you wish we could do together? Or a little thing that got in the way? A sentence is plenty.</p><form id="feedback" class="live-form">${field("Leave a little note", '<textarea name="content" required maxlength="2000" placeholder="I’d love to…" aria-describedby="feedback-privacy"></textarea>')}<small id="feedback-privacy">This goes to Hearth’s host with your account, not to your kin. It isn’t an encrypted message.</small><button class="primary">Send note</button><p id="feedback-result" role="status" tabindex="-1"></p></form></section>`;
+}
 function settings() {
-  return `<div class="narrow"><form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a passphrase-protected key backup. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your own statuses, connections, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. Gatherings and the other demo features are not live yet.</p><a href="./demo.html">Explore the fictional feature demo</a></section></div>`;
+  return `<div class="narrow">${feedbackForm()}<form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a passphrase-protected key backup. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your own statuses, feedback notes, connections, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, feedback notes, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. Gatherings and the other demo features are not live yet.</p><a href="./demo.html">Explore the fictional feature demo</a></section></div>`;
 }
 async function refresh() {
   profile = check(
@@ -333,6 +336,15 @@ document.addEventListener("submit", (event) => {
           .insert({ id: user.id, name: data.name.trim() }),
       );
     }
+    if (form.id === "feedback") {
+      const content = data.content.trim();
+      if (!content) throw Error("Add a few words before sending your note.");
+      check(await client.from("hearth_feedback").insert({ content }));
+      form.reset();
+      $("#feedback-result").textContent = "Thanks for sharing. Your note’s been sent.";
+      $("#feedback-result").focus();
+      return;
+    }
     if (form.id === "rename") {
       check(
         await client
@@ -513,6 +525,7 @@ document.addEventListener("click", (event) => {
         vault,
         public_key: ownPublicKey,
         statuses: await allRows("hearth_statuses", true),
+        feedback: await allRows("hearth_feedback"),
         messages: await allRows("hearth_messages"),
       };
       const url = URL.createObjectURL(

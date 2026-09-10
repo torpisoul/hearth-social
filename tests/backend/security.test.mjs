@@ -42,6 +42,19 @@ before(async () => {
 after(async () => {
   await db.close();
 });
+test("feedback is private, cannot impersonate another author, and limits repeated submissions", async () => {
+  await as(a, "insert into hearth_feedback(content) values('A little idea')");
+  assert.equal((await as(a, "select * from hearth_feedback")).length, 1);
+  assert.equal((await as(b, "select * from hearth_feedback")).length, 0);
+  await assert.rejects(as(b, "insert into hearth_feedback(author,content) values($1,'forged')", [a]), /permission denied/);
+  await assert.rejects(as(a, "insert into hearth_feedback(content) values('   ')"), /check constraint/);
+  await assert.rejects(as(a, "insert into hearth_feedback(content) values(repeat('a',2001))"), /check constraint/);
+  await as(a, "insert into hearth_feedback(content) select 'More thoughts' from generate_series(1,4)");
+  await assert.rejects(as(a, "insert into hearth_feedback(content) values('Too soon')"), /Come back/);
+  await db.exec("reset role; set role anon");
+  await assert.rejects(db.query("select * from hearth_feedback"), /permission denied/);
+  await assert.rejects(db.query("insert into hearth_feedback(content) values('anonymous')"), /permission denied/);
+});
 test("anonymous users cannot access data or privileged friend RPCs", async () => {
   await db.exec("reset role;set role anon");
   await assert.rejects(
@@ -225,7 +238,7 @@ test("all exposed tables have RLS; public API functions are invoker functions", 
       "select relname,relrowsecurity from pg_class join pg_namespace n on n.oid=relnamespace where n.nspname='public' and relkind='r' and relname like 'hearth_%' ",
     )
   ).rows;
-  assert.equal(rows.length, 7);
+  assert.equal(rows.length, 8);
   assert.ok(rows.every((r) => r.relrowsecurity));
   assert.equal(
     (
@@ -240,7 +253,9 @@ test("all exposed tables have RLS; public API functions are invoker functions", 
 test("account deletion removes sessions and owned data; old tokens cannot restore the profile", async () => {
   await db.exec("reset role");
   await db.query("insert into auth.sessions values(gen_random_uuid(),$1)", [c]);
+  await as(c, "insert into hearth_feedback(content) values('Goodbye note')");
   await as(c, "select hearth_delete_account()");
+  assert.equal((await as(c, "select * from hearth_feedback")).length, 0);
   assert.equal((await as(c, "select * from hearth_profiles")).length, 0);
   await assert.rejects(
     as(c, "insert into hearth_profiles(id,name) values($1,'return')", [c]),
