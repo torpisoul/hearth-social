@@ -19,7 +19,7 @@ test('invitation survives signup and nickname creation, then sends a consent-bas
     auth: { onAuthStateChange() {}, async getSession() { return { data: { session: null } }; }, async signUp() { return { data: { user: { id: visitor }, session: {} } }; } },
     from(table) {
       let single = false;
-      const q = { select() { return q; }, eq() { return q; }, order() { return q; }, gte() { return q; }, limit() { return q; }, range() { return q; }, in() {return q;}, maybeSingle() { single = true; return q; }, insert(value) { if (table === 'hearth_profiles') profile = value; return q; }, then(resolve) { return Promise.resolve({ data: table === 'hearth_profiles' ? (single ? profile : profile ? [profile] : []) : table === 'hearth_connections' ? connections : table === 'hearth_preferences' ? null : [] }).then(resolve); } };
+      const q = { select() { return q; }, eq() { return q; }, neq() { return q; }, order() { return q; }, gte() { return q; }, limit() { return q; }, range() { return q; }, in() {return q;}, maybeSingle() { single = true; return q; }, insert(value) { if (table === 'hearth_profiles') profile = value; return q; }, then(resolve) { return Promise.resolve({ data: table === 'hearth_profiles' ? (single ? profile : profile ? [profile] : []) : table === 'hearth_connections' ? connections : table === 'hearth_preferences' ? null : [] }).then(resolve); } };
       return q;
     },
     async rpc(action, args) { calls.push([action,args]); if (action === 'hearth_request_friend') connections = [{requester:visitor,recipient:args.person,accepted:false}]; return {data:null}; }

@@ -62,6 +62,12 @@ test("topic preferences are private and start with every category off", async ()
  await assert.rejects(as(b,"insert into hearth_preferences(owner) values($1)",[a]), /row-level security/);
  await assert.rejects(as(a,"update hearth_preferences set topics=array['unexpected']"), /check constraint/);
 });
+test("profile pictures can be changed only by their owner", async () => {
+ await as(a,"update hearth_profiles set avatar='data:image/png;base64,aGVsbG8=' where id=$1",[a]);
+ assert.equal((await as(a,"select avatar from hearth_profiles where id=$1",[a]))[0].avatar,'data:image/png;base64,aGVsbG8=');
+ assert.equal((await as(b,"update hearth_profiles set avatar=null where id=$1 returning id",[a])).length,0);
+ await assert.rejects(as(a,"update hearth_profiles set avatar='https://tracker.example/pixel' where id=$1",[a]),/check constraint/);
+});
 test("anonymous users cannot access data or privileged friend RPCs", async () => {
   await db.exec("reset role;set role anon");
   await assert.rejects(

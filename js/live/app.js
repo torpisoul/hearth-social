@@ -39,7 +39,8 @@ function clearInvite() {
   history.replaceState(null, "", url);
 }
 let events = [], rsvps = [], waitingNotes = [];
-let peerReady = true, waitingError = "";
+let peerReady = true, waitingError = "", draftDirty = false;
+let newestStatus = null, recentIncoming = [];
 let preferences = {topics: [], update_mode: "manual"};
 let emailDeliveryEnabled = false;
 let client,
@@ -94,6 +95,15 @@ function recoveryView() {
   $("#app").innerHTML =
     `<main id="main" class="auth"><h1>Choose a new password.</h1><form id="password" class="panel live-form">${field("New account password", '<input name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128">')}<button class="primary">Save password</button></form><p>Your separate messaging passphrase stays the same.</p></main>`;
 }
+function lastSeen(key) { try { return localStorage.getItem(`hearth-seen:${user.id}:${key}`) || ""; } catch {return "";} }
+function markSeen(key, time) { if (!time) return; try { if(time > lastSeen(key)) localStorage.setItem(`hearth-seen:${user.id}:${key}`,time); } catch {} }
+function hasNew(id) {
+  if(id === "all") return ["pulse","parlor","kin"].some(hasNew);
+  if(id === "pulse") return newestStatus && newestStatus > lastSeen("pulse");
+  if(id === "parlor") return recentIncoming.some(m=>m.created_at > lastSeen(`parlor:${m.sender}`)) || waitingNotes.some(n=>n.recipient===user.id);
+  if(id === "kin") return connections.some(c=>!c.accepted && c.recipient===user.id);
+  return false;
+}
 function navigationLinks() {
   return `${[
       ["pulse", "The living room"],
@@ -104,7 +114,7 @@ function navigationLinks() {
     ]
       .map(
         ([id, label]) =>
-          `<button data-tab="${id}" class="${tab === id ? "active" : ""}" ${tab === id ? 'aria-current="page"' : ""}>${icon(id)}<span>${label}</span></button>`,
+          `<button data-tab="${id}" class="${tab === id ? "active" : ""}" ${tab === id ? 'aria-current="page"' : ""}>${icon(id)}<span>${label}</span><span class="new-indicator" data-indicator="${id}" ${hasNew(id) ? "" : "hidden"} aria-label="Something new">●</span></button>`,
       )
       .join(
         "",
@@ -114,8 +124,10 @@ function render() {
   if (recovery) return recoveryView();
   if (!user) return authView();
   if (!profile) return profileView();
+  draftDirty = false;
+  if(tab === "pulse" && page===0) markSeen("pulse",statuses.filter(p=>p.author!==user.id).map(p=>p.created_at).sort().at(-1));
   $("#app").innerHTML =
-    `<header class="mobile-header"><a class="brand" href="./live.html">${brand}hearth</a><button data-action="open-menu" aria-label="Open menu" aria-haspopup="dialog" aria-controls="mobile-menu" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span><span>Menu</span></button></header><dialog id="mobile-menu" aria-labelledby="menu-title"><div class="menu-heading"><h2 id="menu-title">Make yourself at home.</h2>${button("Close", "close-menu", 'aria-label="Close menu" autofocus')}</div><nav class="nav" aria-label="Mobile navigation">${navigationLinks()}</nav><div class="menu-actions">${button("Refresh", "refresh")}${button("Sign out", "logout")}</div><p class="live-muted">A little space for you and your people.</p></dialog><div class="shell"><aside class="sidebar"><a class="brand" href="./live.html">${brand}hearth</a><p class="tagline">A place for your people.</p><nav class="nav" aria-label="Main navigation">${navigationLinks()}</nav><div class="sidebar-bottom"><p>Less scrolling.<br>More living.</p><strong>${esc(profile.name)}</strong></div></aside><div><div class="topbar"><span class="demo"><span class="dot"></span> Friends beta · Connected</span><div>${button("Refresh", "refresh")}${button("Sign out", "logout")}</div></div><main id="main" class="content" tabindex="-1"><header class="heading"><div><div class="eyebrow">A little closer, at your own pace</div><h1>${{ gatherings: "Something to look forward to.", pulse: "Make yourself at home.", kin: "Your people.", parlor: "The parlor.", settings: "Your little corner." }[tab]}</h1><p>${{ gatherings: "A little plan. Good company.", pulse: "Real life, shared with the people who matter.", kin: "A small circle. A meaningful connection.", parlor: "Good conversations don’t need an audience.", settings: "Your choices. Your attention. Your space." }[tab]}</p></div></header>${invitePrompt()}${{ gatherings: gatherings, pulse: feed, kin: kin, parlor: parlor, settings: settings }[tab]()}</main><footer class="footer">Made for connection. Built with intention.</footer></div></div>`;
+    `<header class="mobile-header"><a class="brand" href="./live.html">${brand}hearth</a><button data-action="open-menu" aria-label="Open menu" aria-haspopup="dialog" aria-controls="mobile-menu" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span><span>Menu</span><span class="new-indicator" ${hasNew("all") ? "" : "hidden"} aria-label="Something new">●</span></button></header><dialog id="mobile-menu" aria-labelledby="menu-title"><div class="menu-heading"><h2 id="menu-title">Make yourself at home.</h2>${button("Close", "close-menu", 'aria-label="Close menu" autofocus')}</div><nav class="nav" aria-label="Mobile navigation">${navigationLinks()}</nav><div class="menu-actions">${button("Refresh", "refresh")}${button("Sign out", "logout")}</div><p class="live-muted">A little space for you and your people.</p></dialog><div class="shell"><aside class="sidebar"><a class="brand" href="./live.html">${brand}hearth</a><p class="tagline">A place for your people.</p><nav class="nav" aria-label="Main navigation">${navigationLinks()}</nav><div class="sidebar-bottom"><p>Less scrolling.<br>More living.</p><strong>${esc(profile.name)}</strong></div></aside><div><div class="topbar"><span class="demo"><span class="dot"></span> Friends beta · Connected</span><div>${button("Refresh", "refresh")}${button("Sign out", "logout")}</div></div><main id="main" class="content" tabindex="-1"><header class="heading"><div><div class="eyebrow">A little closer, at your own pace</div><h1>${{ gatherings: "Something to look forward to.", pulse: "Make yourself at home.", kin: "Your people.", parlor: "The parlor.", settings: "Your little corner." }[tab]}</h1><p>${{ gatherings: "A little plan. Good company.", pulse: "Real life, shared with the people who matter.", kin: "A small circle. A meaningful connection.", parlor: "Good conversations don’t need an audience.", settings: "Your choices. Your attention. Your space." }[tab]}</p></div></header>${invitePrompt()}${{ gatherings: gatherings, pulse: feed, kin: kin, parlor: parlor, settings: settings }[tab]()}</main><footer class="footer">Made for connection. Built with intention.</footer></div></div>`;
 }
 function topicChoices() {
   return `<div class="topic-pills" role="group" aria-label="Topics in your living room">${topics.map(t => `<button data-topic="${esc(t)}" aria-pressed="${(preferences.topics || []).includes(t)}">${esc(t)}</button>`).join("")}</div><p class="live-muted">Choose what comes into your living room. Everything starts switched off.</p>`;
@@ -174,9 +186,10 @@ function avatarForm() {
 function feedbackForm() {
   return `<section class="panel feedback-panel"><h2>What would you like to do here?</h2><p>Anything you wish we could do together? Or a little thing that got in the way? A sentence is plenty.</p><form id="feedback" class="live-form">${field("Leave a little note", '<textarea name="content" required maxlength="2000" placeholder="I’d love to…" aria-describedby="feedback-privacy"></textarea>')}<small id="feedback-privacy">This goes to Hearth’s host with your account, not to your kin. It isn’t an encrypted message.</small><button class="primary">Send note</button><p id="feedback-result" role="status" tabindex="-1"></p></form></section>`;
 }
+function updateChoices() { return `<section class="panel"><h2>At your own pace</h2><form id="updates" class="live-form">${field("When should Hearth check in?",`<select name="mode"><option value="manual" ${preferences.update_mode==='manual'?'selected':''}>Only when I choose Refresh</option><option value="foreground" ${preferences.update_mode==='foreground'?'selected':''}>Quietly while I’m here</option></select>`)}<p>Quiet check-ins happen about once a minute while this tab is visible. They pause while you’re writing. A small dot marks new moments or notes; no pop-ups or sounds.</p><p class="live-muted">Closed-app background delivery isn’t enabled.</p><button>Save my pace</button></form></section>`; }
 function preferenceTopics() { return `<section class="panel"><h2>What comes into your living room</h2>${topicChoices()}</section>`; }
 function settings() {
-  return `<div class="narrow">${preferenceTopics()}${feedbackForm()}${avatarForm()}<form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a passphrase-protected key backup. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your own statuses, feedback notes, connections, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, feedback notes, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. Gatherings and the other demo features are not live yet.</p><a href="./demo.html">Explore the fictional feature demo</a></section></div>`;
+  return `<div class="narrow">${preferenceTopics()}${updateChoices()}${feedbackForm()}${avatarForm()}<form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a passphrase-protected key backup. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your own statuses, feedback notes, connections, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, feedback notes, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. Gatherings and the other demo features are not live yet.</p><a href="./demo.html">Explore the fictional feature demo</a></section></div>`;
 }
 async function refresh() {
   profile = check(
@@ -204,6 +217,8 @@ async function refresh() {
   rsvps = events.length ? check(await client.from("hearth_rsvps").select("*").in("event",events.map(e=>e.id))) : [];
   const selectedTopics = (preferences.topics || []).filter(t => topics.includes(t));
   statusQuery = selectedTopics.length ? statusQuery.in("topic", selectedTopics) : statusQuery.eq("id", "00000000-0000-0000-0000-000000000000");
+  recentIncoming = check(await client.from("hearth_messages").select("sender,created_at").eq("recipient",user.id).order("created_at",{ascending:false}).limit(100));
+  newestStatus = selectedTopics.length ? check(await client.from("hearth_statuses").select("created_at").neq("author",user.id).in("topic",selectedTopics).order("created_at",{ascending:false}).limit(1)).at(0)?.created_at : null;
   statuses = check(
     await statusQuery
       .order("created_at", { ascending: false })
@@ -269,6 +284,7 @@ async function loadMessages() {
       }
     }),
   );
+  markSeen(`parlor:${peer}`,rows.filter(m=>m.sender===peer).map(m=>m.created_at).sort().at(-1));
   for (const note of waitingNotes.filter(n=>n.sender===user.id && n.recipient===peer)) {
     messages.push({...note,text:await decryptMessage(privateKey,ownPublicKey,note),pending:true});
   }
@@ -323,6 +339,16 @@ async function signOut() {
   circle = [];
   render();
 }
+document.addEventListener("input", event => { if(event.target.closest("form")) draftDirty = true; });
+async function quietCheckIn() {
+  if(!user || !profile || preferences.update_mode !== "foreground" || document.hidden || busy || draftDirty || $("#mobile-menu")?.open) return;
+  busy = true;
+  try { await refresh(); render(); } catch { /* Keep the current page if connectivity drops. */ }
+  finally { busy = false; }
+}
+const quietTimer = setInterval(quietCheckIn,60000);
+quietTimer.unref?.();
+document.addEventListener("visibilitychange", () => { if(!document.hidden) quietCheckIn(); });
 document.addEventListener("submit", (event) => {
   event.preventDefault();
   const form = event.target;
@@ -395,6 +421,10 @@ document.addEventListener("submit", (event) => {
           .from("hearth_profiles")
           .insert({ id: user.id, name: data.name.trim() }),
       );
+    }
+    if (form.id === "updates") {
+      if (!["manual","foreground"].includes(data.mode)) throw Error("Choose an update pace.");
+      check(await client.from("hearth_preferences").upsert({owner:user.id,topics:preferences.topics,update_mode:data.mode}));
     }
     if (form.id === "event") {
       const starts = new Date(data.starts_at);

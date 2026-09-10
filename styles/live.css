@@ -203,3 +203,5 @@ button.primary:hover { background: #dae3d1; }
 .live-companions .panel { margin: 0; }
 .live-companions h2 { font-size: 24px; }
 @media(max-width:1200px) { .live-feed-layout { grid-template-columns: minmax(0,1fr); } .live-companions { grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); } }
+.new-indicator { color: #71845f; font-size: 10px; margin-left: auto; }
+.new-indicator[hidden] { display: none; }
