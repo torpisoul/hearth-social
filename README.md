@@ -4,7 +4,7 @@ A digital living room for your people: real accounts, mutual friend connections,
 
 **Current beta signup:** email verification is disabled by the host. Email ownership is not checked. Password-reset email is unavailable until custom SMTP is configured. Save account passwords and messaging passphrases. Verify friend codes directly with people you know.
 
-The friends beta is built for GitHub Pages with Supabase Auth and Postgres. The original fictional prototype is preserved at `demo.html`; its gatherings, notifications, local preferences and other experiments remain separate from real user data.
+The friends beta is built for GitHub Pages with Supabase Auth and Postgres. The original fictional prototype is preserved at `demo.html` and its events page is linked as **Gatherings · demo** in the live navigation; its gatherings, notifications, local preferences and other experiments remain separate from real user data.
 
 ## Run locally
 
@@ -37,7 +37,7 @@ Blank public settings produce an honest setup screen with a link to the fictiona
 ## Sharing with friends
 
 - Create an account and choose a nickname.
-- In **Your kin**, share the site link and your friend code privately with someone you know. They send a request; you accept it. There is no public user directory.
+- In **Your kin**, use **Copy invite link** or let someone scan your QR code. The link includes your friend code, opens Create account, and remembers the invitation through signup. Your friend chooses **Connect with my inviter**; you accept in Your kin. Existing accounts can sign in through the same link. There is no public user directory. QR codes are generated locally, without an external QR service.
 - Share a status with **Only me**, **All kin**, or **Inner circle**. Inner-circle membership is controlled by the author, and enforced on the server.
 - Both people open **The parlor**, choose a separate messaging passphrase (at least 16 characters), and save it in a password manager. Then select each other and send a note.
 - Use **Refresh** when you choose to check in. Feeds and message history load in finite pages of 20, with no background urgency or read receipts.
