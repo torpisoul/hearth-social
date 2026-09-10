@@ -180,3 +180,11 @@ button.primary:hover { background: #dae3d1; }
 .feedback-panel textarea { background: var(--paper); border-radius: 14px; box-shadow: inset 3px 3px 7px #dedbd3, inset -3px -3px 7px #fff; min-height: 130px; }
 #feedback-result:empty { display: none; }
 #feedback-result { color: #30472e; }
+
+/* Give soft shadows breathing room, especially beside forms. */
+.live-actions, .live-form { gap: 18px; }
+.live-form + button, .live-form + .live-actions { margin-top: 22px; }
+.topbar > div { display: flex; gap: 18px; }
+.nav { gap: 16px; }
+.panel, .post, .welcome { border-color: transparent; box-shadow: var(--soft-raised); background: var(--paper); }
+.live-form input, .live-form textarea, .live-form select { background: var(--paper); box-shadow: inset 3px 3px 7px #dedbd3, inset -3px -3px 7px #fff; border-color: transparent; border-radius: 14px; }
