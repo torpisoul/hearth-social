@@ -190,7 +190,7 @@ function feedbackForm() {
 function updateChoices() { return `<section class="panel"><h2>At your own pace</h2><form id="updates" class="live-form">${field("When should Hearth check in?",`<select name="mode"><option value="manual" ${preferences.update_mode==='manual'?'selected':''}>Only when I choose Refresh</option><option value="foreground" ${preferences.update_mode==='foreground'?'selected':''}>Quietly while I’m here</option></select>`)}<p>Quiet check-ins happen about once a minute while this tab is visible. They pause while you’re writing. A small dot marks new moments or notes; no pop-ups or sounds.</p><p class="live-muted">Closed-app background delivery isn’t enabled.</p><button>Save my pace</button></form></section>`; }
 function preferenceTopics() { return `<section class="panel"><h2>What comes into your living room</h2>${topicChoices()}</section>`; }
 function settings() {
-  return `<div class="narrow">${preferenceTopics()}${updateChoices()}${feedbackForm()}${avatarForm()}<form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a passphrase-protected key backup. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your own statuses, feedback notes, connections, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, feedback notes, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. Gatherings and the other demo features are not live yet.</p><a href="./demo.html">Explore the fictional feature demo</a></section></div>`;
+  return `<div class="narrow">${preferenceTopics()}${updateChoices()}${feedbackForm()}${avatarForm()}<form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a passphrase-protected key backup. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your profile, preferences, gatherings, RSVPs, statuses, feedback notes, connections, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, feedback notes, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. You can also make a plan together in Gatherings.</p><a href="./demo.html">Explore the fictional feature demo</a></section></div>`;
 }
 async function refresh() {
   profile = check(
@@ -346,7 +346,7 @@ document.addEventListener("input", event => { if(event.target.closest("form")) d
 async function quietCheckIn() {
   if(!user || !profile || preferences.update_mode !== "foreground" || document.hidden || busy || draftDirty || $("#mobile-menu")?.open) return;
   busy = true;
-  try { await refresh(); render(); } catch { /* Keep the current page if connectivity drops. */ }
+  try { await refresh(); if (!draftDirty && !document.hidden && !$("#mobile-menu")?.open) render(); } catch { /* Keep the current page if connectivity drops. */ }
   finally { busy = false; }
 }
 const quietTimer = setInterval(quietCheckIn,60000);
@@ -631,17 +631,15 @@ document.addEventListener("click", (event) => {
       return;
     }
     if (d.action === "export") {
-      const allRows = async (table, own = false) => {
+      const allRows = async (table, ownerColumn = null, orderColumn = "id") => {
         let rows = [];
         for (let offset = 0; ; offset += 1000) {
           let q = client.from(table).select("*");
-          if (own) q = q.eq("author", user.id);
+          if (ownerColumn) q = q.eq(ownerColumn, user.id);
           const batch = check(
             await q
               .order(
-                table === "hearth_statuses" || table === "hearth_messages"
-                  ? "id"
-                  : "created_at",
+                orderColumn,
               )
               .range(offset, offset + 999),
           );
@@ -656,7 +654,10 @@ document.addEventListener("click", (event) => {
         blocks,
         vault,
         public_key: ownPublicKey,
-        statuses: await allRows("hearth_statuses", true),
+        preferences,
+        gatherings: await allRows("hearth_events", "owner"),
+        rsvps: await allRows("hearth_rsvps", "person", "event"),
+        statuses: await allRows("hearth_statuses", "author"),
         feedback: await allRows("hearth_feedback"),
         waiting_notes: await allRows("hearth_waiting_notes"),
         messages: await allRows("hearth_messages"),
