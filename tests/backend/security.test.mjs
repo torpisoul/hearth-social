@@ -55,6 +55,13 @@ test("feedback is private, cannot impersonate another author, and limits repeate
   await assert.rejects(db.query("select * from hearth_feedback"), /permission denied/);
   await assert.rejects(db.query("insert into hearth_feedback(content) values('anonymous')"), /permission denied/);
 });
+test("topic preferences are private and start with every category off", async () => {
+ await as(a, "insert into hearth_preferences(owner) values($1)", [a]);
+ assert.deepEqual((await as(a, "select topics from hearth_preferences"))[0].topics, []);
+ assert.equal((await as(b, "select * from hearth_preferences")).length, 0);
+ await assert.rejects(as(b,"insert into hearth_preferences(owner) values($1)",[a]), /row-level security/);
+ await assert.rejects(as(a,"update hearth_preferences set topics=array['unexpected']"), /check constraint/);
+});
 test("anonymous users cannot access data or privileged friend RPCs", async () => {
   await db.exec("reset role;set role anon");
   await assert.rejects(
@@ -104,6 +111,21 @@ test("requests require the recipient to accept before sharing", async () => {
     (await as(b, "select content from hearth_statuses")).map((r) => r.content),
     ["kin"],
   );
+});
+test("gatherings and RSVPs are visible only to the host and connected kin", async () => {
+ const [event] = await as(a,"insert into hearth_events(title,place,starts_at) values('A walk','The park',now()+interval '1 day') returning id");
+ assert.equal((await as(b,"select * from hearth_events")).length,1);
+ assert.equal((await as(c,"select * from hearth_events")).length,0);
+ await as(b,"insert into hearth_rsvps(event) values($1)",[event.id]);
+ assert.equal((await as(a,"select * from hearth_rsvps")).length,1);
+ assert.equal((await as(c,"select * from hearth_rsvps")).length,0);
+ await assert.rejects(as(c,"insert into hearth_rsvps(event) values($1)",[event.id]),/row-level security/);
+ assert.equal((await as(b,"delete from hearth_events where id=$1 returning id",[event.id])).length,0);
+ await as(a,"insert into hearth_blocks(owner,target) values($1,$2)",[a,b]);
+ assert.equal((await as(b,"select * from hearth_events")).length,0);
+ assert.equal((await as(b,"select * from hearth_rsvps")).length,0);
+ await as(a,"delete from hearth_blocks where owner=$1 and target=$2",[a,b]);
+ await as(a,"delete from hearth_events where id=$1",[event.id]);
 });
 test("inner-circle access is controlled by author, not reader", async () => {
   await as(b, "insert into hearth_circle values($1,$2)", [b, a]);
@@ -238,7 +260,7 @@ test("all exposed tables have RLS; public API functions are invoker functions", 
       "select relname,relrowsecurity from pg_class join pg_namespace n on n.oid=relnamespace where n.nspname='public' and relkind='r' and relname like 'hearth_%' ",
     )
   ).rows;
-  assert.equal(rows.length, 8);
+  assert.equal(rows.length, 11);
   assert.ok(rows.every((r) => r.relrowsecurity));
   assert.equal(
     (
