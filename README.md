@@ -4,7 +4,7 @@ A digital living room for your people: real accounts, mutual friend connections,
 
 **Current beta signup:** email verification is disabled by the host. Email ownership is not checked. Password-reset email is unavailable until custom SMTP is configured. Save account passwords and messaging passphrases. Verify friend codes directly with people you know.
 
-The friends beta is built for GitHub Pages with Supabase Auth and Postgres. The original fictional prototype is preserved at `demo.html` and its events page is linked as **Gatherings · demo** in the live navigation; its gatherings, notifications, local preferences and other experiments remain separate from real user data.
+The friends beta is built for GitHub Pages with Supabase Auth and Postgres. The original fictional prototype is preserved at `demo.html` ; its fictional content remains separate from real user data. The live app now has real gatherings and RSVPs.
 
 ## Run locally
 
@@ -26,7 +26,7 @@ The configured project is Hearth (`nkpzdvpzlxiwrtivpiwv`) in Frankfurt. Its publ
 For a new project:
 
 1. Create a Supabase project with the Data API enabled, automatic table exposure disabled and RLS enabled.
-2. Run all SQL files in `supabase/migrations/` in filename order against the empty database. This defines the eight Hearth tables, access policies, guarded RPCs, and write limits. The initial Hearth project was provisioned through the dashboard SQL editor; it is not recorded in the Supabase migration-history table. Reconcile migration history before adopting automatic CLI deployment; do not blindly replay the initial migration. The account-deletion/policy-hardening migration is recorded in hosted history.
+2. Run all SQL files in `supabase/migrations/` in filename order against the empty database. This defines the twelve Hearth tables, access policies, guarded RPCs, and write limits. The initial Hearth project was provisioned through the dashboard SQL editor; it is not recorded in the Supabase migration-history table. Reconcile migration history before adopting automatic CLI deployment; do not blindly replay the initial migration. The account-deletion/policy-hardening migration is recorded in hosted history.
 3. Set `supabaseUrl` and `supabasePublishableKey` in `public-config.json`. The build rejects secret keys and incomplete settings.
 4. Set Auth Site URL and allowed redirect URL to `https://torpisoul.github.io/hearth-social/live.html`. For a different host, use its exact `live.html` URL. The site works at the repository subpath.
 5. Configure custom SMTP before relying on email confirmation or password resets for friends. Supabase's default sender only delivers to project-team addresses. See https://supabase.com/docs/guides/auth/auth-smtp.
@@ -40,7 +40,7 @@ Blank public settings produce an honest setup screen with a link to the fictiona
 - In **Your kin**, use **Copy invite link** or let someone scan your QR code. The link includes your friend code, opens Create account, and remembers the invitation through signup. Your friend chooses **Connect with my inviter**; you accept in Your kin. Existing accounts can sign in through the same link. There is no public user directory. QR codes are generated locally, without an external QR service.
 - Share a status with **Only me**, **All kin**, or **Inner circle**. Inner-circle membership is controlled by the author, and enforced on the server.
 - Both people open **The parlor**, choose a separate messaging passphrase (at least 16 characters), and save it in a password manager. Then select each other and send a note.
-- Use **Refresh** when you choose to check in. Feeds and message history load in finite pages of 20, with no background urgency or read receipts.
+- Use **Refresh** when you choose to check in. Feeds and message history load in finite pages of 20. Manual refresh is the default; optional foreground checks happen about once per minute, pause while writing or hidden, and use only in-app indicators. No system notifications or read receipts.
 - Test on another device by signing in and unlocking with the same messaging passphrase.
 - Block or disconnect in **Your kin**. Blocking prevents new messages and hides shared statuses. Already delivered messages remain available to their participants; disconnecting removes the conversation from the active UI.
 - **Your preferences** exports account/profile details, connections, own statuses, ciphertext messages and the encrypted key backup. Downloads contain private data: keep them somewhere safe.
@@ -49,13 +49,13 @@ Blank public settings produce an honest setup screen with a link to the fictiona
 
 Messages use the browser's Web Crypto API: P-256 ECDH to derive an AES-256-GCM conversation key, a random 96-bit nonce per message, and authenticated metadata binding version, message ID, sender and recipient. The backend receives ciphertext and routing metadata, never message plaintext. Rendering uses escaped text.
 
-Private keys are backed up as AES-GCM ciphertext protected by a separate passphrase using PBKDF2-SHA-256 with 600,000 iterations and a random salt. Only the owner can retrieve their encrypted vault. Private keys are non-extractable in memory after setup/unlock; plaintext messages and private keys are not written to localStorage. The account session and peer public-key fingerprints are persisted in browser storage.
+Private keys are backed up as AES-GCM ciphertext protected by a separate passphrase using PBKDF2-SHA-256 with 600,000 iterations and a random salt. Only the owner can retrieve their encrypted vault. Private keys are non-extractable after setup/unlock. Users may explicitly remember a key in IndexedDB on a trusted personal device; otherwise it stays only in memory. plaintext messages and private keys are not written to localStorage. The account session and peer public-key fingerprints are persisted in browser storage.
 
 Public keys are immutable through the client API. The app pins a peer's first-seen key on each browser and refuses a changed key. Compare fingerprints through a separate trusted channel. First contact still trusts the key directory; a compromised frontend, device or backend distributing a false first key is outside this beta's protection. This is a static-key protocol without forward secrecy or independent cryptographic audit. Losing the messaging passphrase makes history unrecoverable; resetting the account password does not reset the messaging key.
 
 Statuses are **not** end-to-end encrypted. Supabase stores status text, profile names, connection records, timestamps and message routing metadata. RLS controls access. The hosting and backend providers may retain infrastructure logs. No analytics, ads, tracking pixels or external fonts are included.
 
-This is a small friends beta, not a fully moderated public network. There is blocking, but no reporting queue, media attachments, live gatherings yet. Self-service account deletion is available in Your preferences and revokes sessions before cascading account data. Contact the host for abuse reports. Before deleting an account administratively, revoke its sessions first; Supabase access tokens can otherwise remain valid until expiry. Database foreign keys cascade account data deletion; recipients may retain previously downloaded data.
+This is a small friends beta, not a fully moderated public network. There is blocking and private host feedback, but no public moderation queue or message attachments yet. Self-service account deletion is available in Your preferences and revokes sessions before cascading account data. Contact the host for abuse reports. Before deleting an account administratively, revoke its sessions first; Supabase access tokens can otherwise remain valid until expiry. Database foreign keys cascade account data deletion; recipients may retain previously downloaded data.
 
 ## Verification
 
@@ -92,3 +92,14 @@ order by f.created_at desc;
 No email delivery or notification automation is configured for feedback. The feedback migration is recorded in hosted migration history.
 
 On viewports up to 800px wide, navigation and account actions move into a hamburger menu. The native modal dialog supports keyboard focus containment, Escape to close, and focus return. Opening and closing it preserves the current form draft.
+
+## Repository issue pass — September 2026
+
+- #38: Private, persistent topic preferences default to all off. Feed pills and Preferences toggle the same choices. Filters apply on the server query before pagination.
+- #43 / #52: Raised and inset soft controls, panels and fields; spacing leaves room for shadows. Mobile navigation lives in a keyboard-accessible dialog.
+- #47: Profile pictures are decoded, square-cropped and re-encoded to 160×160 pixels in the browser. Input is JPEG/PNG/WebP, at most 5 MB; stored image data is bounded to 80,000 characters and visible under the existing related-profile policy.
+- #53: Waiting notes are encrypted to the sender’s own key, stored for the two connected participants, and forwarded using the recipient’s public key once available. This requires a later unlocked sender check-in; the server cannot decrypt or forward them by itself. A recipient gets a quiet setup prompt. Duplicate forwarding is handled by stable message IDs. Up to 30 notes can wait per sender.
+- #54: Optional trusted-device storage skips repeated message unlocking. The separate passphrase still protects cross-device recovery; full account-password-only onboarding remains a separate design decision. Lock and forget removes the saved key. Sign-out ends the session but retains an explicitly trusted-device key; only remember on a personal device.
+- #55: Manual or opt-in foreground updates and subtle new-activity dots. The owner chose indicators inside the app only; OS push is intentionally excluded. New-message markers use local per-conversation last-viewed timestamps and are not read receipts.
+- #56: Original Hearth logo, navigation icons and sprig; real kin, gatherings and attention cards; topic/person filters. Gatherings support future plans shared with all of the host’s kin, RSVP and host cancellation. The first 20 upcoming events are shown. Disconnection/blocking removes access. Plans and RSVP records are not encrypted.
+- #42 remains blocked on a custom SMTP provider and verified sender. Reset-request and recovery forms already exist behind the email-delivery configuration flag.

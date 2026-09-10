@@ -205,3 +205,10 @@ button.primary:hover { background: #dae3d1; }
 @media(max-width:1200px) { .live-feed-layout { grid-template-columns: minmax(0,1fr); } .live-companions { grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); } }
 .new-indicator { color: #71845f; font-size: 10px; margin-left: auto; }
 .new-indicator[hidden] { display: none; }
+.live-feed-layout .welcome { padding-right: 100px; }
+@media(max-width:800px) { .topbar > div { display: none; } }
+@media(max-width:650px) {
+ .live-feed-layout .welcome { padding-right: 68px; }
+ .live-feed-layout .welcome .sprig { width: 60px; opacity: .7; }
+ .live-feed-layout .welcome h2 { font-size: 25px; }
+}
