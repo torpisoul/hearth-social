@@ -1,3 +1,4 @@
+import { prepareAvatar } from "./avatar.js";
 import { createClient } from "@supabase/supabase-js";
 import { inviteQrSvg } from "./invite-qr.js";
 import { readInvite, inviteUrl } from "./invites.js";
@@ -115,7 +116,7 @@ function topicChoices() {
   return `<div class="topic-pills" role="group" aria-label="Topics in your living room">${topics.map(t => `<button data-topic="${esc(t)}" aria-pressed="${(preferences.topics || []).includes(t)}">${esc(t)}</button>`).join("")}</div><p class="live-muted">Choose what comes into your living room. Everything starts switched off.</p>`;
 }
 function feed() {
-  return `<div class="narrow">${topicChoices()}<section class="welcome"><h2>A quieter kind of connected.</h2><p>No algorithm to keep up with. Just little moments from your people.</p></section><form id="status" class="panel live-form">${field("A little moment from your day", '<textarea name="content" required maxlength="1500" placeholder="Something you made, a small joy, or simply how you’re doing…"></textarea>')}<div class="live-pair">${field("Who is this for?", '<select name="audience"><option>Only me</option><option>Inner circle</option><option>All kin</option></select>')}${field("A little about", `<select name="topic">${topics.map((t) => `<option>${esc(t)}</option>`).join("")}</select>`)}</div><small>Audience access is enforced by the server. Status text is not end-to-end encrypted.</small><button class="primary">Share moment</button></form>${statuses.map((p) => `<article class="post"><div class="post-head"><strong>${esc(p.author === user.id ? profile.name : name(p.author))}</strong><span class="badge">${esc(p.audience)}</span></div><p class="live-text">${esc(p.content)}</p><div class="post-footer"><small>${esc(date(p.created_at))} · ${esc(p.topic)}</small>${p.author === user.id ? `<button data-delete="${p.id}">Delete</button>` : `<button data-chat="${p.author}">Reply privately</button>`}</div></article>`).join("")}<div class="end"><h3>${statuses.length === pageSize ? "A good place to pause." : "You’re all caught up."}</h3><p>The rest of the day is yours.</p><div class="live-actions">${button("Previous", "prev", page === 0 ? "disabled" : "")}${button("Next moments", "next", statuses.length < pageSize ? "disabled" : "")}</div></div></div>`;
+  return `<div class="narrow">${topicChoices()}<section class="welcome"><h2>A quieter kind of connected.</h2><p>No algorithm to keep up with. Just little moments from your people.</p></section><form id="status" class="panel live-form">${field("A little moment from your day", '<textarea name="content" required maxlength="1500" placeholder="Something you made, a small joy, or simply how you’re doing…"></textarea>')}<div class="live-pair">${field("Who is this for?", '<select name="audience"><option>Only me</option><option>Inner circle</option><option>All kin</option></select>')}${field("A little about", `<select name="topic">${topics.map((t) => `<option>${esc(t)}</option>`).join("")}</select>`)}</div><small>Audience access is enforced by the server. Status text is not end-to-end encrypted.</small><button class="primary">Share moment</button></form>${statuses.map((p) => `<article class="post"><div class="post-head">${avatar(p.author)}<strong>${esc(p.author === user.id ? profile.name : name(p.author))}</strong><span class="badge">${esc(p.audience)}</span></div><p class="live-text">${esc(p.content)}</p><div class="post-footer"><small>${esc(date(p.created_at))} · ${esc(p.topic)}</small>${p.author === user.id ? `<button data-delete="${p.id}">Delete</button>` : `<button data-chat="${p.author}">Reply privately</button>`}</div></article>`).join("")}<div class="end"><h3>${statuses.length === pageSize ? "A good place to pause." : "You’re all caught up."}</h3><p>The rest of the day is yours.</p><div class="live-actions">${button("Previous", "prev", page === 0 ? "disabled" : "")}${button("Next moments", "next", statuses.length < pageSize ? "disabled" : "")}</div></div></div>`;
 }
 function invitePrompt() {
   if (!referral || referral === user.id) return "";
@@ -128,7 +129,7 @@ function kin() {
     connections
       .map((c) => {
         const id = c.requester === user.id ? c.recipient : c.requester;
-        return `<section class="panel"><h3>${esc(name(id))}</h3><p>${c.accepted ? "Your kin" : c.recipient === user.id ? "Would like to connect" : "Waiting for them to accept"}</p><div class="live-actions">${c.accepted ? `<button data-chat="${id}">Say hello</button><button data-circle="${id}">${circle.some((x) => x.member === id) ? "Remove from" : "Add to"} inner circle</button>` : c.recipient === user.id ? `<button data-accept="${id}">Accept</button>` : ""}<button data-disconnect="${id}">${c.accepted ? "Disconnect" : "Cancel request"}</button><button data-block="${id}" class="danger">Block</button></div></section>`;
+        return `<section class="panel"><div class="kin-row">${avatar(id)}<h3>${esc(name(id))}</h3></div><p>${c.accepted ? "Your kin" : c.recipient === user.id ? "Would like to connect" : "Waiting for them to accept"}</p><div class="live-actions">${c.accepted ? `<button data-chat="${id}">Say hello</button><button data-circle="${id}">${circle.some((x) => x.member === id) ? "Remove from" : "Add to"} inner circle</button>` : c.recipient === user.id ? `<button data-accept="${id}">Accept</button>` : ""}<button data-disconnect="${id}">${c.accepted ? "Disconnect" : "Cancel request"}</button><button data-block="${id}" class="danger">Block</button></div></section>`;
       })
       .join("") ||
     '<section class="panel"><h3>Room for familiar faces.</h3><p>Swap friend codes to start your circle.</p></section>'
@@ -152,12 +153,19 @@ function parlor() {
       : unlockForm()
   }</div>`;
 }
+function avatar(id) {
+  const person = id === user.id ? profile : profiles.find(p => p.id === id);
+  return person?.avatar ? `<img class="live-avatar" src="${esc(person.avatar)}" alt="${esc(person.name)}’s profile picture" width="44" height="44">` : `<span class="live-avatar initials" aria-hidden="true">${esc((person?.name || "?").slice(0,1))}</span>`;
+}
+function avatarForm() {
+ return `<section class="panel"><h2>A familiar face</h2>${avatar(user.id)}<form id="avatar" class="live-form">${field("Your profile picture",'<input name="photo" type="file" accept="image/jpeg,image/png,image/webp" required>')}<p class="live-muted">Choose a picture up to 5 MB. We’ll crop it to a square and remove its file metadata. Your kin and people you connect with can see it.</p><button class="primary">Save picture</button></form>${profile.avatar ? button("Remove picture","remove-avatar") : ""}</section>`;
+}
 function feedbackForm() {
   return `<section class="panel feedback-panel"><h2>What would you like to do here?</h2><p>Anything you wish we could do together? Or a little thing that got in the way? A sentence is plenty.</p><form id="feedback" class="live-form">${field("Leave a little note", '<textarea name="content" required maxlength="2000" placeholder="I’d love to…" aria-describedby="feedback-privacy"></textarea>')}<small id="feedback-privacy">This goes to Hearth’s host with your account, not to your kin. It isn’t an encrypted message.</small><button class="primary">Send note</button><p id="feedback-result" role="status" tabindex="-1"></p></form></section>`;
 }
 function preferenceTopics() { return `<section class="panel"><h2>What comes into your living room</h2>${topicChoices()}</section>`; }
 function settings() {
-  return `<div class="narrow">${preferenceTopics()}${feedbackForm()}<form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a passphrase-protected key backup. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your own statuses, feedback notes, connections, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, feedback notes, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. Gatherings and the other demo features are not live yet.</p><a href="./demo.html">Explore the fictional feature demo</a></section></div>`;
+  return `<div class="narrow">${preferenceTopics()}${feedbackForm()}${avatarForm()}<form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a passphrase-protected key backup. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your own statuses, feedback notes, connections, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, feedback notes, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. Gatherings and the other demo features are not live yet.</p><a href="./demo.html">Explore the fictional feature demo</a></section></div>`;
 }
 async function refresh() {
   profile = check(
@@ -343,6 +351,10 @@ document.addEventListener("submit", (event) => {
           .insert({ id: user.id, name: data.name.trim() }),
       );
     }
+    if (form.id === "avatar") {
+      const picture = await prepareAvatar(form.elements.photo.files[0]);
+      check(await client.from("hearth_profiles").update({avatar:picture}).eq("id",user.id));
+    }
     if (form.id === "feedback") {
       const content = data.content.trim();
       if (!content) throw Error("Add a few words before sending your note.");
@@ -456,6 +468,10 @@ document.addEventListener("click", (event) => {
   if (d.action === "close-menu") { $("#mobile-menu").close(); return; }
   if (b.closest("dialog")) $("#mobile-menu").close();
   run(async () => {
+    if (d.action === "remove-avatar") {
+      check(await client.from("hearth_profiles").update({avatar:null}).eq("id",user.id));
+      await refresh(); render(); return;
+    }
     if (d.topic && topics.includes(d.topic)) {
       const chosen = preferences.topics || [];
       const next = chosen.includes(d.topic) ? chosen.filter(t => t !== d.topic) : [...chosen, d.topic];

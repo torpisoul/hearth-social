@@ -191,3 +191,6 @@ button.primary:hover { background: #dae3d1; }
 .topic-pills { display: flex; overflow-x: auto; gap: 18px; padding: 12px 8px; }
 .topic-pills button { flex-shrink: 0; border-radius: 30px; color: #74766e; }
 .topic-pills button[aria-pressed="true"] { background: #dce6d4; color: #30472e; font-weight: 600; box-shadow: var(--soft-pressed); }
+.live-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: var(--soft-raised); }
+.live-avatar.initials { display: inline-grid; place-items: center; background: #e3e9db; color: #30472e; font-weight: 600; }
+#avatar { margin-top: 24px; }
