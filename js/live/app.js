@@ -88,12 +88,8 @@ function recoveryView() {
   $("#app").innerHTML =
     `<main id="main" class="auth"><h1>Choose a new password.</h1><form id="password" class="panel live-form">${field("New account password", '<input name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128">')}<button class="primary">Save password</button></form><p>Your separate messaging passphrase stays the same.</p></main>`;
 }
-function render() {
-  if (recovery) return recoveryView();
-  if (!user) return authView();
-  if (!profile) return profileView();
-  $("#app").innerHTML =
-    `<div class="shell"><aside class="sidebar"><a class="brand" href="./live.html">hearth</a><p class="tagline">A place for your people.</p><nav class="nav" aria-label="Main navigation">${[
+function navigationLinks() {
+  return `${[
       ["pulse", "The living room"],
       ["parlor", "The parlor"],
       ["kin", "Your kin"],
@@ -105,7 +101,14 @@ function render() {
       )
       .join(
         "",
-      )}<a href="./demo.html#gatherings">Gatherings · demo</a></nav><div class="sidebar-bottom"><p>Less scrolling.<br>More living.</p><strong>${esc(profile.name)}</strong></div></aside><div><div class="topbar"><span class="demo"><span class="dot"></span> Friends beta · Connected</span><div>${button("Refresh", "refresh")}${button("Sign out", "logout")}</div></div><main id="main" class="content"><header class="heading"><div><div class="eyebrow">A little closer, at your own pace</div><h1>${{ pulse: "Make yourself at home.", kin: "Your people.", parlor: "The parlor.", settings: "Your little corner." }[tab]}</h1><p>${{ pulse: "Real life, shared with the people who matter.", kin: "A small circle. A meaningful connection.", parlor: "Good conversations don’t need an audience.", settings: "Your choices. Your attention. Your space." }[tab]}</p></div></header>${invitePrompt()}${{ pulse: feed, kin: kin, parlor: parlor, settings: settings }[tab]()}</main><footer class="footer">Made for connection. Built with intention.</footer></div></div>`;
+      )}<a href="./demo.html#gatherings">Gatherings · demo</a>`;
+}
+function render() {
+  if (recovery) return recoveryView();
+  if (!user) return authView();
+  if (!profile) return profileView();
+  $("#app").innerHTML =
+    `<header class="mobile-header"><a class="brand" href="./live.html">hearth</a><button data-action="open-menu" aria-label="Open menu" aria-haspopup="dialog" aria-controls="mobile-menu" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span><span>Menu</span></button></header><dialog id="mobile-menu" aria-labelledby="menu-title"><div class="menu-heading"><h2 id="menu-title">Make yourself at home.</h2>${button("Close", "close-menu", 'aria-label="Close menu" autofocus')}</div><nav class="nav" aria-label="Mobile navigation">${navigationLinks()}</nav><div class="menu-actions">${button("Refresh", "refresh")}${button("Sign out", "logout")}</div><p class="live-muted">A little space for you and your people.</p></dialog><div class="shell"><aside class="sidebar"><a class="brand" href="./live.html">hearth</a><p class="tagline">A place for your people.</p><nav class="nav" aria-label="Main navigation">${navigationLinks()}</nav><div class="sidebar-bottom"><p>Less scrolling.<br>More living.</p><strong>${esc(profile.name)}</strong></div></aside><div><div class="topbar"><span class="demo"><span class="dot"></span> Friends beta · Connected</span><div>${button("Refresh", "refresh")}${button("Sign out", "logout")}</div></div><main id="main" class="content" tabindex="-1"><header class="heading"><div><div class="eyebrow">A little closer, at your own pace</div><h1>${{ pulse: "Make yourself at home.", kin: "Your people.", parlor: "The parlor.", settings: "Your little corner." }[tab]}</h1><p>${{ pulse: "Real life, shared with the people who matter.", kin: "A small circle. A meaningful connection.", parlor: "Good conversations don’t need an audience.", settings: "Your choices. Your attention. Your space." }[tab]}</p></div></header>${invitePrompt()}${{ pulse: feed, kin: kin, parlor: parlor, settings: settings }[tab]()}</main><footer class="footer">Made for connection. Built with intention.</footer></div></div>`;
 }
 function feed() {
   return `<div class="narrow"><section class="welcome"><h2>A quieter kind of connected.</h2><p>No algorithm to keep up with. Just little moments from your people.</p></section><form id="status" class="panel live-form">${field("A little moment from your day", '<textarea name="content" required maxlength="1500" placeholder="Something you made, a small joy, or simply how you’re doing…"></textarea>')}<div class="live-pair">${field("Who is this for?", '<select name="audience"><option>Only me</option><option>Inner circle</option><option>All kin</option></select>')}${field("A little about", `<select name="topic">${topics.map((t) => `<option>${esc(t)}</option>`).join("")}</select>`)}</div><small>Audience access is enforced by the server. Status text is not end-to-end encrypted.</small><button class="primary">Share moment</button></form>${statuses.map((p) => `<article class="post"><div class="post-head"><strong>${esc(p.author === user.id ? profile.name : name(p.author))}</strong><span class="badge">${esc(p.audience)}</span></div><p class="live-text">${esc(p.content)}</p><div class="post-footer"><small>${esc(date(p.created_at))} · ${esc(p.topic)}</small>${p.author === user.id ? `<button data-delete="${p.id}">Delete</button>` : `<button data-chat="${p.author}">Reply privately</button>`}</div></article>`).join("")}<div class="end"><h3>${statuses.length === pageSize ? "A good place to pause." : "You’re all caught up."}</h3><p>The rest of the day is yours.</p><div class="live-actions">${button("Previous", "prev", page === 0 ? "disabled" : "")}${button("Next moments", "next", statuses.length < pageSize ? "disabled" : "")}</div></div></div>`;
@@ -413,6 +416,11 @@ document.addEventListener("change", (event) => {
     });
   }
 });
+document.addEventListener("close", (event) => {
+  if (event.target.id === "mobile-menu") {
+    $('[data-action="open-menu"]')?.setAttribute("aria-expanded", "false");
+  }
+}, true);
 document.addEventListener("click", (event) => {
   const b = event.target.closest("button");
   if (!b || b.disabled) return;
@@ -420,10 +428,19 @@ document.addEventListener("click", (event) => {
   // Submit buttons belong to the form handler. Do not disable them before
   // the browser dispatches its default submit action.
   if (!Object.keys(d).length) return;
+  if (d.action === "open-menu") {
+    const menu = $("#mobile-menu");
+    menu.showModal();
+    b.setAttribute("aria-expanded", "true");
+    return;
+  }
+  if (d.action === "close-menu") { $("#mobile-menu").close(); return; }
+  if (b.closest("dialog")) $("#mobile-menu").close();
   run(async () => {
     if (d.tab) {
       tab = d.tab;
       render();
+      $("#main").focus();
       return;
     }
     if (["login", "signup", "reset"].includes(d.action)) {
