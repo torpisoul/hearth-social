@@ -86,10 +86,22 @@ try {
   assert.equal(check(await b.client.from('hearth_preferences').select('*')).length,0);
   check(await a.client.from('hearth_profiles').update({avatar:'data:image/png;base64,aGVsbG8='}).eq('id',a.id));
   assert.equal(check(await b.client.from('hearth_profiles').select('avatar').eq('id',a.id)).at(0).avatar,'data:image/png;base64,aGVsbG8=');
-  const event=check(await a.client.from('hearth_events').insert({title:'Test walk',place:'Test park',starts_at:new Date(Date.now()+86400000).toISOString()}).select('id')).at(0);
+  const eventArgs={plan:null,plan_title:'Test walk',plan_place:'Test park',plan_start:new Date(Date.now()+86400000).toISOString(),plan_details:'',invitees:[b.id]};
+  const event={id:check(await a.client.rpc('hearth_save_event',eventArgs))};
+  assert.equal(check(await a.client.from('hearth_event_invites').select('*').eq('event',event.id)).length,1);
+  assert.equal(check(await b.client.from('hearth_event_invites').select('*').eq('event',event.id)).length,0);
+  assert.ok((await b.client.rpc('hearth_save_event',{...eventArgs,plan:event.id})).error);
   check(await b.client.from('hearth_rsvps').insert({event:event.id}));
   assert.equal(check(await a.client.from('hearth_rsvps').select('*')).length,1);
   assert.equal(check(await c.client.from('hearth_rsvps').select('*')).length,0);
+  assert.equal(check(await b.client.rpc('hearth_event_attendees',{plans:[event.id]})).length,1);
+  assert.equal(check(await c.client.rpc('hearth_event_attendees',{plans:[event.id]})).length,0);
+  check(await a.client.rpc('hearth_save_event',{...eventArgs,plan:event.id,plan_title:'An edited walk',invitees:[]}));
+  assert.equal(check(await b.client.from('hearth_events').select('*').eq('id',event.id)).length,0);
+  assert.equal(check(await a.client.from('hearth_rsvps').select('*').eq('event',event.id)).length,0);
+  assert.ok((await b.client.from('hearth_rsvps').insert({event:event.id})).error);
+  check(await a.client.rpc('hearth_save_event',{...eventArgs,plan:event.id}));
+
   const bob = await createIdentity("Disposable Bob messaging passphrase");
   for (const [u, key] of [
     [a, alice],

@@ -8,7 +8,8 @@ test('Parlor sorts kin, highlights inner circle, searches without losing focus a
  const me='22222222-2222-4222-8222-222222222222', amy='11111111-1111-4111-8111-111111111111',zoe='33333333-3333-4333-8333-333333333333';
  const people=[{id:me,name:'Me'},{id:zoe,name:'Zoe'},{id:amy,name:'amy'}];
  const tables={hearth_profiles:people,hearth_connections:[{requester:me,recipient:zoe,accepted:true},{requester:amy,recipient:me,accepted:true}],hearth_circle:[{owner:me,member:amy}],hearth_preferences:{topics:[],update_mode:'manual'}};
- const client={auth:{onAuthStateChange(){},async getSession(){return{data:{session:{user:{id:me}}}}}},async rpc(){return{data:null}},from(table){let single=false;const q={select(){return q},eq(){return q},neq(){return q},order(){return q},gte(){return q},limit(){return q},range(){return q},in(){return q},maybeSingle(){single=true;return q},then(resolve){return Promise.resolve({data:table==='hearth_profiles'&&single?people[0]:tables[table]??(single?null:[])}).then(resolve)}};return q}};
+ let savedPlan;
+ const client={auth:{onAuthStateChange(){},async getSession(){return{data:{session:{user:{id:me}}}}}},async rpc(action,args){if(action==='hearth_save_event')savedPlan=args;return{data:action==='hearth_event_attendees'?[]:null}},from(table){let single=false;const q={select(){return q},eq(){return q},neq(){return q},order(){return q},gte(){return q},limit(){return q},range(){return q},in(){return q},maybeSingle(){single=true;return q},then(resolve){return Promise.resolve({data:table==='hearth_profiles'&&single?people[0]:tables[table]??(single?null:[])}).then(resolve)}};return q}};
  globalThis.fetch=async()=>({ok:true,json:async()=>({supabaseUrl:'https://example.supabase.co',supabasePublishableKey:'public'})});
  await esmock('../../js/live/app.js',{'@supabase/supabase-js':{createClient:()=>client}});
  const settle=()=>new Promise(r=>setTimeout(r,20));await settle();
@@ -26,5 +27,18 @@ test('Parlor sorts kin, highlights inner circle, searches without losing focus a
  assert.match(document.querySelector('#conversation h2').textContent,/Zoe/);
  assert.ok(document.querySelector('#unlock'));
  assert.equal(document.querySelector('.parlor-person').getAttribute('aria-pressed'),'true');
+
+ document.querySelector('.sidebar [data-tab="gatherings"]').click();await settle();
+ const title=document.querySelector('#event [name="title"]');title.value='Tea together';title.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+ document.querySelector('[data-event-guest="'+amy+'"]').click();
+ assert.equal(document.querySelector('#event [name="title"]'),title);
+ assert.equal(title.value,'Tea together');
+ assert.match(document.querySelector('#event-who').textContent,/amy/);
+ assert.equal(document.querySelector('[data-event-guest="'+amy+'"]').getAttribute('aria-pressed'),'true');
+ document.querySelector('#event [name="place"]').value='The garden';
+ document.querySelector('#event [name="starts_at"]').value='2099-01-01T12:00';
+ document.querySelector('#event').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await settle();
+ assert.equal(savedPlan.plan_title,'Tea together');
+ assert.deepEqual(savedPlan.invitees,[amy]);
  dom.window.close();
 });

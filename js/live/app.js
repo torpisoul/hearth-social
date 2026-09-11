@@ -42,6 +42,8 @@ function clearInvite() {
 }
 let feedFilter = "all";
 let kinSearch = "";
+let eventSearch = "", eventDraft = {}, selectedGuests = new Set();
+let eventInvites = [], eventAttendees = [];
 let events = [], rsvps = [], waitingNotes = [];
 let peerReady = true, waitingError = "", draftDirty = false;
 let newestStatus = null, recentIncoming = [];
@@ -144,8 +146,31 @@ function kinIdentity(id, showAvatar = true) {
 function companionCards() {
  return `<aside class="live-companions"><section class="panel"><div class="eyebrow">The people, not the numbers</div><h2>A few familiar faces.</h2>${friends().slice(0,3).map(id => `<div class="kin-row">${kinIdentity(id)}</div>`).join("") || '<p>A little room for your people. Invite someone you know.</p>'}<button data-tab="kin">Visit your kin</button></section><section class="panel"><div class="eyebrow">Something to look forward to</div><h2>Room at the table.</h2>${events[0] ? `<p><strong>${esc(events[0].title)}</strong><br>${esc(date(events[0].starts_at))}<br>${esc(events[0].place)}</p>` : '<p>No plans yet. A walk or a cup of tea is a good place to start.</p>'}<button data-tab="gatherings">See your gatherings</button></section><section class="panel"><div class="eyebrow">A little peace of mind</div><h2>Your attention is yours.</h2><p>No read receipts. No pressure to reply. Choose what comes into your living room and when to check in.</p><button data-tab="settings">Make this space yours</button></section></aside>`;
 }
+
+function eventGuestList() {
+ return [...selectedGuests].map(id=>`<span class="badge">${esc(name(id))}</span>`).join(" ") || "Just you for now. Choose the kin you’d like to invite.";
+}
+function eventKinRows() {
+ return friends().sort((a,b)=>name(a).localeCompare(name(b),undefined,{sensitivity:"base"})).filter(id=>name(id).toLocaleLowerCase().includes(eventSearch.trim().toLocaleLowerCase())).map(id=>`<button type="button" class="parlor-person" data-event-guest="${id}" aria-pressed="${selectedGuests.has(id)}">${avatar(id)}<span>${esc(name(id))}</span></button>`).join("") || "<p>No kin found. Try another name, or connect in Your kin.</p>";
+}
+function localEventTime(value) {
+ const d=new Date(value);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+}
 function gatherings() {
- return `<div class="narrow"><section class="panel"><h2>Fancy making a little plan?</h2><form id="event" class="live-form">${field("What shall we do?",'<input name="title" required maxlength="100" placeholder="A walk, dinner, a game…">')}${field("Where?",'<input name="place" required maxlength="200">')}${field("When?",'<input name="starts_at" type="datetime-local" required>')}${field("Anything else?",'<textarea name="details" maxlength="1500"></textarea>')}<small>Shared with all your kin. They can see the plan and who’s coming. Times are shown in each person’s local time.</small><button class="primary">Share the plan</button></form></section>${events.map(e => `<section class="panel"><h2>${esc(e.title)}</h2><p>${esc(date(e.starts_at))} · ${esc(e.place)}</p><p class="live-text">${esc(e.details)}</p><p>Hosted by ${kinIdentity(e.owner, false)}</p><p>${rsvps.filter(r=>r.event===e.id).map(r=>r.person===user.id ? 'You' : kinIdentity(r.person, false)).join(', ') || 'No replies yet. No rush.'}</p><div class="live-actions"><button data-rsvp="${e.id}">${rsvps.some(r=>r.event===e.id && r.person===user.id) ? 'I can’t make it now' : 'I’d like to come'}</button>${e.owner===user.id ? `<button data-cancel-event="${e.id}">Cancel this plan</button>` : ''}</div></section>`).join('') || '<p>A quiet calendar, for now.</p>'}<p class="live-muted">Showing the next 20 upcoming gatherings.</p></div>`;
+ return `<div class="parlor-layout gathering-layout"><aside class="panel parlor-kin" aria-label="Choose your invitees"><h2>Who’s coming?</h2><label class="field">Find your kin<input id="event-kin-search" type="search" value="${esc(eventSearch)}" placeholder="Search by name" aria-controls="event-kin-list"></label><div id="event-kin-list" class="parlor-kin-list">${eventKinRows()}</div></aside><div class="parlor-conversation"><section class="panel"><h2>${eventDraft.id ? "A little change of plan?" : "Fancy making a little plan?"}</h2><form id="event" class="live-form">
+ ${field("What shall we do?",`<input name="title" required maxlength="100" placeholder="A walk, dinner, a game…" value="${esc(eventDraft.title || "")}">`)}
+ ${field("Where?",`<input name="place" required maxlength="200" value="${esc(eventDraft.place || "")}">`)}
+ ${field("When?",`<input name="starts_at" type="datetime-local" required value="${esc(eventDraft.starts_at || "")}">`)}
+ ${field("Anything else?",`<textarea name="details" maxlength="1500">${esc(eventDraft.details || "")}</textarea>`)}
+ <div><strong>Who?</strong><div id="event-who" class="live-actions" aria-live="polite">${eventGuestList()}</div></div>
+ <small>Only invited kin can see this plan. Only you see the full invitation list. Everyone invited can see who’s accepted. Removing someone also removes their RSVP and access.</small>
+ <button class="primary">${eventDraft.id ? "Save this plan" : "Share the plan"}</button>${eventDraft.id ? '<button type="button" data-action="cancel-event-edit">Leave editing</button>' : ""}
+ </form></section>
+ ${events.map(e=>`<section class="panel"><h2>${esc(e.title)}</h2><p>${esc(date(e.starts_at))} · ${esc(e.place)}</p><p class="live-text">${esc(e.details)}</p><p>Hosted by ${kinIdentity(e.owner,false)}</p>
+ ${e.owner===user.id ? `<div><strong>Invited · only you can see this</strong><p>${eventInvites.filter(i=>i.event===e.id).map(i=>kinIdentity(i.person,false)).join(", ") || "Just you for now."}</p></div>` : ""}
+ <div><strong>Coming along</strong><p>${eventAttendees.filter(r=>r.event===e.id).map(r=>r.person===user.id ? "You" : friends().includes(r.person) ? kinIdentity(r.person,false) : esc(r.name)).join(", ") || "No replies yet. No rush."}</p></div>
+ <div class="live-actions"><button data-rsvp="${e.id}">${rsvps.some(r=>r.event===e.id && r.person===user.id) ? "I can’t make it now" : "I’d like to come"}</button>${e.owner===user.id ? `<button data-edit-event="${e.id}">Edit this plan</button><button data-cancel-event="${e.id}">Cancel this plan</button>` : ""}</div></section>`).join("") || "<p>A quiet calendar, for now.</p>"}
+ <p class="live-muted">Showing the next 20 upcoming gatherings.</p></div></div>`;
 }
 function feed() {
   return `<div class="live-feed-layout"><div class="narrow">${topicChoices()}<div class="topic-pills" role="group" aria-label="People in your living room">${[["all","All chosen topics"],["circle","Inner circle"],["mine","My moments"]].map(([id,label])=>`<button data-feed-filter="${id}" aria-pressed="${feedFilter===id}">${label}</button>`).join("")}</div><section class="welcome"><div class="eyebrow">Your digital living room</div><h2>A quieter kind of connected.</h2><p>No algorithm to keep up with. Just little moments from your people.</p>${sprig}</section><form id="status" class="panel live-form">${field("A little moment from your day", '<textarea name="content" required maxlength="1500" placeholder="Something you made, a small joy, or simply how you’re doing…"></textarea>')}<div class="live-pair">${field("Who is this for?", '<select name="audience"><option>Only me</option><option>Inner circle</option><option>All kin</option></select>')}${field("A little about", `<select name="topic">${topics.map((t) => `<option>${esc(t)}</option>`).join("")}</select>`)}</div><small>Audience access is enforced by the server. Status text is not end-to-end encrypted.</small><button class="primary">Share moment</button></form>${statuses.map((p) => `<article class="post"><div class="post-head">${kinIdentity(p.author)}<span class="badge">${esc(p.audience)}</span></div><p class="live-text">${esc(p.content)}</p><div class="post-footer"><small>${esc(date(p.created_at))} · ${esc(p.topic)}</small>${p.author === user.id ? `<button data-delete="${p.id}">Delete</button>` : `<button data-chat="${p.author}">Reply privately</button>`}</div></article>`).join("")}<div class="end"><h3>${!preferences.topics.length ? "A quiet corner, for now." : statuses.length === pageSize ? "A good place to pause." : "You’re all caught up."}</h3><p>${!preferences.topics.length ? "Choose a topic above whenever you’d like to see some moments." : "The rest of the day is yours."}</p><div class="live-actions">${button("Previous", "prev", page === 0 ? "disabled" : "")}${button("Next moments", "next", statuses.length < pageSize ? "disabled" : "")}</div></div></div>${companionCards()}</div>`;
@@ -228,6 +253,9 @@ async function refresh() {
   let statusQuery = client.from("hearth_statuses").select("*");
   events = check(await client.from("hearth_events").select("*").gte("starts_at",new Date().toISOString()).order("starts_at").limit(20));
   rsvps = events.length ? check(await client.from("hearth_rsvps").select("*").in("event",events.map(e=>e.id))) : [];
+  eventInvites = events.length ? check(await client.from("hearth_event_invites").select("*").in("event",events.map(e=>e.id))) : [];
+  eventAttendees = events.length ? check(await client.rpc("hearth_event_attendees",{plans:events.map(e=>e.id)})) : [];
+
   const selectedTopics = (preferences.topics || []).filter(t => topics.includes(t));
   statusQuery = selectedTopics.length ? statusQuery.in("topic", selectedTopics) : statusQuery.eq("id", "00000000-0000-0000-0000-000000000000");
   if(feedFilter === "mine") statusQuery = statusQuery.eq("author",user.id);
@@ -345,6 +373,7 @@ async function signOut() {
   vault = null;
   user = null;
   profile = null;
+  eventDraft={}; selectedGuests=new Set(); eventSearch=""; eventInvites=[]; eventAttendees=[];
   peer = "";
   messages = [];
   profiles = [];
@@ -356,9 +385,9 @@ async function signOut() {
 }
 document.addEventListener("input", event => { if(event.target.closest("form")) draftDirty = true; });
 async function quietCheckIn() {
-  if(!user || !profile || preferences.update_mode !== "foreground" || document.hidden || busy || draftDirty || document.activeElement?.id === "kin-search" || $("#mobile-menu")?.open) return;
+  if(!user || !profile || preferences.update_mode !== "foreground" || document.hidden || busy || draftDirty || ["kin-search","event-kin-search"].includes(document.activeElement?.id) || $("#mobile-menu")?.open) return;
   busy = true;
-  try { await refresh(); if (!draftDirty && document.activeElement?.id !== "kin-search" && !document.hidden && !$("#mobile-menu")?.open) render(); } catch { /* Keep the current page if connectivity drops. */ }
+  try { await refresh(); if (!draftDirty && !["kin-search","event-kin-search"].includes(document.activeElement?.id) && !document.hidden && !$("#mobile-menu")?.open) render(); } catch { /* Keep the current page if connectivity drops. */ }
   finally { busy = false; }
 }
 const quietTimer = setInterval(quietCheckIn,60000);
@@ -420,6 +449,7 @@ document.addEventListener("submit", (event) => {
       privateKey = null;
       user = null;
       profile = null;
+  eventDraft={}; selectedGuests=new Set(); eventSearch=""; eventInvites=[]; eventAttendees=[];
       render();
       return;
     }
@@ -444,7 +474,8 @@ document.addEventListener("submit", (event) => {
     if (form.id === "event") {
       const starts = new Date(data.starts_at);
       if (!Number.isFinite(starts.getTime()) || starts <= new Date()) throw Error("Choose a time in the future.");
-      check(await client.from("hearth_events").insert({title:data.title.trim(),place:data.place.trim(),details:data.details.trim(),starts_at:starts.toISOString()}));
+      check(await client.rpc("hearth_save_event",{plan:eventDraft.id || null,plan_title:data.title.trim(),plan_place:data.place.trim(),plan_details:data.details.trim(),plan_start:starts.toISOString(),invitees:[...selectedGuests]}));
+      eventDraft={}; selectedGuests=new Set(); eventSearch="";
     }
     if (form.id === "avatar") {
       const picture = await prepareAvatar(form.elements.photo.files[0]);
@@ -535,6 +566,10 @@ document.addEventListener("submit", (event) => {
   });
 });
 document.addEventListener("input", event => {
+ if (event.target.closest("#event") && event.target.name) eventDraft[event.target.name] = event.target.value;
+ if (event.target.id === "event-kin-search") {
+   eventSearch=event.target.value; $("#event-kin-list").innerHTML=eventKinRows(); return;
+ }
  if (event.target.id !== "kin-search") return;
  kinSearch = event.target.value;
  $("#parlor-kin-list").innerHTML = parlorKinRows();
@@ -551,6 +586,11 @@ document.addEventListener("click", (event) => {
   // Submit buttons belong to the form handler. Do not disable them before
   // the browser dispatches its default submit action.
   if (!Object.keys(d).length) return;
+  if (d.eventGuest && friends().includes(d.eventGuest)) {
+    if (selectedGuests.has(d.eventGuest)) selectedGuests.delete(d.eventGuest); else selectedGuests.add(d.eventGuest);
+    b.setAttribute("aria-pressed",String(selectedGuests.has(d.eventGuest)));
+    $("#event-who").innerHTML=eventGuestList(); draftDirty=true; return;
+  }
   if (d.paletteChoice && palettes.some(p => p[0] === d.paletteChoice)) {
     colourPalette = d.paletteChoice;
     const saved = rememberPalette(colourPalette);
@@ -570,6 +610,15 @@ document.addEventListener("click", (event) => {
     if (d.feedFilter && ["all","circle","mine"].includes(d.feedFilter)) {
       feedFilter = d.feedFilter; page = 0; await refresh(); render(); return;
     }
+    if (d.editEvent) {
+      const e=events.find(e=>e.id===d.editEvent && e.owner===user.id);
+      if (!e) throw Error("Only the host can edit this plan.");
+      if (draftDirty && !confirm("Replace the plan you’re currently writing with this one?")) return;
+      eventDraft={...e,starts_at:localEventTime(e.starts_at)};
+      selectedGuests=new Set(eventInvites.filter(i=>i.event===e.id && friends().includes(i.person)).map(i=>i.person));
+      eventSearch=""; render(); $("#event input")?.focus(); return;
+    }
+    if (d.action === "cancel-event-edit") { eventDraft={};selectedGuests=new Set();render();return; }
     if (d.rsvp) {
       const going = rsvps.some(r=>r.event===d.rsvp && r.person===user.id);
       check(await (going ? client.from("hearth_rsvps").delete().eq("event",d.rsvp).eq("person",user.id) : client.from("hearth_rsvps").insert({event:d.rsvp})));
@@ -667,6 +716,7 @@ document.addEventListener("click", (event) => {
         preferences,
         gatherings: await allRows("hearth_events", "owner"),
         rsvps: await allRows("hearth_rsvps", "person", "event"),
+        invitations: await allRows("hearth_event_invites", null, "event"),
         statuses: await allRows("hearth_statuses", "author"),
         feedback: await allRows("hearth_feedback"),
         waiting_notes: await allRows("hearth_waiting_notes"),
@@ -773,6 +823,7 @@ async function start() {
         vault = null;
         user = null;
         profile = null;
+  eventDraft={}; selectedGuests=new Set(); eventSearch=""; eventInvites=[]; eventAttendees=[];
         messages = [];
         profiles = [];
         statuses = [];

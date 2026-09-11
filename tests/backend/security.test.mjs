@@ -119,7 +119,7 @@ test("requests require the recipient to accept before sharing", async () => {
   );
 });
 test("gatherings and RSVPs are visible only to the host and connected kin", async () => {
- const [event] = await as(a,"insert into hearth_events(title,place,starts_at) values('A walk','The park',now()+interval '1 day') returning id");
+ const [event] = await as(a,"select hearth_save_event(null,'A walk','The park',now()+interval '1 day','',array[$1::uuid]) as id",[b]);
  assert.equal((await as(b,"select * from hearth_events")).length,1);
  assert.equal((await as(c,"select * from hearth_events")).length,0);
  await as(b,"insert into hearth_rsvps(event) values($1)",[event.id]);
@@ -132,6 +132,27 @@ test("gatherings and RSVPs are visible only to the host and connected kin", asyn
  assert.equal((await as(b,"select * from hearth_rsvps")).length,0);
  await as(a,"delete from hearth_blocks where owner=$1 and target=$2",[a,b]);
  await as(a,"delete from hearth_events where id=$1",[event.id]);
+});
+test("invites are host-private, edits are atomic and removed guests lose access", async () => {
+ await as(a,"select hearth_request_friend($1)",[c]); await as(c,"select hearth_accept_friend($1)",[a]);
+ const [e]=await as(a,"select hearth_save_event(null,'Tea','Home',now()+interval '2 days','',array[$1::uuid]) as id",[b]);
+ assert.equal((await as(c,"select * from hearth_events where id=$1",[e.id])).length,0);
+ assert.equal((await as(a,"select * from hearth_event_invites where event=$1",[e.id])).length,1);
+ assert.equal((await as(b,"select * from hearth_event_invites where event=$1",[e.id])).length,0);
+ await assert.rejects(as(b,"select hearth_save_event($1,'Forged','Elsewhere',now()+interval '2 days','',array[$2::uuid])",[e.id,a]),/Only the host/);
+ await as(a,"select hearth_save_event($1,'Tea and cake','Home',now()+interval '2 days','',array[$2::uuid,$3::uuid])",[e.id,b,c]);
+ assert.equal((await as(c,"select title from hearth_events where id=$1",[e.id]))[0].title,'Tea and cake');
+ assert.equal((await as(c,"select * from hearth_event_invites where event=$1",[e.id])).length,0);
+ await as(b,"insert into hearth_rsvps(event) values($1)",[e.id]);
+ assert.deepEqual((await as(c,"select name from hearth_event_attendees(array[$1::uuid])",[e.id])).map(x=>x.name),['Bob']);
+ await assert.rejects(as(a,"select hearth_save_event($1,'Bad update','Home',now()+interval '2 days','',array[$2::uuid])",[e.id,'00000000-0000-4000-8000-000000000099']),/connected kin/);
+ assert.equal((await as(a,"select title from hearth_events where id=$1",[e.id]))[0].title,'Tea and cake');
+ await as(a,"select hearth_save_event($1,'Just cake','Home',now()+interval '2 days','',array[$2::uuid])",[e.id,c]);
+ assert.equal((await as(b,"select * from hearth_events where id=$1",[e.id])).length,0);
+ assert.equal((await as(b,"select * from hearth_event_attendees(array[$1::uuid])",[e.id])).length,0);
+ assert.equal((await as(a,"select * from hearth_rsvps where event=$1",[e.id])).length,0);
+ await assert.rejects(as(b,"insert into hearth_rsvps(event) values($1)",[e.id]),/row-level security/);
+ await as(a,"delete from hearth_events where id=$1",[e.id]);await as(a,"select hearth_remove_friend($1)",[c]);
 });
 test("waiting notes allow only connected participants and reject forged senders", async () => {
  const id='00000000-0000-4000-9000-000000000999';
@@ -275,7 +296,7 @@ test("all exposed tables have RLS; public API functions are invoker functions", 
       "select relname,relrowsecurity from pg_class join pg_namespace n on n.oid=relnamespace where n.nspname='public' and relkind='r' and relname like 'hearth_%' ",
     )
   ).rows;
-  assert.equal(rows.length, 12);
+  assert.equal(rows.length, 13);
   assert.ok(rows.every((r) => r.relrowsecurity));
   assert.equal(
     (
