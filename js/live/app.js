@@ -42,6 +42,7 @@ function clearInvite() {
 }
 let feedFilter = "all";
 let kinSearch = "";
+let kinListSearch = "", selectedKin = "";
 let eventSearch = "", eventDraft = {}, selectedGuests = new Set();
 let eventInvites = [], eventAttendees = [];
 let events = [], rsvps = [], waitingNotes = [];
@@ -141,7 +142,7 @@ function topicChoices() {
 function kinIdentity(id, showAvatar = true) {
  const label = id === user.id ? profile.name : name(id);
  const content = (showAvatar ? avatar(id) : "") + `<span>${esc(label)}</span>`;
- return friends().includes(id) ? `<button type="button" class="kin-identity ${showAvatar ? "" : "kin-name"}" data-chat="${id}" aria-label="Open conversation with ${esc(label)}">${content}</button>` : `<span class="kin-identity-static">${content}</span>`;
+ return friends().includes(id) ? `<button type="button" class="kin-identity ${showAvatar ? "" : "kin-name"}" ${tab==="kin" ? `data-kin-card="${id}" aria-label="Show details for ${esc(label)}"` : `data-chat="${id}" aria-label="Open conversation with ${esc(label)}"`}>${content}</button>` : `<span class="kin-identity-static">${content}</span>`;
 }
 function companionCards() {
  return `<aside class="live-companions"><section class="panel"><div class="eyebrow">The people, not the numbers</div><h2>A few familiar faces.</h2>${friends().slice(0,3).map(id => `<div class="kin-row">${kinIdentity(id)}</div>`).join("") || '<p>A little room for your people. Invite someone you know.</p>'}<button data-tab="kin">Visit your kin</button></section><section class="panel"><div class="eyebrow">Something to look forward to</div><h2>Room at the table.</h2>${events[0] ? `<p><strong>${esc(events[0].title)}</strong><br>${esc(date(events[0].starts_at))}<br>${esc(events[0].place)}</p>` : '<p>No plans yet. A walk or a cup of tea is a good place to start.</p>'}<button data-tab="gatherings">See your gatherings</button></section><section class="panel"><div class="eyebrow">A little peace of mind</div><h2>Your attention is yours.</h2><p>No read receipts. No pressure to reply. Choose what comes into your living room and when to check in.</p><button data-tab="settings">Make this space yours</button></section></aside>`;
@@ -181,16 +182,19 @@ function invitePrompt() {
   const incoming = connection && !connection.accepted && connection.recipient === user.id;
   return `<section class="panel narrow"><h2>${connection?.accepted ? "You’re connected." : connection && !incoming ? "Your request is on its way." : "Say hello to the person who invited you."}</h2><p>${connection ? connection.accepted ? "Find your friend in Your kin." : incoming ? "They have already asked to connect. Accept to start sharing." : "They can accept your request in Your kin. You don’t need to send your code separately." : "Send them a connection request here—no need to copy your friend code back. They’ll accept before you share moments or messages."}</p><p class="live-code">${esc(referral)}</p><div class="live-actions">${!connection || incoming ? button(incoming ? "Accept connection" : "Connect with my inviter", "connect-inviter", 'class="primary"') : ""}${button(connection ? "Done" : "Not now", "dismiss-invite")}</div></section>`;
 }
+function kinCardRows() {
+ return friends().sort((a,b)=>name(a).localeCompare(name(b),undefined,{sensitivity:"base"})).filter(id=>name(id).toLocaleLowerCase().includes(kinListSearch.trim().toLocaleLowerCase())).map(id=>`<button type="button" class="parlor-person" data-kin-card="${id}" aria-pressed="${selectedKin===id}">${avatar(id)}<span><strong>${esc(name(id))}</strong>${circle.some(c=>c.member===id) ? '<small class="circle-marker">Inner circle</small>' : ""}</span></button>`).join("") || "<p>No kin found. Try another name, or invite someone below.</p>";
+}
 function kin() {
-  return `<div class="narrow"><section class="panel"><h2>Invite your people.</h2><p>Send one invite link, or let a friend scan your QR code. They’ll be guided to create an account and send you a connection request.</p><div class="live-actions">${button("Copy invite link", "copy-invite", 'class="primary"')}</div><figure class="invite-code">${inviteQrSvg(inviteUrl(location.href, user.id))}<figcaption>Together in person? Scan with your phone’s camera.</figcaption></figure><label class="field">Your invite link<input id="invite-link" readonly value="${esc(inviteUrl(location.href, user.id))}"></label><details><summary>Use a friend code instead</summary><p class="live-code">${esc(user.id)}</p></details><form id="friend" class="live-form">${field("Their friend code", '<input name="person" required placeholder="Paste their friend code">')}<button class="primary">Send connection request</button></form></section>${
+  return `<div class="parlor-layout"><aside class="panel parlor-kin" aria-label="Find your kin"><h2>Your kin</h2><label class="field">Find your kin<input id="kin-card-search" type="search" value="${esc(kinListSearch)}" placeholder="Search by name" aria-controls="kin-card-list"></label><div id="kin-card-list" class="parlor-kin-list">${kinCardRows()}</div></aside><div class="parlor-conversation"><section class="panel"><h2>Invite your people.</h2><p>Send one invite link, or let a friend scan your QR code. They’ll be guided to create an account and send you a connection request.</p><div class="live-actions">${button("Copy invite link", "copy-invite", 'class="primary"')}</div><figure class="invite-code">${inviteQrSvg(inviteUrl(location.href, user.id))}<figcaption>Together in person? Scan with your phone’s camera.</figcaption></figure><label class="field">Your invite link<input id="invite-link" readonly value="${esc(inviteUrl(location.href, user.id))}"></label><details><summary>Use a friend code instead</summary><p class="live-code">${esc(user.id)}</p></details><form id="friend" class="live-form">${field("Their friend code", '<input name="person" required placeholder="Paste their friend code">')}<button class="primary">Send connection request</button></form></section>${
     connections
       .map((c) => {
         const id = c.requester === user.id ? c.recipient : c.requester;
-        return `<section class="panel"><div class="kin-row">${kinIdentity(id)}</div><p>${c.accepted ? "Your kin" : c.recipient === user.id ? "Would like to connect" : "Waiting for them to accept"}</p><div class="live-actions">${c.accepted ? `<button data-chat="${id}">Say hello</button><button data-circle="${id}">${circle.some((x) => x.member === id) ? "Remove from" : "Add to"} inner circle</button>` : c.recipient === user.id ? `<button data-accept="${id}">Accept</button>` : ""}<button data-disconnect="${id}">${c.accepted ? "Disconnect" : "Cancel request"}</button><button data-block="${id}" class="danger">Block</button></div></section>`;
+        return `<section id="kin-card-${id}" tabindex="-1" class="panel kin-detail ${selectedKin===id ? "kin-detail-selected" : ""}"><div class="kin-row">${kinIdentity(id)}</div><p>${c.accepted ? "Your kin" : c.recipient === user.id ? "Would like to connect" : "Waiting for them to accept"}</p><div class="live-actions">${c.accepted ? `<button data-chat="${id}">The parlor</button><button data-circle="${id}">${circle.some((x) => x.member === id) ? "Remove from" : "Add to"} inner circle</button>` : c.recipient === user.id ? `<button data-accept="${id}">Accept</button>` : ""}<button data-disconnect="${id}">${c.accepted ? "Disconnect" : "Cancel request"}</button><button data-block="${id}" class="danger">Block</button></div></section>`;
       })
       .join("") ||
     '<section class="panel"><h3>Room for familiar faces.</h3><p>Swap friend codes to start your circle.</p></section>'
-  }<p>Inner circle controls who can read your inner-circle moments. Blocking stops new messages and hides shared statuses; messages already delivered remain in each person’s history.</p></div>`;
+  }<p>Inner circle controls who can read your inner-circle moments. Blocking stops new messages and hides shared statuses; messages already delivered remain in each person’s history.</p></div></div>`;
 }
 function unlockForm() {
   return `<section class="panel"><h2>${vault ? "Unlock your conversations." : "Make a private space."}</h2><p>${vault ? "Enter your separate messaging passphrase." : "Choose a separate messaging passphrase of at least 16 characters and save it in your password manager. It protects the backup of your message key."}</p><form id="unlock" class="live-form">${field("Messaging passphrase", `<input name="passphrase" type="password" placeholder="${vault ? "Your saved passphrase" : "Choose a long phrase"}" required minlength="16" maxlength="512" autocomplete="${vault ? "current-password" : "new-password"}">`)}${vault ? "" : field("Confirm messaging passphrase", '<input name="confirm" type="password" placeholder="Enter the same phrase again" required minlength="16" maxlength="512" autocomplete="new-password">')}<label class="remember-choice"><input name="remember" type="checkbox"><span>Remember messages on this personal device</span></label><small>Skip the extra unlock next time. Anyone using this browser while signed in as you could read your messages. Keep your passphrase for other devices.</small><button class="primary">${vault ? "Unlock messages" : "Set up encrypted messages"}</button></form><p>We cannot recover a forgotten messaging passphrase. Account password resets do not unlock message history.</p></section>`;
@@ -373,7 +377,7 @@ async function signOut() {
   vault = null;
   user = null;
   profile = null;
-  eventDraft={}; selectedGuests=new Set(); eventSearch=""; eventInvites=[]; eventAttendees=[];
+  eventDraft={}; selectedGuests=new Set(); eventSearch=""; eventInvites=[]; eventAttendees=[]; kinListSearch=""; selectedKin="";
   peer = "";
   messages = [];
   profiles = [];
@@ -385,9 +389,9 @@ async function signOut() {
 }
 document.addEventListener("input", event => { if(event.target.closest("form")) draftDirty = true; });
 async function quietCheckIn() {
-  if(!user || !profile || preferences.update_mode !== "foreground" || document.hidden || busy || draftDirty || ["kin-search","event-kin-search"].includes(document.activeElement?.id) || $("#mobile-menu")?.open) return;
+  if(!user || !profile || preferences.update_mode !== "foreground" || document.hidden || busy || draftDirty || ["kin-search","event-kin-search","kin-card-search"].includes(document.activeElement?.id) || $("#mobile-menu")?.open) return;
   busy = true;
-  try { await refresh(); if (!draftDirty && !["kin-search","event-kin-search"].includes(document.activeElement?.id) && !document.hidden && !$("#mobile-menu")?.open) render(); } catch { /* Keep the current page if connectivity drops. */ }
+  try { await refresh(); if (!draftDirty && !["kin-search","event-kin-search","kin-card-search"].includes(document.activeElement?.id) && !document.hidden && !$("#mobile-menu")?.open) render(); } catch { /* Keep the current page if connectivity drops. */ }
   finally { busy = false; }
 }
 const quietTimer = setInterval(quietCheckIn,60000);
@@ -449,7 +453,7 @@ document.addEventListener("submit", (event) => {
       privateKey = null;
       user = null;
       profile = null;
-  eventDraft={}; selectedGuests=new Set(); eventSearch=""; eventInvites=[]; eventAttendees=[];
+  eventDraft={}; selectedGuests=new Set(); eventSearch=""; eventInvites=[]; eventAttendees=[]; kinListSearch=""; selectedKin="";
       render();
       return;
     }
@@ -567,6 +571,9 @@ document.addEventListener("submit", (event) => {
 });
 document.addEventListener("input", event => {
  if (event.target.closest("#event") && event.target.name) eventDraft[event.target.name] = event.target.value;
+ if (event.target.id === "kin-card-search") {
+   kinListSearch=event.target.value; $("#kin-card-list").innerHTML=kinCardRows(); return;
+ }
  if (event.target.id === "event-kin-search") {
    eventSearch=event.target.value; $("#event-kin-list").innerHTML=eventKinRows(); return;
  }
@@ -586,6 +593,14 @@ document.addEventListener("click", (event) => {
   // Submit buttons belong to the form handler. Do not disable them before
   // the browser dispatches its default submit action.
   if (!Object.keys(d).length) return;
+  if (d.kinCard && friends().includes(d.kinCard)) {
+    const card=$("#kin-card-"+d.kinCard);
+    if (!card) return;
+    selectedKin=d.kinCard;
+    document.querySelectorAll(".kin-detail").forEach(el=>el.classList.toggle("kin-detail-selected",el===card));
+    document.querySelectorAll("#kin-card-list [data-kin-card]").forEach(el=>el.setAttribute("aria-pressed",String(el.dataset.kinCard===selectedKin)));
+    card.focus({preventScroll:true});card.scrollIntoView({block:"start",behavior:"auto"});return;
+  }
   if (d.eventGuest && friends().includes(d.eventGuest)) {
     if (selectedGuests.has(d.eventGuest)) selectedGuests.delete(d.eventGuest); else selectedGuests.add(d.eventGuest);
     b.setAttribute("aria-pressed",String(selectedGuests.has(d.eventGuest)));
@@ -823,7 +838,7 @@ async function start() {
         vault = null;
         user = null;
         profile = null;
-  eventDraft={}; selectedGuests=new Set(); eventSearch=""; eventInvites=[]; eventAttendees=[];
+  eventDraft={}; selectedGuests=new Set(); eventSearch=""; eventInvites=[]; eventAttendees=[]; kinListSearch=""; selectedKin="";
         messages = [];
         profiles = [];
         statuses = [];

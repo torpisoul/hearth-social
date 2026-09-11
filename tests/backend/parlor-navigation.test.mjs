@@ -40,5 +40,15 @@ test('Parlor sorts kin, highlights inner circle, searches without losing focus a
  document.querySelector('#event').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await settle();
  assert.equal(savedPlan.plan_title,'Tea together');
  assert.deepEqual(savedPlan.invitees,[amy]);
+
+ document.querySelector('.sidebar [data-tab="kin"]').click();await settle();
+ dom.window.HTMLElement.prototype.scrollIntoView=function(){this.dataset.scrolled='true'};
+ document.querySelector('#kin-card-list [data-kin-card="'+amy+'"]').click();
+ const card=document.querySelector('#kin-card-'+amy);
+ assert.equal(card.dataset.scrolled,'true');assert.equal(document.activeElement,card);
+ assert.ok(card.classList.contains('kin-detail-selected'));
+ assert.equal(card.querySelector('[data-chat]').textContent,'The parlor');
+ card.querySelector('[data-chat]').click();await settle();
+ assert.match(document.querySelector('#conversation h2').textContent,/amy/);
  dom.window.close();
 });

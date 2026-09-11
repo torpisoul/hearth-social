@@ -232,7 +232,7 @@ button.primary, .nav button.active, .live-auth-tabs button[aria-pressed="true"] 
 .parlor-conversation { grid-column:1; grid-row:1; min-width:0; }
 .parlor-kin { grid-column:2; grid-row:1; margin:0; position:sticky; top:24px; min-width:0; }
 .parlor-kin h2 { font-size:26px; }
-#kin-search, #event-kin-search { min-height:52px; background:var(--paper); border-color:transparent; border-radius:14px; box-shadow:inset 3px 3px 7px var(--shadow-low),inset -3px -3px 7px var(--shadow-high); font-size:16px; }
+#kin-search, #event-kin-search, #kin-card-search { min-height:52px; background:var(--paper); border-color:transparent; border-radius:14px; box-shadow:inset 3px 3px 7px var(--shadow-low),inset -3px -3px 7px var(--shadow-high); font-size:16px; }
 .parlor-kin-list { display:grid; gap:20px; max-height:60vh; overflow-y:auto; padding:10px; margin:0 -10px; }
 .parlor-person { display:flex; align-items:center; gap:14px; text-align:left; width:100%; padding:14px; color:var(--ink); }
 .parlor-person > span { min-width:0; overflow-wrap:anywhere; }
@@ -249,3 +249,6 @@ button.primary, .nav button.active, .live-auth-tabs button[aria-pressed="true"] 
 .kin-identity { padding:8px 12px; margin:4px 0; }
 .kin-identity span, .kin-identity-static span { overflow-wrap:anywhere; }
 .kin-identity.kin-name { min-height:44px; padding:6px 12px; }
+
+.kin-detail { scroll-margin-top:24px; }
+.kin-detail-selected { outline:2px solid var(--green); outline-offset:5px; }
