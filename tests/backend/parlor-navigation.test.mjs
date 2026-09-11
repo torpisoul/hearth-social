@@ -12,7 +12,10 @@ test('Parlor sorts kin, highlights inner circle, searches without losing focus a
  globalThis.fetch=async()=>({ok:true,json:async()=>({supabaseUrl:'https://example.supabase.co',supabasePublishableKey:'public'})});
  await esmock('../../js/live/app.js',{'@supabase/supabase-js':{createClient:()=>client}});
  const settle=()=>new Promise(r=>setTimeout(r,20));await settle();
- document.querySelector('.sidebar [data-tab="parlor"]').click();await settle();
+ const familiar = document.querySelector('.live-companions .kin-identity[data-chat="'+zoe+'"]');
+ assert.ok(familiar);
+ familiar.click();await settle();
+ assert.match(document.querySelector('#conversation h2').textContent,/Zoe/);
  assert.equal(document.querySelector('#peer'),null);
  assert.deepEqual([...document.querySelectorAll('.parlor-person strong')].map(e=>e.textContent),['amy','Zoe']);
  assert.equal(document.querySelector('.circle-marker').closest('button').dataset.chat,amy);

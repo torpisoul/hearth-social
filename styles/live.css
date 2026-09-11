@@ -244,3 +244,8 @@ button.primary, .nav button.active, .live-auth-tabs button[aria-pressed="true"] 
  .parlor-conversation { grid-column:1; grid-row:2; }
  .parlor-kin-list { max-height:230px; }
 }
+
+.kin-identity, .kin-identity-static { display:inline-flex; align-items:center; gap:12px; min-width:0; max-width:100%; font-weight:600; color:var(--ink); text-align:left; vertical-align:middle; }
+.kin-identity { padding:8px 12px; margin:4px 0; }
+.kin-identity span, .kin-identity-static span { overflow-wrap:anywhere; }
+.kin-identity.kin-name { min-height:44px; padding:6px 12px; }
