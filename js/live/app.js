@@ -356,9 +356,9 @@ async function signOut() {
 }
 document.addEventListener("input", event => { if(event.target.closest("form")) draftDirty = true; });
 async function quietCheckIn() {
-  if(!user || !profile || preferences.update_mode !== "foreground" || document.hidden || busy || draftDirty || $("#mobile-menu")?.open) return;
+  if(!user || !profile || preferences.update_mode !== "foreground" || document.hidden || busy || draftDirty || document.activeElement?.id === "kin-search" || $("#mobile-menu")?.open) return;
   busy = true;
-  try { await refresh(); if (!draftDirty && !document.hidden && !$("#mobile-menu")?.open) render(); } catch { /* Keep the current page if connectivity drops. */ }
+  try { await refresh(); if (!draftDirty && document.activeElement?.id !== "kin-search" && !document.hidden && !$("#mobile-menu")?.open) render(); } catch { /* Keep the current page if connectivity drops. */ }
   finally { busy = false; }
 }
 const quietTimer = setInterval(quietCheckIn,60000);
@@ -685,6 +685,7 @@ document.addEventListener("click", (event) => {
       return;
     }
     if (d.chat) {
+      if (tab === "parlor" && peer === d.chat) return;
       if (!friends().includes(d.chat)) throw Error("Connect with this person in Your kin first.");
       if (peer !== d.chat && $("#message textarea")?.value.trim() && !confirm("Leave this unsent note and open another conversation?")) return;
       messages = [];
