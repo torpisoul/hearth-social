@@ -1,0 +1,27 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {JSDOM} from 'jsdom';
+import esmock from 'esmock';
+test('Parlor sorts kin, highlights inner circle, searches without losing focus and selects while locked', async()=>{
+ const dom=new JSDOM('<div id="app"></div><div id="notice"></div>',{url:'https://example.org/'});
+ for(const key of ['document','location','history','sessionStorage','localStorage','FormData'])globalThis[key]=dom.window[key];
+ const me='22222222-2222-4222-8222-222222222222', amy='11111111-1111-4111-8111-111111111111',zoe='33333333-3333-4333-8333-333333333333';
+ const people=[{id:me,name:'Me'},{id:zoe,name:'Zoe'},{id:amy,name:'amy'}];
+ const tables={hearth_profiles:people,hearth_connections:[{requester:me,recipient:zoe,accepted:true},{requester:amy,recipient:me,accepted:true}],hearth_circle:[{owner:me,member:amy}],hearth_preferences:{topics:[],update_mode:'manual'}};
+ const client={auth:{onAuthStateChange(){},async getSession(){return{data:{session:{user:{id:me}}}}}},async rpc(){return{data:null}},from(table){let single=false;const q={select(){return q},eq(){return q},neq(){return q},order(){return q},gte(){return q},limit(){return q},range(){return q},in(){return q},maybeSingle(){single=true;return q},then(resolve){return Promise.resolve({data:table==='hearth_profiles'&&single?people[0]:tables[table]??(single?null:[])}).then(resolve)}};return q}};
+ globalThis.fetch=async()=>({ok:true,json:async()=>({supabaseUrl:'https://example.supabase.co',supabasePublishableKey:'public'})});
+ await esmock('../../js/live/app.js',{'@supabase/supabase-js':{createClient:()=>client}});
+ const settle=()=>new Promise(r=>setTimeout(r,20));await settle();
+ document.querySelector('.sidebar [data-tab="parlor"]').click();await settle();
+ assert.equal(document.querySelector('#peer'),null);
+ assert.deepEqual([...document.querySelectorAll('.parlor-person strong')].map(e=>e.textContent),['amy','Zoe']);
+ assert.equal(document.querySelector('.circle-marker').closest('button').dataset.chat,amy);
+ const input=document.querySelector('#kin-search');input.focus();input.value='ZO';input.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+ assert.equal(document.activeElement,input);
+ assert.equal(document.querySelectorAll('.parlor-person').length,1);
+ document.querySelector('.parlor-person').click();await settle();
+ assert.match(document.querySelector('#conversation h2').textContent,/Zoe/);
+ assert.ok(document.querySelector('#unlock'));
+ assert.equal(document.querySelector('.parlor-person').getAttribute('aria-pressed'),'true');
+ dom.window.close();
+});

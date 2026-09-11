@@ -227,3 +227,20 @@ button.primary, .nav button.active, .live-auth-tabs button[aria-pressed="true"] 
 .palette-choices small { font-weight: 400; }
 .palette-swatches { display:flex; gap:8px; }
 .palette-swatches span { width:28px; height:28px; border-radius:50%; border:1px solid #0002; }
+
+.parlor-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(240px,300px); gap:32px; align-items:start; }
+.parlor-conversation { grid-column:1; grid-row:1; min-width:0; }
+.parlor-kin { grid-column:2; grid-row:1; margin:0; position:sticky; top:24px; min-width:0; }
+.parlor-kin h2 { font-size:26px; }
+#kin-search { min-height:52px; background:var(--paper); border-color:transparent; border-radius:14px; box-shadow:inset 3px 3px 7px var(--shadow-low),inset -3px -3px 7px var(--shadow-high); font-size:16px; }
+.parlor-kin-list { display:grid; gap:20px; max-height:60vh; overflow-y:auto; padding:10px; margin:0 -10px; }
+.parlor-person { display:flex; align-items:center; gap:14px; text-align:left; width:100%; padding:14px; color:var(--ink); }
+.parlor-person > span { min-width:0; overflow-wrap:anywhere; }
+.parlor-person[aria-pressed="true"] { background:var(--accent); color:var(--accent-ink); }
+.circle-marker { display:block; font-size:12px; color:var(--green); }
+@media(max-width:1000px) {
+ .parlor-layout { grid-template-columns:minmax(0,1fr); gap:24px; }
+ .parlor-kin { grid-column:1; grid-row:1; position:static; }
+ .parlor-conversation { grid-column:1; grid-row:2; }
+ .parlor-kin-list { max-height:230px; }
+}
