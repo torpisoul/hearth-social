@@ -96,7 +96,7 @@ summary {
   }
 }
 
-/* Soft surfaces share the same light direction; selected controls sink in. */
+/* Soft surfaces share the same light direction. Selection uses colour. */
 :root {
   --soft-raised: 5px 5px 12px #dedbd3, -5px -5px 12px #ffffff;
   --soft-pressed: inset 3px 3px 7px #d6dbcf, inset -3px -3px 7px #ffffff;
@@ -109,7 +109,7 @@ button {
   min-height: 44px;
 }
 button:hover { background: #eeeee4; }
-button:active { box-shadow: var(--soft-pressed); }
+button:active { box-shadow: var(--soft-raised); }
 button.primary {
   background: #e3e9db;
   color: #30472e;
@@ -128,17 +128,8 @@ button.primary:hover { background: #dae3d1; }
   background: #e3e9db;
   color: #30472e;
   border-color: #cbd5c3;
-  box-shadow: var(--soft-pressed);
-  font-weight: 700;
-}
-.live-auth-tabs button[aria-pressed="true"]::after {
-  content: "";
-  display: block;
-  width: 20px;
-  height: 3px;
-  margin: 4px auto 0;
-  border-radius: 4px;
-  background: #62785b;
+  box-shadow: var(--soft-raised);
+  font-weight: 600;
 }
 .auth .panel { background: var(--paper); box-shadow: var(--soft-raised); border-color: transparent; }
 
@@ -190,7 +181,7 @@ button.primary:hover { background: #dae3d1; }
 .live-form input, .live-form textarea, .live-form select { background: var(--paper); box-shadow: inset 3px 3px 7px #dedbd3, inset -3px -3px 7px #fff; border-color: transparent; border-radius: 14px; }
 .topic-pills { display: flex; overflow-x: auto; gap: 18px; padding: 12px 8px; }
 .topic-pills button { flex-shrink: 0; border-radius: 30px; color: #74766e; }
-.topic-pills button[aria-pressed="true"] { background: #dce6d4; color: #30472e; font-weight: 600; box-shadow: var(--soft-pressed); }
+.topic-pills button[aria-pressed="true"] { background: #dce6d4; color: #30472e; font-weight: 600; box-shadow: var(--soft-raised); }
 .live-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: var(--soft-raised); }
 .live-avatar.initials { display: inline-grid; place-items: center; background: #e3e9db; color: #30472e; font-weight: 600; }
 #avatar { margin-top: 24px; }
@@ -212,3 +203,6 @@ button.primary:hover { background: #dae3d1; }
  .live-feed-layout .welcome .sprig { width: 60px; opacity: .7; }
  .live-feed-layout .welcome h2 { font-size: 25px; }
 }
+
+/* Keep text metrics and height stable when selection changes. */
+.nav button, .live-auth-tabs button, .topic-pills button { font-weight: 600; }
