@@ -38,7 +38,7 @@
   display: grid;
   gap: 12px;
 }
-.live-form input,
+.live-form input:not([type="checkbox"]),
 .live-form textarea,
 .live-form select {
   width: 100%;
@@ -178,7 +178,7 @@ button.primary:hover { background: #dae3d1; }
 .topbar > div { display: flex; gap: 18px; }
 .nav { gap: 16px; }
 .panel, .post, .welcome { border-color: transparent; box-shadow: var(--soft-raised); background: var(--paper); }
-.live-form input, .live-form textarea, .live-form select { background: var(--paper); box-shadow: inset 3px 3px 7px #dedbd3, inset -3px -3px 7px #fff; border-color: transparent; border-radius: 14px; }
+.live-form input:not([type="checkbox"]), .live-form textarea, .live-form select { background: var(--paper); box-shadow: inset 3px 3px 7px #dedbd3, inset -3px -3px 7px #fff; border-color: transparent; border-radius: 14px; }
 .topic-pills { display: flex; overflow-x: auto; gap: 18px; padding: 12px 8px; }
 .topic-pills button { flex-shrink: 0; border-radius: 30px; color: #74766e; }
 .topic-pills button[aria-pressed="true"] { background: #dce6d4; color: #30472e; font-weight: 600; box-shadow: var(--soft-raised); }
@@ -206,3 +206,8 @@ button.primary:hover { background: #dae3d1; }
 
 /* Keep text metrics and height stable when selection changes. */
 .nav button, .live-auth-tabs button, .topic-pills button { font-weight: 600; }
+
+#unlock input[type="password"] { min-height: 56px; padding: 16px 18px; font-size: 16px; }
+.remember-choice { display: flex; align-items: flex-start; gap: 14px; padding: 8px 0; line-height: 1.6; cursor: pointer; }
+.live-form .remember-choice input { width: 22px; height: 22px; flex: 0 0 22px; margin: 2px 0 0; box-shadow: none; }
+.remember-choice span { min-width: 0; }
