@@ -4,6 +4,8 @@ import {JSDOM} from 'jsdom';
 import esmock from 'esmock';
 test('Parlor sorts kin, highlights inner circle, searches without losing focus and selects while locked', async()=>{
  const dom=new JSDOM('<div id="app"></div><div id="notice"></div>',{url:'https://example.org/'});
+ dom.window.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')};
+ dom.window.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');this.dispatchEvent(new dom.window.Event('close'))};
  for(const key of ['document','location','history','sessionStorage','localStorage','FormData'])globalThis[key]=dom.window[key];
  const me='22222222-2222-4222-8222-222222222222', amy='11111111-1111-4111-8111-111111111111',zoe='33333333-3333-4333-8333-333333333333';
  const people=[{id:me,name:'Me'},{id:zoe,name:'Zoe'},{id:amy,name:'amy'}];
@@ -36,7 +38,8 @@ test('Parlor sorts kin, highlights inner circle, searches without losing focus a
  assert.match(document.querySelector('#event-who').textContent,/amy/);
  assert.equal(document.querySelector('[data-event-guest="'+amy+'"]').getAttribute('aria-pressed'),'true');
  document.querySelector('#event [name="place"]').value='The garden';
- document.querySelector('#event [name="starts_at"]').value='2099-01-01T12:00';
+ document.querySelector('[data-action="choose-event-time"]').click();
+ document.querySelector('#event-time-form').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));
  document.querySelector('#event').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await settle();
  assert.equal(savedPlan.plan_title,'Tea together');
  assert.deepEqual(savedPlan.invitees,[amy]);

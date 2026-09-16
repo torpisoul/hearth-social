@@ -101,6 +101,10 @@ try {
   assert.equal(check(await a.client.from('hearth_rsvps').select('*').eq('event',event.id)).length,1);
   assert.ok((await b.client.from('hearth_rsvps').insert({event:event.id})).error);
   check(await a.client.rpc('hearth_save_event',{...eventArgs,plan:event.id}));
+  check(await a.client.rpc('hearth_save_event',{...eventArgs,plan:event.id,plan_start:'2099-06-01T00:00:00Z',plan_end:'2099-06-03T23:59:59Z',plan_all_day:true,plan_zone:'UTC'}));
+  const range=check(await b.client.from('hearth_events').select('*').eq('id',event.id)).at(0);
+  assert.equal(range.all_day,true);assert.equal(new Date(range.ends_at).toISOString(),'2099-06-03T23:59:59.000Z');
+
 
   const bob = await createIdentity("Disposable Bob messaging passphrase");
   for (const [u, key] of [

@@ -1,3 +1,4 @@
+import { openEventTime, eventRange } from "./event-time.js";
 import { palettes, savedPalette, applyPalette, rememberPalette } from "./palettes.js";
 import { deviceKey } from "./device-key.js";
 import { icon, brand, sprig } from "./art.js";
@@ -151,7 +152,7 @@ function kinIdentity(id, showAvatar = true) {
  return friends().includes(id) ? `<button type="button" class="parlor-person" ${tab==="kin" ? `data-kin-card="${id}" aria-label="Show details for ${esc(label)}"` : `data-chat="${id}" aria-label="Open conversation with ${esc(label)}"`}>${content}</button>` : `<span class="kin-identity-static">${content}</span>`;
 }
 function companionCards() {
- return `<aside class="live-companions"><section class="panel"><div class="eyebrow">The people, not the numbers</div><h2>A few familiar faces.</h2>${friends().slice(0,3).map(id => `<div class="kin-row">${kinIdentity(id)}</div>`).join("") || '<p>A little room for your people. Invite someone you know.</p>'}<button data-tab="kin">Visit your kin</button></section><section class="panel"><div class="eyebrow">Something to look forward to</div><h2>Room at the table.</h2>${events[0] ? `<p><strong>${esc(events[0].title)}</strong><br>${esc(date(events[0].starts_at))}<br>${esc(events[0].place)}</p>` : '<p>No plans yet. A walk or a cup of tea is a good place to start.</p>'}<button data-tab="gatherings">See your gatherings</button></section><section class="panel"><div class="eyebrow">A little peace of mind</div><h2>Your attention is yours.</h2><p>No read receipts. No pressure to reply. Choose what comes into your living room and when to check in.</p><button data-tab="settings">Make this space yours</button></section></aside>`;
+ return `<aside class="live-companions"><section class="panel"><div class="eyebrow">The people, not the numbers</div><h2>A few familiar faces.</h2>${friends().slice(0,3).map(id => `<div class="kin-row">${kinIdentity(id)}</div>`).join("") || '<p>A little room for your people. Invite someone you know.</p>'}<button data-tab="kin">Visit your kin</button></section><section class="panel"><div class="eyebrow">Something to look forward to</div><h2>Room at the table.</h2>${events[0] ? `<p><strong>${esc(events[0].title)}</strong><br>${esc(eventRange(events[0]))}<br>${esc(events[0].place)}</p>` : '<p>No plans yet. A walk or a cup of tea is a good place to start.</p>'}<button data-tab="gatherings">See your gatherings</button></section><section class="panel"><div class="eyebrow">A little peace of mind</div><h2>Your attention is yours.</h2><p>No read receipts. No pressure to reply. Choose what comes into your living room and when to check in.</p><button data-tab="settings">Make this space yours</button></section></aside>`;
 }
 
 function eventGuestList() {
@@ -167,13 +168,13 @@ function gatherings() {
  return `<dialog id="solo-plan" class="soft-dialog" aria-labelledby="solo-title"><h2 id="solo-title">A little time for yourself?</h2><p>Keep this plan just for you, or invite some kin to join you.</p><div class="live-actions"><button type="button" data-action="confirm-solo">It’s just me</button><button type="button" class="primary" data-action="invite-plan-guests">Invite guests</button></div></dialog><div class="parlor-layout gathering-layout"><aside class="panel parlor-kin" aria-label="Choose your invitees"><h2>Who’s coming?</h2><label class="field">Find your kin<input id="event-kin-search" type="search" value="${esc(eventSearch)}" placeholder="Search by name" aria-controls="event-kin-list"></label><div id="event-kin-list" class="parlor-kin-list">${eventKinRows()}</div></aside><div class="parlor-conversation"><section class="panel"><h2>${eventDraft.id ? "A little change of plan?" : "Fancy making a little plan?"}</h2><form id="event" class="live-form">
  ${field("What shall we do?",`<input name="title" required maxlength="100" placeholder="A walk, dinner, a game…" value="${esc(eventDraft.title || "")}">`)}
  ${field("Where?",`<input name="place" required maxlength="200" value="${esc(eventDraft.place || "")}">`)}
- ${field("When?",`<input name="starts_at" type="datetime-local" required value="${esc(eventDraft.starts_at || "")}">`)}
+ <div><strong>When?</strong><p id="event-when-summary">${esc(eventRange(eventDraft))}</p><button type="button" data-action="choose-event-time">Choose dates and times</button></div>
  ${field("Anything else?",`<textarea name="details" maxlength="1500">${esc(eventDraft.details || "")}</textarea>`)}
  <div><strong>Who?</strong><div id="event-who" class="live-actions" aria-live="polite">${eventGuestList()}</div></div>
  <small>Only invited kin can see this plan. Only you see the full invitation list. Everyone invited can see who’s accepted. Removing someone also removes their RSVP and access.</small>
  <button class="primary">${eventDraft.id ? "Save this plan" : "Share the plan"}</button>${eventDraft.id ? '<button type="button" data-action="cancel-event-edit">Leave editing</button>' : ""}
  </form></section>
- ${events.map(e=>`<section class="panel"><h2>${esc(e.title)}</h2><p>${esc(date(e.starts_at))} · ${esc(e.place)}</p><p class="live-text">${esc(e.details)}</p><p>Hosted by ${kinIdentity(e.owner,false)}</p>
+ ${events.map(e=>`<section class="panel"><h2>${esc(e.title)}</h2><p>${esc(eventRange(e))} · ${esc(e.place)}</p><p class="live-text">${esc(e.details)}</p><p>Hosted by ${kinIdentity(e.owner,false)}</p>
  ${e.owner===user.id ? `<div><strong>Invited · only you can see this</strong><p>${eventInvites.filter(i=>i.event===e.id).map(i=>kinIdentity(i.person,false)).join(", ") || "Just you for now."}</p></div>` : ""}
  <div><strong>Coming along</strong><p>${eventAttendees.filter(r=>r.event===e.id).map(r=>r.person===user.id ? "You" : friends().includes(r.person) ? kinIdentity(r.person,false) : esc(r.name)).join(", ") || "No replies yet. No rush."}</p></div>
  <div class="live-actions"><button data-rsvp="${e.id}">${rsvps.some(r=>r.event===e.id && r.person===user.id) ? "I can’t make it now" : "I’d like to come"}</button>${e.owner===user.id ? `<button data-edit-event="${e.id}">Edit this plan</button><button data-cancel-event="${e.id}">Cancel this plan</button>` : ""}</div></section>`).join("") || "<p>A quiet calendar, for now.</p>"}
@@ -261,7 +262,7 @@ async function refresh() {
       ].map(async (p) => check(await p)),
     );
   let statusQuery = client.from("hearth_statuses").select("*");
-  events = check(await client.from("hearth_events").select("*").gte("starts_at",new Date().toISOString()).order("starts_at").limit(20));
+  events = check(await client.from("hearth_events").select("*").gte("ends_at",new Date().toISOString()).order("starts_at").limit(20));
   rsvps = events.length ? check(await client.from("hearth_rsvps").select("*").in("event",events.map(e=>e.id))) : [];
   eventInvites = events.length ? check(await client.from("hearth_event_invites").select("*").in("event",events.map(e=>e.id))) : [];
   eventAttendees = events.length ? check(await client.rpc("hearth_event_attendees",{plans:events.map(e=>e.id)})) : [];
@@ -407,6 +408,7 @@ document.addEventListener("submit", (event) => {
   event.preventDefault();
   const form = event.target;
   const data = Object.fromEntries(new FormData(form));
+  if(form.id==="event" && !eventDraft.starts_at){say("Choose and confirm the plan’s dates first.");$('[data-action="choose-event-time"]').focus();return;}
   if(form.id==="event" && !eventDraft.id && !selectedGuests.size && form.dataset.solo!=="yes"){
     $("#solo-plan").showModal();return;
   }
@@ -486,9 +488,9 @@ document.addEventListener("submit", (event) => {
       check(await client.from("hearth_preferences").upsert({owner:user.id,topics:preferences.topics,update_mode:data.mode}));
     }
     if (form.id === "event") {
-      const starts = new Date(data.starts_at);
-      if (!Number.isFinite(starts.getTime()) || starts <= new Date()) throw Error("Choose a time in the future.");
-      check(await client.rpc("hearth_save_event",{plan:eventDraft.id || null,plan_title:data.title.trim(),plan_place:data.place.trim(),plan_details:data.details.trim(),plan_start:starts.toISOString(),invitees:[...selectedGuests]}));
+      const starts = new Date(eventDraft.starts_at);
+      if (!Number.isFinite(starts.getTime()) || !eventDraft.ends_at) throw Error("Choose and confirm the plan’s dates first.");
+      check(await client.rpc("hearth_save_event",{plan:eventDraft.id || null,plan_title:data.title.trim(),plan_place:data.place.trim(),plan_details:data.details.trim(),plan_start:starts.toISOString(),invitees:[...selectedGuests],plan_end:eventDraft.ends_at,plan_all_day:Boolean(eventDraft.all_day),plan_zone:eventDraft.time_zone || Intl.DateTimeFormat().resolvedOptions().timeZone}));
       eventDraft={}; selectedGuests=new Set(); eventSearch="";
     }
     if (form.id === "avatar") {
@@ -604,6 +606,9 @@ document.addEventListener("click", (event) => {
   // Submit buttons belong to the form handler. Do not disable them before
   // the browser dispatches its default submit action.
   if (!Object.keys(d).length) return;
+  if(d.action==="choose-event-time"){
+    openEventTime(eventDraft,range=>{Object.assign(eventDraft,range);$("#event-when-summary").textContent=eventRange(eventDraft);draftDirty=true;});return;
+  }
   if(d.action==="confirm-solo"){
     $("#solo-plan").close(); $("#event").dataset.solo="yes";$("#event").requestSubmit();return;
   }
@@ -649,7 +654,7 @@ document.addEventListener("click", (event) => {
       const e=events.find(e=>e.id===d.editEvent && e.owner===user.id);
       if (!e) throw Error("Only the host can edit this plan.");
       if (draftDirty && !confirm("Replace the plan you’re currently writing with this one?")) return;
-      eventDraft={...e,starts_at:localEventTime(e.starts_at)};
+      eventDraft={...e};
       selectedGuests=new Set(eventInvites.filter(i=>i.event===e.id && friends().includes(i.person)).map(i=>i.person));
       eventSearch=""; render(); $("#event input")?.focus(); return;
     }

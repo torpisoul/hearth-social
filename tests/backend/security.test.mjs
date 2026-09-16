@@ -309,6 +309,16 @@ test("all exposed tables have RLS; public API functions are invoker functions", 
   );
 });
 
+test("date ranges validate all-day boundaries and edits preserve a host decline",async()=>{
+ const [e]=await as(a,"select hearth_save_event(null,'A day out','Home',now()+interval '1 day','',array[]::uuid[]) as id");
+ await as(a,"delete from hearth_rsvps where event=$1",[e.id]);
+ await as(a,"select hearth_save_event($1,'A weekend','Home','2099-04-01T00:00:00Z','',array[]::uuid[],'2099-04-02T23:59:59Z',true,'UTC')",[e.id]);
+ assert.equal((await as(a,"select * from hearth_rsvps where event=$1",[e.id])).length,0);
+ assert.equal((await as(a,"select all_day from hearth_events where id=$1",[e.id]))[0].all_day,true);
+ await assert.rejects(as(a,"select hearth_save_event($1,'Bad range','Home','2099-04-02T00:00:00Z','',array[]::uuid[],'2099-04-01T23:59:59Z',true,'UTC')",[e.id]),/end after the start/);
+ await assert.rejects(as(a,"select hearth_save_event($1,'Bad day','Home','2099-04-01T12:00:00Z','',array[]::uuid[],'2099-04-02T23:59:59Z',true,'UTC')",[e.id]),/All-day/);
+ await as(a,"delete from hearth_events where id=$1",[e.id]);
+});
 test("account deletion removes sessions and owned data; old tokens cannot restore the profile", async () => {
   await db.exec("reset role");
   await db.query("insert into auth.sessions values(gen_random_uuid(),$1)", [c]);
