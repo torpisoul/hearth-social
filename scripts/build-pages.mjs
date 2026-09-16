@@ -16,6 +16,12 @@ if (
   throw Error("Expected a hosted Supabase HTTPS project URL.");
 if (Boolean(config.supabaseUrl) !== Boolean(config.supabasePublishableKey))
   throw Error("Set both public Supabase settings.");
+// Fail before publishing if an accidental source overwrite corrupts a stylesheet.
+for (const file of ["styles/hearth.css", "styles/live.css"]) {
+  const css = await readFile(new URL(file, root), "utf8");
+  const result = await build({stdin:{contents:css,loader:"css"},write:false,logLevel:"silent"});
+  if (result.warnings.length) throw Error(`Invalid stylesheet ${file}: ${result.warnings.map(w=>w.text).join("; ")}`);
+}
 await rm(new URL("docs", root), { recursive: true, force: true });
 for (const file of [
   "index.html",
