@@ -32,11 +32,15 @@ for (const file of [
   "js/hearth.js",
   "js/hearth-store.js",
   "public-config.json",
+  "manifest.webmanifest",
+  "sw.js",
 ]) {
   const target = new URL("docs/" + file, root);
   await mkdir(new URL(".", target), { recursive: true });
   await copyFile(new URL(file, root), target);
 }
+await mkdir(new URL("docs/icons/", root), { recursive: true });
+await copyFile(new URL("icons/hearth.svg", root), new URL("docs/icons/hearth.svg", root));
 await build({
   entryPoints: [new URL("js/live/app.js", root).pathname],
   outfile: new URL("docs/js/live-app.js", root).pathname,

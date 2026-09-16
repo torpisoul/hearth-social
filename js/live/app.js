@@ -31,6 +31,7 @@ const $ = (s) => document.querySelector(s),
     );
 let pendingRecoveryCode = null;
 let colourPalette = applyPalette(savedPalette());
+let deferredInstallPrompt = null;
 const inviteStorageKey = "hearth-pending-invite";
 let referral = readInvite(location.href);
 try {
@@ -607,6 +608,11 @@ document.addEventListener("click", (event) => {
   const b = event.target.closest("button");
   if (!b || b.disabled) return;
   const d = b.dataset;
+  if (d.action === "install" && deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt = null;
+    return;
+  }
   // Submit buttons belong to the form handler. Do not disable them before
   // the browser dispatches its default submit action.
   if (!Object.keys(d).length) return;
@@ -894,4 +900,10 @@ async function start() {
     say(e.message);
   }
 }
+if (typeof window !== "undefined") window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  if (!user) render();
+});
+if (typeof navigator !== "undefined" && "serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
 start();

@@ -1,0 +1,13 @@
+{
+  "name": "Hearth · A place for your people",
+  "short_name": "Hearth",
+  "description": "A quieter kind of connected.",
+  "start_url": "./live.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f3eb",
+  "theme_color": "#f6f3eb",
+  "icons": [
+    { "src": "./icons/hearth.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
