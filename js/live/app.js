@@ -53,7 +53,7 @@ let eventInvites = [], eventAttendees = [];
 let events = [], rsvps = [], waitingNotes = [];
 let peerReady = true, waitingError = "", draftDirty = false;
 let newestStatus = null, recentIncoming = [];
-let preferences = {topics: [], update_mode: "manual"};
+let preferences = {topics: [], update_mode: "manual", notification_mode: "in_app", notification_time: "20:00"};
 let emailDeliveryEnabled = false;
 let client,
   user,
@@ -242,7 +242,7 @@ function avatarForm() {
 function feedbackForm() {
   return `<section class="panel feedback-panel"><h2>What would you like to do here?</h2><p>Anything you wish we could do together? Or a little thing that got in the way? A sentence is plenty.</p><form id="feedback" class="live-form">${field("Leave a little note", '<textarea name="content" required maxlength="2000" placeholder="I’d love to…" aria-describedby="feedback-privacy"></textarea>')}<small id="feedback-privacy">This goes to Hearth’s host with your account, not to your kin. It isn’t an encrypted message.</small><button class="primary">Send note</button><p id="feedback-result" role="status" tabindex="-1"></p></form></section>`;
 }
-function updateChoices() { return `<section class="panel"><h2>At your own pace</h2><form id="updates" class="live-form">${field("When should Hearth check in?",`<select name="mode"><option value="manual" ${preferences.update_mode==='manual'?'selected':''}>Only when I choose Refresh</option><option value="foreground" ${preferences.update_mode==='foreground'?'selected':''}>Quietly while I’m here</option></select>`)}<p>Quiet check-ins happen about once a minute while this tab is visible. They pause while you’re writing. A small dot marks new moments or notes; no pop-ups or sounds.</p><p class="live-muted">Closed-app background delivery isn’t enabled.</p><button>Save my pace</button></form></section>`; }
+function updateChoices() { return `<section class="panel"><h2>At your own pace</h2><form id="updates" class="live-form">${field("When should Hearth check in?",`<select name="mode"><option value="manual" ${preferences.update_mode==='manual'?'selected':''}>Only when I choose Refresh</option><option value="foreground" ${preferences.update_mode==='foreground'?'selected':''}>Quietly while I’m here</option></select>`)}<p>Quiet check-ins happen about once a minute while this tab is visible. They pause while you’re writing. A small dot marks new moments or notes; no pop-ups or sounds.</p><p class="live-muted">Closed-app background delivery isn’t enabled.</p><hr><h3>How should Hearth let you know?</h3>${field("Notification preference",`<select name="notification_mode"><option value="in_app" ${preferences.notification_mode==='in_app'?'selected':''}>Indicators inside Hearth only</option><option value="immediate" ${preferences.notification_mode==='immediate'?'selected':''}>Immediately when something arrives</option><option value="hourly" ${preferences.notification_mode==='hourly'?'selected':''}>An hourly digest</option><option value="daily" ${preferences.notification_mode==='daily'?'selected':''}>A daily check-in</option><option value="manual" ${preferences.notification_mode==='manual'?'selected':''}>Manual-only mode</option></select>`)}${field("Daily check-in time",`<input type="time" name="notification_time" value="${preferences.notification_time || '20:00'}">`)}<p class="live-muted">This records your choice for now. Hearth won’t ask for browser permission or send system notifications until you choose to turn them on later.</p><button>Save my pace</button></form></section>`; }
 function preferenceTopics() { return `<section class="panel"><h2>What comes into your living room</h2>${topicChoices()}</section>`; }
 function paletteChoices() {
   return `<section class="panel"><h2>What colours feel like home?</h2><p>A few quiet corners of the world. Pick one to try it here.</p><div class="palette-choices" role="group" aria-label="Colour palette">${palettes.map(([id,label,description,...colours])=>`<button type="button" data-palette-choice="${id}" aria-pressed="${colourPalette===id}"><span class="palette-swatches" aria-hidden="true">${colours.map(c=>`<span style="background:${c}"></span>`).join("")}</span><strong>${label}</strong><small>${description}</small></button>`).join("")}</div><p class="live-muted">Remembered in this browser. You can choose a different feeling on each device.</p></section>`;
@@ -259,7 +259,7 @@ async function refresh() {
       .maybeSingle(),
   );
   if (!profile) return;
-  preferences = check(await client.from("hearth_preferences").select("*").eq("owner", user.id).maybeSingle()) || {topics: [], update_mode: "manual"};
+  preferences = check(await client.from("hearth_preferences").select("*").eq("owner", user.id).maybeSingle()) || {topics: [], update_mode: "manual", notification_mode: "in_app", notification_time: "20:00"};
   [profiles, connections, circle, blocks, vault, ownPublicKey] =
     await Promise.all(
       [
@@ -497,7 +497,9 @@ document.addEventListener("submit", (event) => {
     }
     if (form.id === "updates") {
       if (!["manual","foreground"].includes(data.mode)) throw Error("Choose an update pace.");
-      check(await client.from("hearth_preferences").upsert({owner:user.id,topics:preferences.topics,update_mode:data.mode}));
+      if (!["in_app","immediate","hourly","daily","manual"].includes(data.notification_mode)) throw Error("Choose a notification preference.");
+      if (data.notification_time && !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(data.notification_time)) throw Error("Choose a valid daily check-in time.");
+      check(await client.from("hearth_preferences").upsert({owner:user.id,topics:preferences.topics,update_mode:data.mode,notification_mode:data.notification_mode,notification_time:data.notification_time || null}));
     }
     if (form.id === "event") {
       const starts = new Date(eventDraft.starts_at);
