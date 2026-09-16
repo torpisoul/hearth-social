@@ -92,13 +92,13 @@ try {
   assert.equal(check(await b.client.from('hearth_event_invites').select('*').eq('event',event.id)).length,0);
   assert.ok((await b.client.rpc('hearth_save_event',{...eventArgs,plan:event.id})).error);
   check(await b.client.from('hearth_rsvps').insert({event:event.id}));
-  assert.equal(check(await a.client.from('hearth_rsvps').select('*')).length,1);
+  assert.equal(check(await a.client.from('hearth_rsvps').select('*')).length,2);
   assert.equal(check(await c.client.from('hearth_rsvps').select('*')).length,0);
-  assert.equal(check(await b.client.rpc('hearth_event_attendees',{plans:[event.id]})).length,1);
+  assert.equal(check(await b.client.rpc('hearth_event_attendees',{plans:[event.id]})).length,2);
   assert.equal(check(await c.client.rpc('hearth_event_attendees',{plans:[event.id]})).length,0);
   check(await a.client.rpc('hearth_save_event',{...eventArgs,plan:event.id,plan_title:'An edited walk',invitees:[]}));
   assert.equal(check(await b.client.from('hearth_events').select('*').eq('id',event.id)).length,0);
-  assert.equal(check(await a.client.from('hearth_rsvps').select('*').eq('event',event.id)).length,0);
+  assert.equal(check(await a.client.from('hearth_rsvps').select('*').eq('event',event.id)).length,1);
   assert.ok((await b.client.from('hearth_rsvps').insert({event:event.id})).error);
   check(await a.client.rpc('hearth_save_event',{...eventArgs,plan:event.id}));
 

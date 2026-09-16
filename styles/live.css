@@ -164,7 +164,7 @@ function localEventTime(value) {
  const d=new Date(value);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
 }
 function gatherings() {
- return `<div class="parlor-layout gathering-layout"><aside class="panel parlor-kin" aria-label="Choose your invitees"><h2>Who’s coming?</h2><label class="field">Find your kin<input id="event-kin-search" type="search" value="${esc(eventSearch)}" placeholder="Search by name" aria-controls="event-kin-list"></label><div id="event-kin-list" class="parlor-kin-list">${eventKinRows()}</div></aside><div class="parlor-conversation"><section class="panel"><h2>${eventDraft.id ? "A little change of plan?" : "Fancy making a little plan?"}</h2><form id="event" class="live-form">
+ return `<dialog id="solo-plan" class="soft-dialog" aria-labelledby="solo-title"><h2 id="solo-title">A little time for yourself?</h2><p>Keep this plan just for you, or invite some kin to join you.</p><div class="live-actions"><button type="button" data-action="confirm-solo">It’s just me</button><button type="button" class="primary" data-action="invite-plan-guests">Invite guests</button></div></dialog><div class="parlor-layout gathering-layout"><aside class="panel parlor-kin" aria-label="Choose your invitees"><h2>Who’s coming?</h2><label class="field">Find your kin<input id="event-kin-search" type="search" value="${esc(eventSearch)}" placeholder="Search by name" aria-controls="event-kin-list"></label><div id="event-kin-list" class="parlor-kin-list">${eventKinRows()}</div></aside><div class="parlor-conversation"><section class="panel"><h2>${eventDraft.id ? "A little change of plan?" : "Fancy making a little plan?"}</h2><form id="event" class="live-form">
  ${field("What shall we do?",`<input name="title" required maxlength="100" placeholder="A walk, dinner, a game…" value="${esc(eventDraft.title || "")}">`)}
  ${field("Where?",`<input name="place" required maxlength="200" value="${esc(eventDraft.place || "")}">`)}
  ${field("When?",`<input name="starts_at" type="datetime-local" required value="${esc(eventDraft.starts_at || "")}">`)}
@@ -395,9 +395,9 @@ async function signOut() {
 }
 document.addEventListener("input", event => { if(event.target.closest("form")) draftDirty = true; });
 async function quietCheckIn() {
-  if(!user || !profile || preferences.update_mode !== "foreground" || document.hidden || busy || draftDirty || ["kin-search","event-kin-search","kin-card-search"].includes(document.activeElement?.id) || $("#mobile-menu")?.open) return;
+  if(!user || !profile || preferences.update_mode !== "foreground" || document.hidden || busy || draftDirty || ["kin-search","event-kin-search","kin-card-search"].includes(document.activeElement?.id) || $("dialog[open]")) return;
   busy = true;
-  try { await refresh(); if (!draftDirty && !["kin-search","event-kin-search","kin-card-search"].includes(document.activeElement?.id) && !document.hidden && !$("#mobile-menu")?.open) render(); } catch { /* Keep the current page if connectivity drops. */ }
+  try { await refresh(); if (!draftDirty && !["kin-search","event-kin-search","kin-card-search"].includes(document.activeElement?.id) && !document.hidden && !$("dialog[open]")) render(); } catch { /* Keep the current page if connectivity drops. */ }
   finally { busy = false; }
 }
 const quietTimer = setInterval(quietCheckIn,60000);
@@ -407,6 +407,10 @@ document.addEventListener("submit", (event) => {
   event.preventDefault();
   const form = event.target;
   const data = Object.fromEntries(new FormData(form));
+  if(form.id==="event" && !eventDraft.id && !selectedGuests.size && form.dataset.solo!=="yes"){
+    $("#solo-plan").showModal();return;
+  }
+  if(form.id==="event") delete form.dataset.solo;
   run(async () => {
     if (form.id === "auth") {
       if (mode === "reset") {
@@ -588,6 +592,7 @@ document.addEventListener("input", event => {
  $("#parlor-kin-list").innerHTML = parlorKinRows();
 });
 document.addEventListener("close", (event) => {
+  if(event.target.id==="solo-plan") $("#event button[type=submit], #event button.primary")?.focus();
   if (event.target.id === "mobile-menu") {
     $('[data-action="open-menu"]')?.setAttribute("aria-expanded", "false");
   }
@@ -599,6 +604,14 @@ document.addEventListener("click", (event) => {
   // Submit buttons belong to the form handler. Do not disable them before
   // the browser dispatches its default submit action.
   if (!Object.keys(d).length) return;
+  if(d.action==="confirm-solo"){
+    $("#solo-plan").close(); $("#event").dataset.solo="yes";$("#event").requestSubmit();return;
+  }
+  if(d.action==="invite-plan-guests"){
+    $("#solo-plan").close();
+    const picker=$(".gathering-layout .parlor-kin");
+    picker.classList.add("invite-attention");$("#event-kin-search").focus();picker.scrollIntoView({block:"center"});return;
+  }
   if (d.kinCard && friends().includes(d.kinCard)) {
     const card=$("#kin-card-"+d.kinCard);
     if (!card) return;
@@ -608,6 +621,7 @@ document.addEventListener("click", (event) => {
     card.focus({preventScroll:true});card.scrollIntoView({block:"start",behavior:"auto"});return;
   }
   if (d.eventGuest && friends().includes(d.eventGuest)) {
+    $(".gathering-layout .parlor-kin")?.classList.remove("invite-attention");
     if (selectedGuests.has(d.eventGuest)) selectedGuests.delete(d.eventGuest); else selectedGuests.add(d.eventGuest);
     b.setAttribute("aria-pressed",String(selectedGuests.has(d.eventGuest)));
     $("#event-who").innerHTML=eventGuestList(); draftDirty=true; return;
