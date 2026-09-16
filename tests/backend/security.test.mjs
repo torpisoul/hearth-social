@@ -310,7 +310,7 @@ test("all exposed tables have RLS; public API functions are invoker functions", 
       "select relname,relrowsecurity from pg_class join pg_namespace n on n.oid=relnamespace where n.nspname='public' and relkind='r' and relname like 'hearth_%' ",
     )
   ).rows;
-  assert.equal(rows.length, 14);
+  assert.equal(rows.length, 16);
   assert.ok(rows.some(r => r.relname === 'hearth_push_subscriptions'));
   assert.ok(rows.every((r) => r.relrowsecurity));
   assert.equal(

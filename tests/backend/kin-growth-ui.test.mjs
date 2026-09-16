@@ -1,0 +1,48 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {JSDOM} from 'jsdom';
+import {kinGrowth} from '../../js/live/kin-growth.js';
+
+test('groups, pending search, introductions and confirmation work without opening encrypted chat',async()=>{
+ const dom=new JSDOM('<main></main>');globalThis.document=dom.window.document;
+ dom.window.HTMLElement.prototype.scrollIntoView=function(){};
+ const people={a:'Alice',b:'Bob',c:'Carol',d:'Dana'};
+ const state={hearth_kin_groups:[{id:'g',owner:'a',name:'Family <&>'}],hearth_kin_group_members:[{owner:'a',group_id:'g',person:'b'}]};
+ const links=[{requester:'a',recipient:'b',accepted:true},{requester:'a',recipient:'c',accepted:false}];
+ const calls=[];let work=Promise.resolve(),intros=[{id:'intro',person:'d',person_name:'Dana <script>',introducer:'b',introducer_name:'Bob',agreed:false}];
+ const client={from(table){let filters=[],action='read',payload;
+  const query={select(){return query},order(){return query},eq(key,value){filters.push([key,value]);return query},delete(){action='delete';return query},insert(data){action='insert';payload=data;return query},single(){return query},then(resolve){
+   const match=row=>filters.every(([key,value])=>row[key]===value);
+   if(action==='delete') state[table]=state[table].filter(row=>!match(row));
+   if(action==='insert')state[table].push(payload);
+   return Promise.resolve({data:state[table].filter(match)}).then(resolve);
+  }};return query;
+ },async rpc(action,args){calls.push([action,args]);return {data:action==='hearth_my_introductions'?intros:action==='hearth_next_introduction'?{a:'b',b:'c'}:null}}};
+ const esc=value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+ let growth;
+ const render=()=>{document.querySelector('main').innerHTML=growth.panels()+growth.cards()+growth.familiar()+'<section id="kin-card-c" tabindex="-1"></section>';};
+ growth=kinGrowth({client:()=>client,user:()=>({id:'a'}),friends:()=>['b'],connections:()=>links,name:id=>people[id],esc,avatar:()=>'',run:fn=>{work=fn();},refresh:()=>growth.load(),render,say:()=>{}});
+ await growth.load();render();
+ assert.equal(document.querySelector('script'),null);
+ assert.match(document.querySelector('main').textContent,/Family <&>/);
+ const search=document.querySelector('[data-growth-search="pending"]');search.focus();search.value='CAR';growth.input(search);
+ assert.equal(document.activeElement,search);assert.equal(document.querySelectorAll('#pending-people button').length,1);
+ growth.click(document.querySelector('[data-growth="pending"]'));
+ assert.equal(document.activeElement.id,'kin-card-c');
+ growth.click(document.querySelector('[data-growth="group"]'));
+ assert.equal(document.activeElement.id,'kin-group-detail');
+ const member=document.querySelector('[data-growth="member"][data-id="b"]');
+ assert.equal(member.getAttribute('aria-pressed'),'true');growth.click(member);await work;
+ assert.equal(document.querySelector('[data-growth="member"][data-id="b"]').getAttribute('aria-pressed'),'false');
+ assert.equal(document.activeElement.dataset.id,'b');
+ const nextCalls=calls.filter(([action])=>action==='hearth_next_introduction').length;
+ await growth.load();await growth.load();assert.equal(calls.filter(([action])=>action==='hearth_next_introduction').length,nextCalls);
+ growth.click(document.querySelector('[data-growth="agree"]'));await work;
+ assert.ok(calls.some(([action,args])=>action==='hearth_answer_introduction'&&args.introduction==='intro'&&args.agree));
+ globalThis.confirm=()=>false;growth.click(document.querySelector('[data-growth="delete-group"]'));await work;
+ assert.equal(state.hearth_kin_groups.length,1);
+ globalThis.confirm=()=>true;growth.click(document.querySelector('[data-growth="delete-group"]'));await work;
+ assert.equal(state.hearth_kin_groups.length,0);
+ growth.reset();assert.equal(growth.panels(),'');assert.equal(growth.cards(),'');
+ dom.window.close();delete globalThis.confirm;
+});

@@ -1,3 +1,4 @@
+import { kinGrowth } from "./kin-growth.js";
 import { openEventTime, eventRange } from "./event-time.js";
 import { enablePush, disablePush, systemMode, pushAvailable } from './push.js';
 import { palettes, savedPalette, applyPalette, rememberPalette } from "./palettes.js";
@@ -98,6 +99,7 @@ const date = (v) =>
 const field = (label, input) => `<label class="field">${label}${input}</label>`;
 const button = (text, action, extra = "") =>
   `<button data-action="${action}" ${extra}>${text}</button>`;
+const growth = kinGrowth({client:()=>client,user:()=>user,friends,connections:()=>connections,name:id=>id===user?.id?profile.name:name(id),esc,avatar,run,refresh,render,say});
 function authView() {
   $("#app").innerHTML =
     `<main id="main" class="auth"><a class="brand" href="./index.html">${brand}hearth</a><div class="eyebrow">A place for your people</div><h1>A little closer,<br>at your own pace.</h1><p>Real moments. Quiet conversations. A small circle that feels like home.</p><section class="panel"><div class="live-auth-tabs">${button("Sign in", "login", `aria-pressed="${mode === "login"}"`)}${button("Create account", "signup", `aria-pressed="${mode === "signup"}"`)}</div><p>${referral ? "Someone has invited you to Hearth. Create an account or sign in, then choose whether to connect." : ""}</p><h2>${mode === "signup" ? "Come as you are." : mode === "reset" ? "Find your way back." : "Welcome home."}</h2><form id="auth" class="live-form">${field("Email", '<input name="email" type="email" autocomplete="email" required maxlength="254">')}${mode === "reset" ? "" : field("Password", '<input name="password" type="password" autocomplete="' + (mode === "signup" ? "new-password" : "current-password") + '" required minlength="12" maxlength="128">')}<button class="primary">${mode === "signup" ? "Create my account" : mode === "reset" ? "Send reset link" : "Sign in"}</button></form>${emailDeliveryEnabled ? button("Forgot password?", "reset") : "<p>Email confirmation and password-reset emails are unavailable in this friends beta. Save your password and only accept friend codes from people you know.</p>"}<p class="live-muted">Friends beta · No public directory or popularity scores.</p></section><p><a href="./demo.html">Explore the fictional demo</a></p></main>`;
@@ -116,7 +118,7 @@ function hasNew(id) {
   if (preferences.notification_mode === 'manual') return false;
   if(id === "all") return ["pulse","parlor","kin"].some(hasNew);
   if(id === "pulse") return newestStatus && newestStatus > lastSeen("pulse");
-  if(id === "parlor") return recentIncoming.some(m=>m.created_at > lastSeen(`parlor:${m.sender}`)) || waitingNotes.some(n=>n.recipient===user.id);
+  if(id === "parlor") return growth.hasNew() || recentIncoming.some(m=>m.created_at > lastSeen(`parlor:${m.sender}`)) || waitingNotes.some(n=>n.recipient===user.id);
   if(id === "kin") return connections.some(c=>!c.accepted && c.recipient===user.id);
   return false;
 }
@@ -160,7 +162,7 @@ function kinIdentity(id, showAvatar = true) {
  return friends().includes(id) ? `<button type="button" class="parlor-person" ${tab==="kin" ? `data-kin-card="${id}" aria-label="Show details for ${esc(label)}"` : `data-chat="${id}" aria-label="Open conversation with ${esc(label)}"`}>${content}</button>` : `<span class="kin-identity-static">${content}</span>`;
 }
 function companionCards() {
- return `<aside class="live-companions"><section class="panel"><div class="eyebrow">The people, not the numbers</div><h2>A few familiar faces.</h2>${friends().slice(0,3).map(id => `<div class="kin-row">${kinIdentity(id)}</div>`).join("") || '<p>A little room for your people. Invite someone you know.</p>'}<button data-tab="kin">Visit your kin</button></section><section class="panel"><div class="eyebrow">Something to look forward to</div><h2>Room at the table.</h2>${events[0] ? `<p><strong>${esc(events[0].title)}</strong><br>${esc(eventRange(events[0]))}<br>${esc(events[0].place)}</p>` : '<p>No plans yet. A walk or a cup of tea is a good place to start.</p>'}<button data-tab="gatherings">See your gatherings</button></section><section class="panel"><div class="eyebrow">A little peace of mind</div><h2>Your attention is yours.</h2><p>No read receipts. No pressure to reply. Choose what comes into your living room and when to check in.</p><button data-tab="settings">Make this space yours</button></section></aside>`;
+ return `<aside class="live-companions"><section class="panel"><div class="eyebrow">The people, not the numbers</div><h2>A few familiar faces.</h2>${growth.familiar()}${friends().slice(0,3).map(id => `<div class="kin-row">${kinIdentity(id)}</div>`).join("") || '<p>A little room for your people. Invite someone you know.</p>'}<button data-tab="kin">Visit your kin</button></section><section class="panel"><div class="eyebrow">Something to look forward to</div><h2>Room at the table.</h2>${events[0] ? `<p><strong>${esc(events[0].title)}</strong><br>${esc(eventRange(events[0]))}<br>${esc(events[0].place)}</p>` : '<p>No plans yet. A walk or a cup of tea is a good place to start.</p>'}<button data-tab="gatherings">See your gatherings</button></section><section class="panel"><div class="eyebrow">A little peace of mind</div><h2>Your attention is yours.</h2><p>No read receipts. No pressure to reply. Choose what comes into your living room and when to check in.</p><button data-tab="settings">Make this space yours</button></section></aside>`;
 }
 
 function eventGuestList() {
@@ -201,11 +203,11 @@ function kinCardRows() {
  return friends().sort((a,b)=>name(a).localeCompare(name(b),undefined,{sensitivity:"base"})).filter(id=>name(id).toLocaleLowerCase().includes(kinListSearch.trim().toLocaleLowerCase())).map(id=>`<button type="button" class="parlor-person" data-kin-card="${id}" aria-pressed="${selectedKin===id}">${avatar(id)}<span><strong>${esc(name(id))}</strong>${circle.some(c=>c.member===id) ? '<small class="circle-marker">Inner circle</small>' : ""}</span></button>`).join("") || "<p>No kin found. Try another name, or invite someone below.</p>";
 }
 function kin() {
-  return `<div class="parlor-layout"><aside class="panel parlor-kin" aria-label="Find your kin"><h2>Your kin</h2><label class="field">Find your kin<input id="kin-card-search" type="search" value="${esc(kinListSearch)}" placeholder="Search by name" aria-controls="kin-card-list"></label><div id="kin-card-list" class="parlor-kin-list">${kinCardRows()}</div></aside><div class="parlor-conversation"><section class="panel"><h2>Invite your people.</h2><p>Send one invite link, or let a friend scan your QR code. They’ll be guided to create an account and send you a connection request.</p><div class="live-actions">${button("Copy invite link", "copy-invite", 'class="primary"')}</div><figure class="invite-code">${inviteQrSvg(inviteUrl(location.href, user.id))}<figcaption>Together in person? Scan with your phone’s camera.</figcaption></figure><label class="field">Your invite link<input id="invite-link" readonly value="${esc(inviteUrl(location.href, user.id))}"></label><details><summary>Use a friend code instead</summary><p class="live-code">${esc(user.id)}</p></details><form id="friend" class="live-form">${field("Their friend code", '<input name="person" required placeholder="Paste their friend code">')}<button class="primary">Send connection request</button></form></section>${
+  return `${growth.panels()}<div class="parlor-layout"><aside class="panel parlor-kin" aria-label="Find your kin"><h2>Your kin</h2><label class="field">Find your kin<input id="kin-card-search" type="search" value="${esc(kinListSearch)}" placeholder="Search by name" aria-controls="kin-card-list"></label><div id="kin-card-list" class="parlor-kin-list">${kinCardRows()}</div></aside><div class="parlor-conversation"><section class="panel"><h2>Invite your people.</h2><p>Send one invite link, or let a friend scan your QR code. They’ll be guided to create an account and send you a connection request.</p><div class="live-actions">${button("Copy invite link", "copy-invite", 'class="primary"')}</div><figure class="invite-code">${inviteQrSvg(inviteUrl(location.href, user.id))}<figcaption>Together in person? Scan with your phone’s camera.</figcaption></figure><label class="field">Your invite link<input id="invite-link" readonly value="${esc(inviteUrl(location.href, user.id))}"></label><details><summary>Use a friend code instead</summary><p class="live-code">${esc(user.id)}</p></details><form id="friend" class="live-form">${field("Their friend code", '<input name="person" required placeholder="Paste their friend code">')}<button class="primary">Send connection request</button></form></section>${
     connections
       .map((c) => {
         const id = c.requester === user.id ? c.recipient : c.requester;
-        return `<section id="kin-card-${id}" tabindex="-1" class="panel kin-detail ${selectedKin===id ? "kin-detail-selected" : ""}"><div class="kin-row">${kinIdentity(id)}</div><p>${c.accepted ? "Your kin" : c.recipient === user.id ? "Would like to connect" : "Waiting for them to accept"}</p><div class="live-actions">${c.accepted ? `<button data-chat="${id}">The parlor</button><button data-circle="${id}">${circle.some((x) => x.member === id) ? "Remove from" : "Add to"} inner circle</button>` : c.recipient === user.id ? `<button data-accept="${id}">Accept</button>` : ""}<button data-disconnect="${id}">${c.accepted ? "Disconnect" : "Cancel request"}</button><button data-block="${id}" class="danger">Block</button></div></section>`;
+        return `<section id="kin-card-${id}" tabindex="-1" class="panel kin-detail ${selectedKin===id ? "kin-detail-selected" : ""}"><div class="kin-row">${kinIdentity(id)}</div><p>${c.accepted ? "Your kin" : c.recipient === user.id ? "Would like to connect" : "Waiting for them to accept"}</p><div class="live-actions">${growth.actions(id,c.accepted)}${c.accepted ? `<button data-chat="${id}">The parlor</button><button data-circle="${id}">${circle.some((x) => x.member === id) ? "Remove from" : "Add to"} inner circle</button>` : c.recipient === user.id ? `<button data-accept="${id}">Accept</button>` : ""}<button data-disconnect="${id}">${c.accepted ? "Disconnect" : "Cancel request"}</button><button data-block="${id}" class="danger">Block</button></div></section>`;
       })
       .join("") ||
     '<section class="panel"><h3>Room for familiar faces.</h3><p>Swap friend codes to start your circle.</p></section>'
@@ -230,7 +232,7 @@ function parlorKin() {
  return `<aside class="panel parlor-kin" aria-label="Choose your conversation"><h2>Your kin</h2><label class="field">Find your kin<input id="kin-search" type="search" value="${esc(kinSearch)}" placeholder="Search by name" autocomplete="off" aria-controls="parlor-kin-list"></label><div id="parlor-kin-list" class="parlor-kin-list">${parlorKinRows()}</div></aside>`;
 }
 function parlor() {
-  return `<div class="parlor-layout">${parlorKin()}<div class="parlor-conversation" id="conversation" tabindex="-1"><h2>${peer ? "A conversation with " + esc(name(peer)) + "." : "Who shall we catch up with?"}</h2>${waitingError ? `<p class="notice">${esc(waitingError)}</p>` : ""}${waitingNotes.some(n=>n.recipient===user.id) ? `<section class="panel"><h2>A friend has reached out.</h2><p>There’s a note waiting for you. ${vault ? "Your messaging space is ready; your friend’s next unlocked check-in will bring it through." : "Set up your private space below when you’re ready. Your friend can then deliver it on their next unlocked check-in."}</p></section>` : ""}<div class="notice">Messages are encrypted in your browser before sending. Your message key is remembered only if you choose to trust this device. Lock and forget it before sharing the device.</div>${
+  return `${growth.cards()}<div class="parlor-layout">${parlorKin()}<div class="parlor-conversation" id="conversation" tabindex="-1"><h2>${peer ? "A conversation with " + esc(name(peer)) + "." : "Who shall we catch up with?"}</h2>${waitingError ? `<p class="notice">${esc(waitingError)}</p>` : ""}${waitingNotes.some(n=>n.recipient===user.id) ? `<section class="panel"><h2>A friend has reached out.</h2><p>There’s a note waiting for you. ${vault ? "Your messaging space is ready; your friend’s next unlocked check-in will bring it through." : "Set up your private space below when you’re ready. Your friend can then deliver it on their next unlocked check-in."}</p></section>` : ""}<div class="notice">Messages are encrypted in your browser before sending. Your message key is remembered only if you choose to trust this device. Lock and forget it before sharing the device.</div>${
     privateKey
       ? `${button("Lock and forget this device", "lock")}${peer ? `<section class="panel">${!peerReady ? '<p>Your friend hasn’t set up messages yet. You can leave an encrypted waiting note. It arrives after they set up and you next check in with messages unlocked.</p>' : ""}<div class="messages">${messages.map((m) => `<div class="bubble ${m.sender === user.id ? "mine" : ""}"><span class="live-text">${esc(m.text)}</span><small>${m.sender === user.id ? "You" : esc(name(peer))} · ${esc(date(m.created_at))}${m.pending ? " · Waiting to be delivered" : ""}</small></div>`).join("") || "<p>A fresh conversation. Start with a hello.</p>"}</div><div class="live-actions">${button("Newer", "newer", msgPage === 0 ? "disabled" : "")}${button("Older", "older", messages.length < pageSize ? "disabled" : "")}</div><form id="message" class="live-form">${field("A little note", '<textarea name="text" required maxlength="2000" placeholder="Take your time. Say it your way."></textarea>')}<button class="primary">Send encrypted note</button></form>${button("Compare security fingerprints", "fingerprints")}</section>` : ""}`
       : unlockForm()
@@ -256,7 +258,7 @@ function paletteChoices() {
   return `<section class="panel"><h2>What colours feel like home?</h2><p>A few quiet corners of the world. Pick one to try it here.</p><div class="palette-choices" role="group" aria-label="Colour palette">${palettes.map(([id,label,description,...colours])=>`<button type="button" data-palette-choice="${id}" aria-pressed="${colourPalette===id}"><span class="palette-swatches" aria-hidden="true">${colours.map(c=>`<span style="background:${c}"></span>`).join("")}</span><strong>${label}</strong><small>${description}</small></button>`).join("")}</div><p class="live-muted">Remembered in this browser. You can choose a different feeling on each device.</p></section>`;
 }
 function settings() {
-  return `<div class="narrow">${paletteChoices()}${preferenceTopics()}${updateChoices()}${pushChoices()}${feedbackForm()}${avatarForm()}<form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a recovery-code-protected key backup. Older accounts may still use their original messaging passphrase. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your profile, preferences, gatherings, RSVPs, statuses, feedback notes, connections, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, feedback notes, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. You can also make a plan together in Gatherings.</p><a href="./demo.html">Explore the fictional feature demo</a></section><div class="live-actions">${button("Sign out", "logout")}</div></div>`;
+  return `<div class="narrow">${paletteChoices()}${preferenceTopics()}${updateChoices()}${pushChoices()}${feedbackForm()}${avatarForm()}<form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a recovery-code-protected key backup. Older accounts may still use their original messaging passphrase. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your profile, preferences, gatherings, RSVPs, statuses, feedback notes, connections, your private groups, active introductions, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, feedback notes, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. You can also make a plan together in Gatherings.</p><a href="./demo.html">Explore the fictional feature demo</a></section><div class="live-actions">${button("Sign out", "logout")}</div></div>`;
 }
 async function refresh() {
   profile = check(
@@ -279,6 +281,7 @@ async function refresh() {
         client.rpc("hearth_public_key", { person: user.id }),
       ].map(async (p) => check(await p)),
     );
+  await growth.load();
   let statusQuery = client.from("hearth_statuses").select("*");
   events = check(await client.from("hearth_events").select("*").gte("ends_at",new Date().toISOString()).order("starts_at").limit(20));
   rsvps = events.length ? check(await client.from("hearth_rsvps").select("*").in("event",events.map(e=>e.id))) : [];
@@ -386,8 +389,8 @@ async function run(action) {
   const disabled = controls.map((b) => b.disabled);
   controls.forEach((b) => (b.disabled = true));
   try {
-    await action();
-    say("");
+    const result = await action();
+    say(typeof result === 'string' ? result : "");
   } catch (e) {
     say(e.message || "Something went wrong. Please try again.");
   } finally {
@@ -398,6 +401,7 @@ async function run(action) {
 async function signOut() {
   await disablePush(client, user.id);
   check(await client.auth.signOut());
+  growth.reset();
   privateKey = null;
   ownPublicKey = null;
   vault = null;
@@ -417,9 +421,9 @@ async function signOut() {
 document.addEventListener("input", event => { if(event.target.closest("form")) draftDirty = true; });
 async function quietCheckIn() {
   if (preferences.notification_mode === 'manual') return;
-  if(!user || !profile || preferences.update_mode !== "foreground" || document.hidden || busy || draftDirty || ["kin-search","event-kin-search","kin-card-search"].includes(document.activeElement?.id) || $("dialog[open]")) return;
+  if(!user || !profile || preferences.update_mode !== "foreground" || document.hidden || busy || draftDirty || document.activeElement?.matches("[data-growth-search]") || ["kin-search","event-kin-search","kin-card-search"].includes(document.activeElement?.id) || $("dialog[open]")) return;
   busy = true;
-  try { await refresh(); if (!draftDirty && !["kin-search","event-kin-search","kin-card-search"].includes(document.activeElement?.id) && !document.hidden && !$("dialog[open]")) render(); } catch { /* Keep the current page if connectivity drops. */ }
+  try { await refresh(); if (!draftDirty && !document.activeElement?.matches("[data-growth-search]") && !["kin-search","event-kin-search","kin-card-search"].includes(document.activeElement?.id) && !document.hidden && !$("dialog[open]")) render(); } catch { /* Keep the current page if connectivity drops. */ }
   finally { busy = false; }
 }
 const quietTimer = setInterval(quietCheckIn,60000);
@@ -429,6 +433,7 @@ document.addEventListener("submit", (event) => {
   event.preventDefault();
   const form = event.target;
   const data = Object.fromEntries(new FormData(form));
+  if(growth.submit(form,data)) return;
   if(form.id==="event" && !eventDraft.starts_at){say("Choose and confirm the plan’s dates first.");$('[data-action="choose-event-time"]').focus();return;}
   if(form.id==="event" && !eventDraft.id && !selectedGuests.size && form.dataset.solo!=="yes"){
     $("#solo-plan").showModal();return;
@@ -600,6 +605,7 @@ document.addEventListener("submit", (event) => {
   });
 });
 document.addEventListener("input", event => {
+ growth.input(event.target);
  if (event.target.closest("#event") && event.target.name) eventDraft[event.target.name] = event.target.value;
  if (event.target.id === "kin-card-search") {
    kinListSearch=event.target.value; $("#kin-card-list").innerHTML=kinCardRows(); return;
@@ -621,6 +627,7 @@ document.addEventListener("click", (event) => {
   const b = event.target.closest("button");
   if (!b || b.disabled) return;
   const d = b.dataset;
+  if(growth.click(b)) return;
   if (d.action === 'enable-push') {
     run(async () => { await enablePush(client,user.id,preferences.notification_mode,pushPublicKey); pushStatus='This device is ready. You can send yourself a test.'; render(); }); return;
   }
@@ -791,6 +798,7 @@ document.addEventListener("click", (event) => {
         vault,
         public_key: ownPublicKey,
         preferences,
+        kin_organisation: growth.exportData(),
         gatherings: await allRows("hearth_events", "owner"),
         rsvps: await allRows("hearth_rsvps", "person", "event"),
         invitations: await allRows("hearth_event_invites", null, "event"),
@@ -902,6 +910,7 @@ async function start() {
   pendingRecoveryCode = null;
         user = null;
         profile = null;
+        growth.reset();
   eventDraft={}; selectedGuests=new Set(); eventSearch=""; eventInvites=[]; eventAttendees=[]; kinListSearch=""; selectedKin="";
         messages = [];
         profiles = [];
