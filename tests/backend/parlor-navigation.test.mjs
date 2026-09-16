@@ -13,7 +13,7 @@ test('Parlor sorts kin, highlights inner circle, searches without losing focus a
  globalThis.fetch=async()=>({ok:true,json:async()=>({supabaseUrl:'https://example.supabase.co',supabasePublishableKey:'public'})});
  await esmock('../../js/live/app.js',{'@supabase/supabase-js':{createClient:()=>client}});
  const settle=()=>new Promise(r=>setTimeout(r,20));await settle();
- const familiar = document.querySelector('.live-companions .kin-identity[data-chat="'+zoe+'"]');
+ const familiar = document.querySelector('.live-companions .parlor-person[data-chat="'+zoe+'"]');
  assert.ok(familiar);
  familiar.click();await settle();
  assert.match(document.querySelector('#conversation h2').textContent,/Zoe/);
