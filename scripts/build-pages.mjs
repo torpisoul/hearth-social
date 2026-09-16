@@ -40,7 +40,8 @@ for (const file of [
   await copyFile(new URL(file, root), target);
 }
 await mkdir(new URL("docs/icons/", root), { recursive: true });
-await copyFile(new URL("icons/hearth.svg", root), new URL("docs/icons/hearth.svg", root));
+for (const file of ["hearth.svg", "hearth-192.png", "hearth-512.png"])
+  await copyFile(new URL("icons/" + file, root), new URL("docs/icons/" + file, root));
 await build({
   entryPoints: [new URL("js/live/app.js", root).pathname],
   outfile: new URL("docs/js/live-app.js", root).pathname,
