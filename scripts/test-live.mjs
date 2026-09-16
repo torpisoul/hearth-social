@@ -5,6 +5,9 @@ import assert from "node:assert/strict";
 import { createClient } from "@supabase/supabase-js";
 import {
   createIdentity,
+  createRecoveryCode,
+  createRecoveryIdentity,
+  normalizeRecoveryCode,
   encryptMessage,
   decryptMessage,
   unlockIdentity,
@@ -106,7 +109,8 @@ try {
   assert.equal(range.all_day,true);assert.equal(new Date(range.ends_at).toISOString(),'2099-06-03T23:59:59.000Z');
 
 
-  const bob = await createIdentity("Disposable Bob messaging passphrase");
+  const bobCode = createRecoveryCode();
+  const bob = await createRecoveryIdentity(bobCode);
   for (const [u, key] of [
     [a, alice],
     [b, bob],
@@ -139,7 +143,7 @@ try {
   );
   const restored = await unlockIdentity(
     check(await b.client.rpc("hearth_my_vault")),
-    "Disposable Bob messaging passphrase",
+    normalizeRecoveryCode(bobCode),
   );
   assert.equal(
     await decryptMessage(restored, alice.public_key, received),

@@ -64,3 +64,20 @@ test("two users and a restored device can decrypt; outsiders, tampering and wron
     await fingerprint(bob.public_key),
   );
 });
+
+test("generated recovery codes restore the same identity and reject wrong codes", async()=>{
+ const {createRecoveryCode,createRecoveryIdentity,normalizeRecoveryCode}=await import('../../js/live/crypto.js');
+ const code=createRecoveryCode();
+ assert.match(code,/^([0-9a-f]{8}-){7}[0-9a-f]{8}$/);
+ const identity=await createRecoveryIdentity(code);
+ assert.equal(identity.vault.recovery_code,true);
+ assert.equal(JSON.stringify(identity.vault).includes(normalizeRecoveryCode(code)),false);
+ const restored=await unlockIdentity(identity.vault,normalizeRecoveryCode(code.toUpperCase().replaceAll('-',' ')));
+ const peer=await createIdentity('A distinct peer passphrase for this test');
+ const meta={id:crypto.randomUUID(),sender:crypto.randomUUID(),recipient:crypto.randomUUID()};
+ const envelope=await encryptMessage(peer.privateKey,identity.public_key,meta,'Recovered hello');
+ assert.equal(await decryptMessage(restored,peer.public_key,envelope),'Recovered hello');
+ await assert.rejects(unlockIdentity(identity.vault,normalizeRecoveryCode(createRecoveryCode())));
+ assert.throws(()=>normalizeRecoveryCode('incomplete'));
+ assert.equal(restored.extractable,false);
+});

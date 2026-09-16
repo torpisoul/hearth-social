@@ -129,3 +129,18 @@ export async function fingerprint(key) {
     .match(/.{1,8}/g)
     .join(" ");
 }
+
+// 256 bits of random recovery material; never derived from a login/session token.
+export function createRecoveryCode() {
+  return [...crypto.getRandomValues(new Uint8Array(32))].map(n=>n.toString(16).padStart(2,"0")).join("").match(/.{8}/g).join("-");
+}
+export function normalizeRecoveryCode(code) {
+  const normalized=code.replace(/[\s-]/g,"").toLowerCase();
+  if(!/^[0-9a-f]{64}$/.test(normalized)) throw Error("Enter the complete recovery code you saved.");
+  return normalized;
+}
+export async function createRecoveryIdentity(code) {
+  const identity=await createIdentity(normalizeRecoveryCode(code));
+  identity.vault.recovery_code=true;
+  return identity;
+}

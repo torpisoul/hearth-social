@@ -8,7 +8,9 @@ import { inviteQrSvg } from "./invite-qr.js";
 import { readInvite, inviteUrl } from "./invites.js";
 import { topics } from "../hearth-store.js";
 import {
-  createIdentity,
+  createRecoveryCode,
+  createRecoveryIdentity,
+  normalizeRecoveryCode,
   unlockIdentity,
   encryptMessage,
   decryptMessage,
@@ -27,6 +29,7 @@ const $ = (s) => document.querySelector(s),
           "'": "&#39;",
         })[c],
     );
+let pendingRecoveryCode = null;
 let colourPalette = applyPalette(savedPalette());
 const inviteStorageKey = "hearth-pending-invite";
 let referral = readInvite(location.href);
@@ -101,7 +104,7 @@ function profileView() {
 }
 function recoveryView() {
   $("#app").innerHTML =
-    `<main id="main" class="auth"><h1>Choose a new password.</h1><form id="password" class="panel live-form">${field("New account password", '<input name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128">')}<button class="primary">Save password</button></form><p>Your separate messaging passphrase stays the same.</p></main>`;
+    `<main id="main" class="auth"><h1>Choose a new password.</h1><form id="password" class="panel live-form">${field("New account password", '<input name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128">')}<button class="primary">Save password</button></form><p>Your message recovery code (or existing messaging passphrase) stays the same.</p></main>`;
 }
 function lastSeen(key) { try { return localStorage.getItem(`hearth-seen:${user.id}:${key}`) || ""; } catch {return "";} }
 function markSeen(key, time) { if (!time) return; try { if(time > lastSeen(key)) localStorage.setItem(`hearth-seen:${user.id}:${key}`,time); } catch {} }
@@ -204,7 +207,13 @@ function kin() {
   }<p>Inner circle controls who can read your inner-circle moments. Blocking stops new messages and hides shared statuses; messages already delivered remain in each person’s history.</p></div></div>`;
 }
 function unlockForm() {
-  return `<section class="panel"><h2>${vault ? "Unlock your conversations." : "Make a private space."}</h2><p>${vault ? "Enter your separate messaging passphrase." : "Choose a separate messaging passphrase of at least 16 characters and save it in your password manager. It protects the backup of your message key."}</p><form id="unlock" class="live-form">${field("Messaging passphrase", `<input name="passphrase" type="password" placeholder="${vault ? "Your saved passphrase" : "Choose a long phrase"}" required minlength="16" maxlength="512" autocomplete="${vault ? "current-password" : "new-password"}">`)}${vault ? "" : field("Confirm messaging passphrase", '<input name="confirm" type="password" placeholder="Enter the same phrase again" required minlength="16" maxlength="512" autocomplete="new-password">')}<label class="remember-choice"><input name="remember" type="checkbox"><span>Remember messages on this personal device</span></label><small>Skip the extra unlock next time. Anyone using this browser while signed in as you could read your messages. Keep your passphrase for other devices.</small><button class="primary">${vault ? "Unlock messages" : "Set up encrypted messages"}</button></form><p>We cannot recover a forgotten messaging passphrase. Account password resets do not unlock message history.</p></section>`;
+  const remember=`<label class="remember-choice"><input name="remember" type="checkbox"><span>This is my personal device. Remember my messages here.</span></label><small>Only choose this on a device you trust. Your messages will open when you sign in.</small>`;
+  if (!vault) {
+    pendingRecoveryCode ||= createRecoveryCode();
+    return `<section class="panel"><h2>A private space, ready for you.</h2><p>We’ll take care of the encryption. Save this recovery code in your password manager so you can open your conversations on another device.</p><form id="unlock" class="live-form">${field("Your recovery code",`<textarea readonly class="live-code" rows="3" aria-label="Your recovery code">${pendingRecoveryCode}</textarea>`)}<p>Keep it private. We cannot recover your messages if you lose this code and access to your saved devices.</p><label class="remember-choice"><input name="saved" type="checkbox" required><span>I’ve saved my recovery code somewhere safe.</span></label>${remember}<button class="primary">Open my conversations</button></form></section>`;
+  }
+  const recoveryCode=Boolean(vault.recovery_code);
+  return `<section class="panel"><h2>Bring your conversations here.</h2><p>${recoveryCode ? "Enter your saved recovery code once to open your messages on this device." : "Enter your existing messaging passphrase. You can remember this personal device to skip this step next time."}</p><form id="unlock" class="live-form">${field(recoveryCode ? "Recovery code" : "Messaging passphrase",`<input name="passphrase" type="password" required maxlength="512" autocomplete="off">`)}${remember}<button class="primary">Open my conversations</button></form><p>Your account password cannot recover this encrypted backup.</p></section>`;
 }
 
 function parlorKinRows() {
@@ -238,7 +247,7 @@ function paletteChoices() {
   return `<section class="panel"><h2>What colours feel like home?</h2><p>A few quiet corners of the world. Pick one to try it here.</p><div class="palette-choices" role="group" aria-label="Colour palette">${palettes.map(([id,label,description,...colours])=>`<button type="button" data-palette-choice="${id}" aria-pressed="${colourPalette===id}"><span class="palette-swatches" aria-hidden="true">${colours.map(c=>`<span style="background:${c}"></span>`).join("")}</span><strong>${label}</strong><small>${description}</small></button>`).join("")}</div><p class="live-muted">Remembered in this browser. You can choose a different feeling on each device.</p></section>`;
 }
 function settings() {
-  return `<div class="narrow">${paletteChoices()}${preferenceTopics()}${updateChoices()}${feedbackForm()}${avatarForm()}<form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a passphrase-protected key backup. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your profile, preferences, gatherings, RSVPs, statuses, feedback notes, connections, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, feedback notes, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. You can also make a plan together in Gatherings.</p><a href="./demo.html">Explore the fictional feature demo</a></section><div class="live-actions">${button("Sign out", "logout")}</div></div>`;
+  return `<div class="narrow">${paletteChoices()}${preferenceTopics()}${updateChoices()}${feedbackForm()}${avatarForm()}<form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a recovery-code-protected key backup. Older accounts may still use their original messaging passphrase. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your profile, preferences, gatherings, RSVPs, statuses, feedback notes, connections, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, feedback notes, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. You can also make a plan together in Gatherings.</p><a href="./demo.html">Explore the fictional feature demo</a></section><div class="live-actions">${button("Sign out", "logout")}</div></div>`;
 }
 async function refresh() {
   profile = check(
@@ -382,6 +391,7 @@ async function signOut() {
   privateKey = null;
   ownPublicKey = null;
   vault = null;
+  pendingRecoveryCode = null;
   user = null;
   profile = null;
   eventDraft={}; selectedGuests=new Set(); eventSearch=""; eventInvites=[]; eventAttendees=[]; kinListSearch=""; selectedKin="";
@@ -477,6 +487,7 @@ document.addEventListener("submit", (event) => {
       return;
     }
     if (form.id === "profile") {
+      tab = "parlor";
       check(
         await client
           .from("hearth_profiles")
@@ -541,27 +552,20 @@ document.addEventListener("submit", (event) => {
       page = 0;
     }
     if (form.id === "unlock") {
-      if (vault) privateKey = await unlockIdentity(vault, data.passphrase);
+      if (vault) privateKey = await unlockIdentity(vault, vault.recovery_code ? normalizeRecoveryCode(data.passphrase) : data.passphrase);
       else {
-        if (data.passphrase !== data.confirm)
-          throw Error("The messaging passphrases do not match.");
-        const identity = await createIdentity(data.passphrase);
-        check(
-          await client
-            .from("hearth_keys")
-            .insert({
-              owner: user.id,
-              public_key: identity.public_key,
-              vault: identity.vault,
-            }),
-        );
+        if (!data.saved || !pendingRecoveryCode) throw Error("Save your recovery code before continuing.");
+        const identity = await createRecoveryIdentity(pendingRecoveryCode);
+        check(await client.from("hearth_keys").insert({owner:user.id,public_key:identity.public_key,vault:identity.vault}));
         privateKey = identity.privateKey;
+        vault = identity.vault;
+        pendingRecoveryCode = null;
       }
     }
     if (form.id === "unlock" && data.remember) {
       const key = check(await client.rpc("hearth_public_key", {person:user.id}));
       try { await deviceKey("put",user.id,{key:privateKey,fingerprint:await fingerprint(key)}); }
-      catch { throw Error("Messages unlocked, but this browser could not remember them. You can still use messages after refreshing."); }
+      catch { throw Error("Messages are open, but this browser could not remember them. Use your recovery code or existing passphrase next time."); }
     }
     if (form.id === "message") {
       if (!privateKey || !peer)
@@ -861,6 +865,7 @@ async function start() {
         privateKey = null;
         ownPublicKey = null;
         vault = null;
+  pendingRecoveryCode = null;
         user = null;
         profile = null;
   eventDraft={}; selectedGuests=new Set(); eventSearch=""; eventInvites=[]; eventAttendees=[]; kinListSearch=""; selectedKin="";

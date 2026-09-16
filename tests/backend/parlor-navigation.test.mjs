@@ -28,6 +28,10 @@ test('Parlor sorts kin, highlights inner circle, searches without losing focus a
  document.querySelector('.parlor-person').click();await settle();
  assert.match(document.querySelector('#conversation h2').textContent,/Zoe/);
  assert.ok(document.querySelector('#unlock'));
+ assert.equal(document.querySelector('#unlock input[type=password]'),null);
+ assert.ok(document.querySelector('#unlock [name=saved]').required);
+ assert.equal(document.querySelector('#unlock [name=remember]').checked,false);
+ assert.match(document.querySelector('#unlock textarea').value,/^([0-9a-f]{8}-){7}[0-9a-f]{8}$/);
  assert.equal(document.querySelector('.parlor-person').getAttribute('aria-pressed'),'true');
 
  document.querySelector('.sidebar [data-tab="gatherings"]').click();await settle();
