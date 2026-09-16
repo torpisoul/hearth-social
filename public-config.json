@@ -1,5 +1,6 @@
 {
   "supabaseUrl": "https://nkpzdvpzlxiwrtivpiwv.supabase.co",
   "supabasePublishableKey": "sb_publishable_PPxZRVxVXtfsqr57jLTUZQ_j9LreOcT",
-  "emailDeliveryEnabled": false
+  "emailDeliveryEnabled": false,
+  "pushPublicKey": "BPTcR9Tg9uGVn56TTNC3zqq_ddl6gmC9von9ETYCqeernezagWNZXaepMlZ0SJ1fBgHkaTifBiUxB64gsLPyu3I"
 }

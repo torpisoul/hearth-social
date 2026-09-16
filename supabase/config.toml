@@ -1,0 +1,7 @@
+project_id = "hearth-social"
+
+# Each function verifies its own credentials before using any database access.
+[functions.send-push]
+verify_jwt = false
+[functions.dispatch-push]
+verify_jwt = false

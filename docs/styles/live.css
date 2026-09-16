@@ -272,4 +272,24 @@ button.primary, .nav button.active, .live-auth-tabs button[aria-pressed="true"] 
 .calendar-days button[aria-pressed="true"], .date-targets button[aria-pressed="true"] { background:var(--accent); color:var(--accent-ink); box-shadow:inset 3px 3px 6px var(--shadow-low),inset -3px -3px 6px var(--shadow-high); }
 .date-targets { gap:16px; }
 .date-times[hidden] { display:none; }
+.event-time-dialog .remember-choice { align-items:center; min-height:44px; }
+.event-time-dialog input[type="checkbox"] {
+ appearance:none; display:grid; place-content:center; width:26px; height:26px;
+ margin:0; border:1px solid var(--line); border-radius:8px; background:var(--paper);
+ box-shadow:var(--soft-raised); cursor:pointer;
+}
+.event-time-dialog input[type="checkbox"]:checked { background:var(--accent); color:var(--accent-ink); box-shadow:var(--soft-pressed); }
+.event-time-dialog input[type="checkbox"]:checked::after { content:'✓'; font-size:20px; font-weight:700; line-height:1; }
+.event-time-dialog input[type="checkbox"]:focus-visible { outline:2px solid var(--green); outline-offset:4px; }
+@media(forced-colors:active) { .event-time-dialog input[type="checkbox"] { appearance:auto; } .event-time-dialog input[type="checkbox"]::after { content:none; } }
+@media(max-width:800px) {
+ .mobile-header { display:grid; grid-template-columns:44px minmax(0,1fr) 44px; gap:12px; min-height:68px; padding:12px 16px; }
+ .mobile-header .brand { display:flex; align-items:center; justify-content:center; min-height:44px; }
+ .mobile-brand-name, .mobile-header [data-action="open-menu"] > span:not(.hamburger):not(.new-indicator) { display:none; }
+ .mobile-header [data-action="open-menu"] { position:relative; justify-content:center; padding:10px; }
+ .mobile-header .new-indicator { position:absolute; right:2px; top:0; }
+ .mobile-page-title { min-width:0; text-align:center; font-size:16px; font-weight:600; overflow-wrap:anywhere; }
+ .content > .heading { position:static; }
+ .kin-detail, #conversation, #event { scroll-margin-top:88px; }
+}
 @media(max-width:480px) { .soft-dialog { padding:20px; } .calendar-days { gap:7px; } .date-targets { grid-template-columns:1fr; } }

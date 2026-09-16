@@ -14,6 +14,7 @@ async function as(id, sql, args = []) {
 }
 before(async () => {
   db = new PGlite();
+  await db.exec('create role service_role bypassrls');
   await db.exec(
     `create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create table auth.sessions(id uuid primary key,user_id uuid references auth.users(id) on delete cascade);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;insert into auth.users values('${a}'),('${b}'),('${c}');`,
   );
@@ -67,6 +68,18 @@ test("profile pictures can be changed only by their owner", async () => {
  assert.equal((await as(a,"select avatar from hearth_profiles where id=$1",[a]))[0].avatar,'data:image/png;base64,aGVsbG8=');
  assert.equal((await as(b,"update hearth_profiles set avatar=null where id=$1 returning id",[a])).length,0);
  await assert.rejects(as(a,"update hearth_profiles set avatar='https://tracker.example/pixel' where id=$1",[a]),/check constraint/);
+});
+test('push subscriptions stay owner-private and reject forged ownership', async () => {
+ const endpoint='https://fcm.googleapis.com/test';
+ await as(a,"insert into hearth_push_subscriptions(owner,endpoint,p256dh,auth) values($1,$2,repeat('a',87),repeat('b',22))",[a,endpoint]);
+ assert.equal((await as(a,'select * from hearth_push_subscriptions')).length,1);
+ assert.equal((await as(b,'select * from hearth_push_subscriptions')).length,0);
+ assert.equal((await as(b,'delete from hearth_push_subscriptions returning endpoint')).length,0);
+ await assert.rejects(as(b,"insert into hearth_push_subscriptions(owner,endpoint,p256dh,auth) values($1,'https://example.org/forged',repeat('a',87),repeat('b',22))",[a]),/row-level security/);
+ await assert.rejects(as(a,'update hearth_push_subscriptions set owner=$1',[b]),/row-level security/);
+ await db.exec('reset role; set role anon');
+ await assert.rejects(db.query('select * from hearth_push_subscriptions'),/permission denied/);
+ await as(a,'delete from hearth_push_subscriptions');
 });
 test("anonymous users cannot access data or privileged friend RPCs", async () => {
   await db.exec("reset role;set role anon");
@@ -297,7 +310,8 @@ test("all exposed tables have RLS; public API functions are invoker functions", 
       "select relname,relrowsecurity from pg_class join pg_namespace n on n.oid=relnamespace where n.nspname='public' and relkind='r' and relname like 'hearth_%' ",
     )
   ).rows;
-  assert.equal(rows.length, 13);
+  assert.equal(rows.length, 14);
+  assert.ok(rows.some(r => r.relname === 'hearth_push_subscriptions'));
   assert.ok(rows.every((r) => r.relrowsecurity));
   assert.equal(
     (

@@ -1,4 +1,5 @@
 import { openEventTime, eventRange } from "./event-time.js";
+import { enablePush, disablePush, systemMode, pushAvailable } from './push.js';
 import { palettes, savedPalette, applyPalette, rememberPalette } from "./palettes.js";
 import { deviceKey } from "./device-key.js";
 import { icon, brand, sprig } from "./art.js";
@@ -55,6 +56,8 @@ let peerReady = true, waitingError = "", draftDirty = false;
 let newestStatus = null, recentIncoming = [];
 let preferences = {topics: [], update_mode: "manual", notification_mode: "in_app", notification_time: "20:00"};
 let emailDeliveryEnabled = false;
+let pushPublicKey = '';
+let pushStatus = '';
 let client,
   user,
   profile,
@@ -110,6 +113,7 @@ function recoveryView() {
 function lastSeen(key) { try { return localStorage.getItem(`hearth-seen:${user.id}:${key}`) || ""; } catch {return "";} }
 function markSeen(key, time) { if (!time) return; try { if(time > lastSeen(key)) localStorage.setItem(`hearth-seen:${user.id}:${key}`,time); } catch {} }
 function hasNew(id) {
+  if (preferences.notification_mode === 'manual') return false;
   if(id === "all") return ["pulse","parlor","kin"].some(hasNew);
   if(id === "pulse") return newestStatus && newestStatus > lastSeen("pulse");
   if(id === "parlor") return recentIncoming.some(m=>m.created_at > lastSeen(`parlor:${m.sender}`)) || waitingNotes.some(n=>n.recipient===user.id);
@@ -141,7 +145,7 @@ function render() {
   draftDirty = false;
   if(tab === "pulse" && page===0) markSeen("pulse",statuses.filter(p=>p.author!==user.id).map(p=>p.created_at).sort().at(-1));
   $("#app").innerHTML =
-    `<header class="mobile-header"><a class="brand" href="./live.html">${brand}hearth</a><button data-action="open-menu" aria-label="Open menu" aria-haspopup="dialog" aria-controls="mobile-menu" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span><span>Menu</span><span class="new-indicator" ${hasNew("all") ? "" : "hidden"} aria-label="Something new">●</span></button></header><dialog id="mobile-menu" aria-labelledby="menu-title"><div class="menu-heading"><h2 id="menu-title">Make yourself at home.</h2>${button("Close", "close-menu", 'aria-label="Close menu" autofocus')}</div><nav class="nav" aria-label="Mobile navigation">${navigationLinks()}</nav><div class="menu-actions">${button("Refresh", "refresh")}</div><p class="live-muted">A little space for you and your people.</p></dialog><div class="shell"><aside class="sidebar"><a class="brand" href="./live.html">${brand}hearth</a><p class="tagline">A place for your people.</p><nav class="nav" aria-label="Main navigation">${navigationLinks()}${button("Refresh", "refresh")}</nav><div class="sidebar-bottom"><p>Less scrolling.<br>More living.</p><strong>${esc(profile.name)}</strong><p class="connection-status"><span class="dot"></span> Friends beta · Connected</p></div></aside><div><main id="main" class="content" tabindex="-1"><header class="heading"><div><div class="eyebrow">A little closer, at your own pace</div><h1>${{ gatherings: "Something to look forward to.", pulse: "Make yourself at home.", kin: "Your people.", parlor: "The parlor.", settings: "Your little corner." }[tab]}</h1><p>${{ gatherings: "A little plan. Good company.", pulse: "Real life, shared with the people who matter.", kin: "A small circle. A meaningful connection.", parlor: "Good conversations don’t need an audience.", settings: "Your choices. Your attention. Your space." }[tab]}</p></div></header>${invitePrompt()}${{ gatherings: gatherings, pulse: feed, kin: kin, parlor: parlor, settings: settings }[tab]()}</main><footer class="footer">Made for connection. Built with intention.</footer></div></div>`;
+    `<header class="mobile-header"><a class="brand" href="./live.html" aria-label="Hearth home">${brand}<span class="mobile-brand-name">hearth</span></a><span class="mobile-page-title">${{pulse:"The living room",parlor:"The parlor",kin:"Your kin",gatherings:"Gatherings",settings:"Preferences"}[tab]}</span><button data-action="open-menu" aria-label="Open menu" aria-haspopup="dialog" aria-controls="mobile-menu" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span><span>Menu</span><span class="new-indicator" ${hasNew("all") ? "" : "hidden"} aria-label="Something new">●</span></button></header><dialog id="mobile-menu" aria-labelledby="menu-title"><div class="menu-heading"><h2 id="menu-title">Make yourself at home.</h2>${button("Close", "close-menu", 'aria-label="Close menu" autofocus')}</div><nav class="nav" aria-label="Mobile navigation">${navigationLinks()}</nav><div class="menu-actions">${button("Refresh", "refresh")}</div><p class="live-muted">A little space for you and your people.</p></dialog><div class="shell"><aside class="sidebar"><a class="brand" href="./live.html">${brand}hearth</a><p class="tagline">A place for your people.</p><nav class="nav" aria-label="Main navigation">${navigationLinks()}${button("Refresh", "refresh")}</nav><div class="sidebar-bottom"><p>Less scrolling.<br>More living.</p><strong>${esc(profile.name)}</strong><p class="connection-status"><span class="dot"></span> Friends beta · Connected</p></div></aside><div><main id="main" class="content" tabindex="-1"><header class="heading"><div><div class="eyebrow">A little closer, at your own pace</div><h1>${{ gatherings: "Something to look forward to.", pulse: "Make yourself at home.", kin: "Your people.", parlor: "The parlor.", settings: "Your little corner." }[tab]}</h1><p>${{ gatherings: "A little plan. Good company.", pulse: "Real life, shared with the people who matter.", kin: "A small circle. A meaningful connection.", parlor: "Good conversations don’t need an audience.", settings: "Your choices. Your attention. Your space." }[tab]}</p></div></header>${invitePrompt()}${{ gatherings: gatherings, pulse: feed, kin: kin, parlor: parlor, settings: settings }[tab]()}</main><footer class="footer">Made for connection. Built with intention.</footer></div></div>`;
   if (typeof ResizeObserver !== "undefined") {
     headingObserver=new ResizeObserver(entries=>document.documentElement.style.setProperty("--page-heading-height",entries[0].target.getBoundingClientRect().height+"px"));
     headingObserver.observe($(".content > .heading"));
@@ -242,13 +246,17 @@ function avatarForm() {
 function feedbackForm() {
   return `<section class="panel feedback-panel"><h2>What would you like to do here?</h2><p>Anything you wish we could do together? Or a little thing that got in the way? A sentence is plenty.</p><form id="feedback" class="live-form">${field("Leave a little note", '<textarea name="content" required maxlength="2000" placeholder="I’d love to…" aria-describedby="feedback-privacy"></textarea>')}<small id="feedback-privacy">This goes to Hearth’s host with your account, not to your kin. It isn’t an encrypted message.</small><button class="primary">Send note</button><p id="feedback-result" role="status" tabindex="-1"></p></form></section>`;
 }
-function updateChoices() { return `<section class="panel"><h2>At your own pace</h2><form id="updates" class="live-form">${field("When should Hearth check in?",`<select name="mode"><option value="manual" ${preferences.update_mode==='manual'?'selected':''}>Only when I choose Refresh</option><option value="foreground" ${preferences.update_mode==='foreground'?'selected':''}>Quietly while I’m here</option></select>`)}<p>Quiet check-ins happen about once a minute while this tab is visible. They pause while you’re writing. A small dot marks new moments or notes; no pop-ups or sounds.</p><p class="live-muted">Closed-app background delivery isn’t enabled.</p><hr><h3>How should Hearth let you know?</h3>${field("Notification preference",`<select name="notification_mode"><option value="in_app" ${preferences.notification_mode==='in_app'?'selected':''}>Indicators inside Hearth only</option><option value="immediate" ${preferences.notification_mode==='immediate'?'selected':''}>Immediately when something arrives</option><option value="hourly" ${preferences.notification_mode==='hourly'?'selected':''}>An hourly digest</option><option value="daily" ${preferences.notification_mode==='daily'?'selected':''}>A daily check-in</option><option value="manual" ${preferences.notification_mode==='manual'?'selected':''}>Manual-only mode</option></select>`)}${field("Daily check-in time",`<input type="time" name="notification_time" value="${preferences.notification_time || '20:00'}">`)}<p class="live-muted">This records your choice for now. Hearth won’t ask for browser permission or send system notifications until you choose to turn them on later.</p><button>Save my pace</button></form></section>`; }
+function updateChoices() { return `<section class="panel"><h2>At your own pace</h2><form id="updates" class="live-form">${field("When should Hearth check in?",`<select name="mode"><option value="manual" ${preferences.update_mode==='manual'?'selected':''}>Only when I choose Refresh</option><option value="foreground" ${preferences.update_mode==='foreground'?'selected':''}>Quietly while I’m here</option></select>`)}<p>Quiet check-ins happen about once a minute while this tab is visible. They pause while you’re writing. A small dot marks new moments or notes; no pop-ups or sounds.</p><p class="live-muted">Closed-app background delivery isn’t enabled.</p><hr><h3>How should Hearth let you know?</h3>${field("Notification preference",`<select name="notification_mode"><option value="in_app" ${preferences.notification_mode==='in_app'?'selected':''}>Indicators inside Hearth only</option><option value="immediate" ${preferences.notification_mode==='immediate'?'selected':''}>Immediately when something arrives</option><option value="hourly" ${preferences.notification_mode==='hourly'?'selected':''}>An hourly digest</option><option value="daily" ${preferences.notification_mode==='daily'?'selected':''}>A daily check-in</option><option value="manual" ${preferences.notification_mode==='manual'?'selected':''}>Manual-only mode</option></select>`)}${field("Daily check-in time",`<input type="time" name="notification_time" value="${esc(preferences.notification_time || '20:00')}">`)}<p class="live-muted">Save your preference first. Device notifications need a separate opt-in below. Immediate notifications usually arrive within a minute. Hourly digests wait at least an hour; daily check-ins use the time zone on this device when you save. Quiet days need no notification. Manual-only mode pauses quiet check-ins and hides new-item dots.</p><button>Save my pace</button></form></section>`; }
 function preferenceTopics() { return `<section class="panel"><h2>What comes into your living room</h2>${topicChoices()}</section>`; }
+function pushChoices() {
+  if (!systemMode(preferences.notification_mode)) return '';
+  return `<section class="panel"><h2>A gentle nudge, if you choose</h2><p>Enable this device, then send yourself a test. Immediate notifications usually arrive within a minute. Hourly digests wait at least an hour; daily check-ins use the time zone on this device when you save. Quiet days need no notification. Notifications never include private message text.</p>${pushPublicKey && pushAvailable() ? `${button('Enable notifications on this device','enable-push')}${button('Send me a test notification','test-push')}${button('Turn off this device','disable-push')}` : '<p>Device notifications aren’t available here yet. On iPhone or iPad, add Hearth to your Home Screen and open it there.</p>'}<p role="status">${esc(pushStatus)}</p></section>`;
+}
 function paletteChoices() {
   return `<section class="panel"><h2>What colours feel like home?</h2><p>A few quiet corners of the world. Pick one to try it here.</p><div class="palette-choices" role="group" aria-label="Colour palette">${palettes.map(([id,label,description,...colours])=>`<button type="button" data-palette-choice="${id}" aria-pressed="${colourPalette===id}"><span class="palette-swatches" aria-hidden="true">${colours.map(c=>`<span style="background:${c}"></span>`).join("")}</span><strong>${label}</strong><small>${description}</small></button>`).join("")}</div><p class="live-muted">Remembered in this browser. You can choose a different feeling on each device.</p></section>`;
 }
 function settings() {
-  return `<div class="narrow">${paletteChoices()}${preferenceTopics()}${updateChoices()}${feedbackForm()}${avatarForm()}<form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a recovery-code-protected key backup. Older accounts may still use their original messaging passphrase. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your profile, preferences, gatherings, RSVPs, statuses, feedback notes, connections, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, feedback notes, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. You can also make a plan together in Gatherings.</p><a href="./demo.html">Explore the fictional feature demo</a></section><div class="live-actions">${button("Sign out", "logout")}</div></div>`;
+  return `<div class="narrow">${paletteChoices()}${preferenceTopics()}${updateChoices()}${pushChoices()}${feedbackForm()}${avatarForm()}<form id="rename" class="panel live-form"><h2>Come as you are.</h2>${field("Your name", `<input name="name" required maxlength="40" value="${esc(profile.name)}">`)}<button>Save name</button></form><section class="panel"><h2>A little peace of mind.</h2><p>There are no read receipts, analytics, ads, or popularity scores. Refresh when you choose to check in.</p><p>Messages use end-to-end encryption with a recovery-code-protected key backup. Older accounts may still use their original messaging passphrase. This beta has not had an independent security audit and does not offer forward secrecy. The service can see who messages whom and when. Compare fingerprints with your friend using a separate trusted channel.</p><p>Statuses are stored as text with server-enforced audience permissions.</p>${button("Download my data", "export")}<p>The export includes your profile, preferences, gatherings, RSVPs, statuses, feedback notes, connections, encrypted messages and encrypted key backup. Decrypted conversations are not included.</p></section><section class="panel"><h2>Delete your account</h2><p>This permanently deletes your profile, statuses, feedback notes, connections, messages and encrypted key backup. Export your data first.</p><form id="delete-account" class="live-form">${field("Type DELETE to confirm", '<input name="confirmation" required pattern="DELETE" autocomplete="off">')}<button class="danger">Permanently delete my account</button></form></section><section class="panel"><h2>Blocked accounts</h2>${blocks.map((b) => `<p class="live-code">${esc(b.target)}</p><button data-unblock="${b.target}">Unblock</button>`).join("") || "<p>No blocked accounts.</p>"}<p>After unblocking, remove any existing connection before sending a new request if you want fresh consent.</p></section><section class="panel"><h2>Help shape Hearth.</h2><p>Try creating a moment, connecting with a friend, and exchanging a note. Tell your host what feels welcoming or confusing. You can also make a plan together in Gatherings.</p><a href="./demo.html">Explore the fictional feature demo</a></section><div class="live-actions">${button("Sign out", "logout")}</div></div>`;
 }
 async function refresh() {
   profile = check(
@@ -388,6 +396,7 @@ async function run(action) {
   }
 }
 async function signOut() {
+  await disablePush(client, user.id);
   check(await client.auth.signOut());
   privateKey = null;
   ownPublicKey = null;
@@ -407,6 +416,7 @@ async function signOut() {
 }
 document.addEventListener("input", event => { if(event.target.closest("form")) draftDirty = true; });
 async function quietCheckIn() {
+  if (preferences.notification_mode === 'manual') return;
   if(!user || !profile || preferences.update_mode !== "foreground" || document.hidden || busy || draftDirty || ["kin-search","event-kin-search","kin-card-search"].includes(document.activeElement?.id) || $("dialog[open]")) return;
   busy = true;
   try { await refresh(); if (!draftDirty && !["kin-search","event-kin-search","kin-card-search"].includes(document.activeElement?.id) && !document.hidden && !$("dialog[open]")) render(); } catch { /* Keep the current page if connectivity drops. */ }
@@ -498,8 +508,9 @@ document.addEventListener("submit", (event) => {
     if (form.id === "updates") {
       if (!["manual","foreground"].includes(data.mode)) throw Error("Choose an update pace.");
       if (!["in_app","immediate","hourly","daily","manual"].includes(data.notification_mode)) throw Error("Choose a notification preference.");
-      if (data.notification_time && !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(data.notification_time)) throw Error("Choose a valid daily check-in time.");
-      check(await client.from("hearth_preferences").upsert({owner:user.id,topics:preferences.topics,update_mode:data.mode,notification_mode:data.notification_mode,notification_time:data.notification_time || null}));
+      if (data.notification_time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(data.notification_time)) throw Error("Choose a valid daily check-in time.");
+      check(await client.from("hearth_preferences").upsert({owner:user.id,topics:preferences.topics,update_mode:data.mode,notification_mode:data.notification_mode,notification_time:data.notification_time || null,notification_zone:Intl.DateTimeFormat().resolvedOptions().timeZone}));
+      if (!systemMode(data.notification_mode)) await disablePush(client,user.id);
     }
     if (form.id === "event") {
       const starts = new Date(eventDraft.starts_at);
@@ -610,6 +621,20 @@ document.addEventListener("click", (event) => {
   const b = event.target.closest("button");
   if (!b || b.disabled) return;
   const d = b.dataset;
+  if (d.action === 'enable-push') {
+    run(async () => { await enablePush(client,user.id,preferences.notification_mode,pushPublicKey); pushStatus='This device is ready. You can send yourself a test.'; render(); }); return;
+  }
+  if (d.action === 'disable-push') {
+    run(async () => { await disablePush(client,user.id); pushStatus='Notifications on this device are off.'; render(); }); return;
+  }
+  if (d.action === 'test-push') {
+    run(async () => {
+      if (!systemMode(preferences.notification_mode)) throw Error('Choose a notification preference first.');
+      const {error} = await client.functions.invoke('send-push', {body:{}});
+      if (error) throw Error('Couldn’t send a test. Enable this device first and try again.');
+      pushStatus='Your test is on its way. Your browser controls when it appears.'; render();
+    }); return;
+  }
   if (d.action === "install" && deferredInstallPrompt) {
     deferredInstallPrompt.prompt();
     deferredInstallPrompt = null;
@@ -862,6 +887,7 @@ async function start() {
       return;
     }
     emailDeliveryEnabled = config.emailDeliveryEnabled === true;
+    pushPublicKey = config.pushPublicKey || '';
     client = createClient(config.supabaseUrl, config.supabasePublishableKey);
     client.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") {
