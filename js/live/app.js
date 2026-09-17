@@ -337,7 +337,7 @@ function pushChoices(onboarding = false) {
   if (!systemMode(preferences.notification_mode)) return onboarding
     ? '<section class="panel"><h2>A gentle nudge, if you choose</h2><p>Your current pace keeps device notifications off. If you’d like them, go back and choose immediate notifications or a digest, then return here to enable this device.</p><p>You can also leave things quiet and change this later in Your preferences.</p></section>'
     : '';
-  return `<section class="panel"><h2>A gentle nudge, if you choose</h2><p>Enable this device, then send yourself a test. Immediate notifications usually arrive within a minute. Hourly digests wait at least an hour; daily check-ins use the time zone on this device when you save. Quiet days need no notification. Notifications never include private message text.</p>${pushPublicKey && pushAvailable() ? `<div class="live-actions push-actions">${button('Enable notifications on this device','enable-push')}${button('Send me a test notification','test-push')}${button('Turn off this device','disable-push')}</div>` : '<p>Device notifications aren’t available here yet. On iPhone or iPad, add Hearth to your Home Screen and open it there.</p>'}<p role="status">${esc(pushStatus)}</p></section>`;
+  return `<section class="panel"><h2>A gentle nudge, if you choose</h2><p>Enable this device, then send yourself a test. Immediate notifications usually arrive within a minute. Hourly digests wait at least an hour; daily check-ins use the time zone on this device when you save. Quiet days need no notification. Notifications never include private message text.</p>${pushPublicKey && pushAvailable() ? `<div class="live-actions push-actions">${button('Enable notifications on this device','enable-push')}${button('Send me a test notification','test-push')}${button('Turn off notifications for this device','disable-push')}</div>` : '<p>Device notifications aren’t available here yet. On iPhone or iPad, add Hearth to your Home Screen and open it there.</p>'}<p role="status">${esc(pushStatus)}</p></section>`;
 }
 function paletteChoices() {
   return `<section class="panel palette-panel"><h2>What colours feel like home?</h2><p>A few quiet corners of the world. Pick one to try it here.</p><div class="palette-choices" role="group" aria-label="Colour palette">${palettes.map(([id,label,description,...colours])=>`<button type="button" data-palette-choice="${id}" aria-pressed="${colourPalette===id}"><span class="palette-swatches" aria-hidden="true">${colours.map(c=>`<span style="background:${c}"></span>`).join("")}</span><strong>${label}</strong><small>${description}</small></button>`).join("")}</div><p class="live-muted">Remembered in this browser. You can choose a different feeling on each device.</p></section>`;
@@ -774,7 +774,7 @@ document.addEventListener("click", (event) => {
     }); return;
   }
   if (d.action === 'disable-push') {
-    run(async () => { await disablePush(client,user.id); pushStatus='Notifications on this device are off.'; render(); }); return;
+    run(async () => { await disablePush(client,user.id); pushStatus='Notifications for this device are off.'; render(); }); return;
   }
   if (d.action === 'test-push') {
     run(async () => {
