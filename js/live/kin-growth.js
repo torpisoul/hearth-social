@@ -1,5 +1,5 @@
 // Introductions are structured connection requests, separate from encrypted chat.
-export function kinGrowth({ client, user, friends, connections, name, esc, avatar, run, refresh, render, say }) {
+export function kinGrowth({ client, user, friends, connections, name, esc, avatar, run, refresh, render, say, selectKin=null }) {
  let groups=[], members=[], introductions=[], sent=[], suggestion=null, available=false;
  let groupSearch='', pendingSearch='', memberSearch='', selectedGroup='', assigning='';
  const check=({data,error})=>{if(error) throw error;return data;};
@@ -26,7 +26,7 @@ export function kinGrowth({ client, user, friends, connections, name, esc, avata
   return `<div class="kin-suggestion"><p>Do these kin know each other?</p><div class="live-actions">${[suggestion.a,suggestion.b].map(id=>personButton(id,`data-chat="${id}"`)).join('')}</div><p class="live-muted">Yes sends both a connection card from you in the parlor. They each choose whether to connect.</p><div class="live-actions">${btn('Yes, introduce them','suggest-yes')}${btn('No','suggest-no')}${btn('Another pair','next')}</div></div>`;
  }
  function groupRows() {
-  return groups.filter(g=>match(g.name,groupSearch)).map(g=>`<div class="group-row"><button type="button" class="parlor-person" data-growth="group" data-id="${g.id}" aria-pressed="${selectedGroup===g.id}"><span aria-hidden="true">♧</span><span>${esc(g.name)}</span></button><button type="button" data-growth="delete-group" data-id="${g.id}" aria-label="Remove group ${esc(g.name)}">×</button></div>`).join('')||'<p>No groups here yet. Make a little room for people who belong together.</p>';
+  return groups.filter(g=>match(g.name,groupSearch)).map(g=>`<div class="group-row"><button type="button" class="parlor-person" data-growth="${assigning?'assign':'group'}" data-id="${g.id}" aria-pressed="${assigning?members.some(m=>m.group_id===g.id&&m.person===assigning):selectedGroup===g.id}"><span aria-hidden="true">♧</span><span>${esc(g.name)}</span>${assigning?`<span class="group-membership">${members.some(m=>m.group_id===g.id&&m.person===assigning)?"✓ Included":"Add"}</span>`:""}</button>${assigning?"":`<button type="button" data-growth="delete-group" data-id="${g.id}" aria-label="Remove group ${esc(g.name)}">×</button>`}</div>`).join('')||'<p>No groups here yet. Make a little room for people who belong together.</p>';
  }
  function pendingRows() {
   return pending().filter(c=>match(name(other(c)),pendingSearch)).map(c=>personButton(other(c),`data-growth="pending" data-id="${other(c)}"`)).join('')||'<p>No pending connections here.</p>';
@@ -37,11 +37,11 @@ export function kinGrowth({ client, user, friends, connections, name, esc, avata
  }
  function panels() {
   if(!available) return '';
-  return `<section class="panel parlor-kin"><h2>Pending connections</h2><label class="field">Find a pending connection<input type="search" data-growth-search="pending" value="${esc(pendingSearch)}" aria-controls="pending-people"></label><div class="parlor-kin-list" id="pending-people">${pendingRows()}</div></section><section class="panel parlor-kin" id="kin-groups" tabindex="-1"><h2>Your groups</h2><label class="field">Find a group<input type="search" data-growth-search="groups" value="${esc(groupSearch)}" aria-controls="kin-group-list"></label><div class="parlor-kin-list" id="kin-group-list">${groupRows()}</div><div class="live-actions"><button type="button" class="primary" data-growth="new-group" aria-expanded="false" aria-controls="kin-group-create">＋ Group</button></div><div id="kin-group-create" hidden><form id="kin-new-group" class="live-form"><label class="field">New group name<input name="name" required maxlength="60" placeholder="School friends, family…"></label><button class="primary">Create group</button></form></div></section>`;
+  return `<section class="panel parlor-kin"><h2>Pending connections</h2><label class="field">Find a pending connection<input type="search" data-growth-search="pending" value="${esc(pendingSearch)}" aria-controls="pending-people"></label><div class="parlor-kin-list" id="pending-people">${pendingRows()}</div></section><section class="panel parlor-kin" id="kin-groups" tabindex="-1"><h2>${assigning?esc(name(assigning))+"’s groups":"Your groups"}</h2>${assigning?`<p>Choose a group to add or remove ${esc(name(assigning))}.</p>${btn("Done","done-assign")}`:""}<label class="field">Find a group<input type="search" data-growth-search="groups" value="${esc(groupSearch)}" aria-controls="kin-group-list"></label><div class="parlor-kin-list" id="kin-group-list">${groupRows()}</div><div class="live-actions"><button type="button" class="primary" data-growth="new-group" aria-expanded="false" aria-controls="kin-group-create">＋ Group</button></div><div id="kin-group-create" hidden><form id="kin-new-group" class="live-form"><label class="field">New group name<input name="name" required maxlength="60" placeholder="School friends, family…"></label><button class="primary">Create group</button></form></div></section>`;
  }
  function detail() {
   if(!available) return '';
-  if(assigning) return `<section class="panel kin-detail" id="kin-group-detail" tabindex="-1"><h2>Groups for ${esc(name(assigning))}</h2><div class="live-actions">${groups.map(g=>`<button type="button" data-growth="assign" data-id="${g.id}" aria-pressed="${members.some(m=>m.group_id===g.id&&m.person===assigning)}">${esc(g.name)}</button>`).join('')||'<p>Create a group in Your groups to get started.</p>'}</div>${btn('Done','done-assign')}</section>`;
+  if(assigning) return "";
   const group=groups.find(g=>g.id===selectedGroup);
   if(!group) return '';
   const included=members.filter(m=>m.group_id===group.id);
@@ -77,9 +77,9 @@ export function kinGrowth({ client, user, friends, connections, name, esc, avata
    if(!form.hidden) form.querySelector('input').focus();else button.focus();
    return true;
   }
-  if(action==='pending') {focus('kin-card-'+id);return true;}
+  if(action==='pending') {if(selectKin)selectKin(id);else focus('kin-card-'+id);return true;}
   if(action==='group') {assigning='';selectedGroup=id;memberSearch='';render();focus('kin-group-detail');return true;}
-  if(action==='person-groups') {assigning=id;render();focus('kin-group-detail');return true;}
+  if(action==='person-groups') {assigning=id;render();focus('kin-groups');return true;}
   if(action==='done-assign') {assigning='';render();focus('kin-groups');return true;}
   if(action==='delete-group'&&!confirm('Are you sure you wish to remove this group? Your connections will stay.')) return true;
   run(async()=>{
@@ -95,7 +95,7 @@ export function kinGrowth({ client, user, friends, connections, name, esc, avata
    if(action==='remind') check(await client().rpc('hearth_remind_connection',{person:id}));
    await refresh();render();
    if(action==='member') {document.getElementById('group-edit').open=true;focus('kin-group-detail');document.querySelector(`[data-growth="member"][data-id="${id}"]`)?.focus({preventScroll:true});}
-   if(action==='assign') focus('kin-group-detail');
+   if(action==='assign') {focus('kin-groups');document.querySelector(`[data-growth="assign"][data-id="${id}"]`)?.focus({preventScroll:true});}
    if(action==='delete-group') focus('kin-groups');
    if(action==='suggest-yes') return 'The introductions are ready in their parlors. Each person can choose in their own time.';
    if(action==='remind') return 'A gentle reminder is waiting in their parlor.';
@@ -107,7 +107,9 @@ export function kinGrowth({ client, user, friends, connections, name, esc, avata
   run(async()=>{
    const label=data.name.trim();if(!label) throw Error('Give your group a name.');
    const created=check(await client().from('hearth_kin_groups').insert({owner:user().id,name:label}).select('id').single());
-   selectedGroup=created.id;assigning='';groupSearch='';memberSearch='';await refresh();render();document.getElementById('group-edit').open=true;focus('kin-group-detail');
+   selectedGroup=created.id;groupSearch='';memberSearch='';
+   if(assigning)check(await client().from('hearth_kin_group_members').insert({owner:user().id,group_id:created.id,person:assigning}));
+   await refresh();render();if(assigning)focus('kin-groups');else{document.getElementById('group-edit').open=true;focus('kin-group-detail');}
   });return true;
  }
  function input(target) {
@@ -118,5 +120,5 @@ export function kinGrowth({ client, user, friends, connections, name, esc, avata
   if(kind==='members') {memberSearch=target.value;document.getElementById('group-member-list').innerHTML=memberRows();}
  }
  function reset(){groups=[];members=[];introductions=[];sent=[];suggestion=null;available=false;selectedGroup='';assigning='';groupSearch='';pendingSearch='';memberSearch='';}
- return {load,familiar,panels,detail,actions,cards,click,submit,input,reset,hasNew:()=>introductions.some(i=>!i.agreed),exportData:()=>({groups,members,introductions,sent_introductions:sent})};
+ return {assignPerson:id=>{assigning=id;},load,familiar,panels,detail,actions,cards,click,submit,input,reset,hasNew:()=>introductions.some(i=>!i.agreed),exportData:()=>({groups,members,introductions,sent_introductions:sent})};
 }

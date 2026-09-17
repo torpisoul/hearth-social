@@ -1,10 +1,10 @@
 export const palettes = [
-  ["hearth", "Hearth", "Warm paper and sage", "#f6f3eb", "#e3e9db", "#eee2d2"],
-  ["meadow", "Meadow", "Fresh greens and soft blossom", "#eef3e9", "#d9e7ce", "#ecdde2"],
-  ["shore", "Shore", "Sea glass and pale sand", "#edf3f3", "#d2e5e4", "#eee3d3"],
-  ["autumn", "Autumn", "Clay, oat and fallen leaves", "#f4eee7", "#ead9c8", "#e3d6bd"],
-  ["mountain", "Mountain", "Mist, stone and pine", "#eef0ed", "#d9e2db", "#e0ddd3"],
-  ["twilight", "Twilight", "Lavender and the evening sky", "#f0edf5", "#e0d8ed", "#e8dce4"],
+  ["hearth", "Hearth", "Warm paper and sage", "#e9e5d9", "#ced9bf", "#dfcfb9"],
+  ["meadow", "Meadow", "Fresh greens and soft blossom", "#e1e8d9", "#c4d5b6", "#dfc8d0"],
+  ["shore", "Shore", "Sea glass and pale sand", "#dce8e6", "#bcd5d0", "#dfd0b9"],
+  ["autumn", "Autumn", "Clay, oat and fallen leaves", "#e9ddd0", "#dcc2a9", "#d3c29f"],
+  ["mountain", "Mountain", "Mist, stone and pine", "#dfe4dc", "#bfcfc1", "#d1cbbb"],
+  ["twilight", "Twilight", "Lavender and the evening sky", "#e4ddec", "#cbbbd9", "#d9c4d2"],
 ];
 const key = "hearth-colour-palette";
 export function savedPalette() {

@@ -29,6 +29,43 @@ beforeEach(async()=>{
  for(const id of [b,c]) await as(a,'insert into hearth_kin_group_members(group_id,person) values($1,$2)',[group,id]);
 });
 after(async()=>{await db.close()});
+test('gathering notes are host-only and become readable only after invited guests accept',async()=>{
+ const plan='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ await admin(`insert into hearth_events(id,owner,title,place,starts_at,ends_at) values('${plan}','${a}','Tea','Garden',now()+interval '1 day',now()+interval '2 days');insert into hearth_event_invites(event,person) values('${plan}','${b}'),('${plan}','${c}')`);
+ const note=(await as(a,"insert into hearth_statuses(author,content,topic,audience,audience_event) values($1,'Bring cake','Everyday life','Gathering',$2) returning id",[a,plan]))[0].id;
+ const visible=id=>as(id,'select id from hearth_statuses where id=$1',[note]);
+ assert.equal((await visible(b)).length,0);
+ assert.equal((await visible(d)).length,0);
+ await as(b,'insert into hearth_rsvps(event) values($1)',[plan]);
+ assert.equal((await visible(b)).length,1);
+ await assert.rejects(as(b,"insert into hearth_statuses(author,content,topic,audience,audience_event) values($1,'Forged','Everyday life','Gathering',$2)",[b,plan]),/row-level security/);
+ await as(b,'delete from hearth_rsvps where event=$1',[plan]);
+ assert.equal((await visible(b)).length,0);
+ await as(c,'insert into hearth_rsvps(event) values($1)',[plan]);
+ assert.equal((await visible(c)).length,1);
+ await admin(`delete from hearth_event_invites where event='${plan}' and person='${c}'`);
+ assert.equal((await visible(c)).length,0);
+ await as(a,'delete from hearth_events where id=$1',[plan]);
+ assert.equal((await visible(a)).length,1);
+});
+test('group moments enforce current accepted membership, ownership and fail closed on deletion',async()=>{
+ const moment=(await as(a,"insert into hearth_statuses(author,content,topic,audience,audience_group) values($1,'Tea in the garden','Outdoors','Group',$2) returning id",[a,group]))[0].id;
+ const visible=id=>as(id,'select id from hearth_statuses where id=$1',[moment]);
+ assert.equal((await visible(a)).length,1);
+ assert.equal((await visible(b)).length,1);
+ assert.equal((await visible(d)).length,0);
+ await assert.rejects(as(b,"insert into hearth_statuses(author,content,topic,audience,audience_group) values($1,'Forged','Outdoors','Group',$2)",[b,group]),/row-level security/);
+ await assert.rejects(as(a,"insert into hearth_statuses(author,content,topic,audience) values($1,'Missing group','Outdoors','Group')",[a]),/row-level security/);
+ await as(a,'delete from hearth_kin_group_members where group_id=$1 and person=$2',[group,b]);
+ assert.equal((await visible(b)).length,0);
+ await as(a,'insert into hearth_kin_group_members(group_id,person) values($1,$2)',[group,d]);
+ assert.equal((await visible(d)).length,1);
+ await as(d,'insert into hearth_blocks(owner,target) values($1,$2)',[d,a]);
+ assert.equal((await visible(d)).length,0);
+ await as(a,'delete from hearth_kin_groups where id=$1',[group]);
+ assert.equal((await visible(c)).length,0);
+ assert.equal((await visible(a)).length,1);
+});
 test('groups and membership are private, cannot be forged and do not alter sharing',async()=>{
  assert.equal((await as(b,'select * from hearth_kin_groups')).length,0);
  assert.equal((await as(b,'select * from hearth_kin_group_members')).length,0);
