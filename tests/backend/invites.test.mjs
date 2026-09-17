@@ -16,7 +16,7 @@ test('invitation survives signup and nickname creation, then sends a consent-bas
   for (const key of ['document', 'location', 'history', 'sessionStorage', 'localStorage', 'FormData']) globalThis[key] = dom.window[key];
   let profile = null, connections = [], calls = [];
   const client = {
-    auth: { onAuthStateChange() {}, async getSession() { return { data: { session: null } }; }, async signUp() { return { data: { user: { id: visitor }, session: {} } }; } },
+    auth: { onAuthStateChange() {}, async getSession() { return { data: { session: null } }; }, async updateUser({data}) { return {data:{user:{id:visitor,user_metadata:data}}}; }, async signUp() { return { data: { user: { id: visitor }, session: {} } }; } },
     from(table) {
       let single = false;
       const q = { or(){return q;}, select() { return q; }, eq() { return q; }, neq() { return q; }, order() { return q; }, gte() { return q; }, limit() { return q; }, range() { return q; }, in() {return q;}, maybeSingle() { single = true; return q; }, insert(value) { if (table === 'hearth_profiles') profile = value; return q; }, then(resolve) { return Promise.resolve({ data: table === 'hearth_profiles' ? (single ? profile : profile ? [profile] : []) : table === 'hearth_connections' ? connections : table === 'hearth_preferences' ? null : [] }).then(resolve); } };
@@ -44,6 +44,9 @@ test('invitation survives signup and nickname creation, then sends a consent-bas
   assert.deepEqual(calls.find(([name])=>name==='hearth_request_friend'),['hearth_request_friend',{person:inviter}]);
   assert.match(document.body.textContent,/Your request is on its way/);
   document.querySelector('[data-action="dismiss-invite"]').click();
+  await settle();
+  assert.match(document.querySelector('h2').textContent,/A familiar face/);
+  document.querySelector('[data-action="onboarding-finish"]').click();
   await settle();
   assert.equal(sessionStorage.getItem('hearth-pending-invite'),null);
   assert.equal(location.search,'');
