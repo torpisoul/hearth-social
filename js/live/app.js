@@ -121,6 +121,30 @@ async function saveAccountChoices(data) {
   const result = check(await client.auth.updateUser({ data }));
   user = result.user;
 }
+async function saveFeedChoices() {
+  if (!feedDraft) return;
+  check(await client.from("hearth_preferences").upsert({owner:user.id,topics:feedDraft.topics,update_mode:preferences.update_mode}));
+  preferences = {...preferences, topics: [...feedDraft.topics]};
+  feedFilter = feedDraft.filter;
+  feedDraft = null;
+  page = 0;
+}
+async function savePaceChoices(data) {
+  if (!["manual","foreground"].includes(data.mode)) throw Error("Choose an update pace.");
+  if (!["in_app","immediate","hourly","daily","manual"].includes(data.notification_mode)) throw Error("Choose a notification preference.");
+  if (data.notification_time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(data.notification_time)) throw Error("Choose a valid daily check-in time.");
+  const choices = {owner:user.id,topics:preferences.topics,update_mode:data.mode,notification_mode:data.notification_mode,notification_time:data.notification_time || null,notification_zone:Intl.DateTimeFormat().resolvedOptions().timeZone};
+  check(await client.from("hearth_preferences").upsert(choices));
+  preferences = {...preferences, ...choices};
+  if (!systemMode(data.notification_mode)) await disablePush(client,user.id);
+}
+async function continueOnboarding() {
+  const step = Number(onboardingState().step) || 0;
+  if (step === 3) await saveFeedChoices();
+  if (step === 4) await savePaceChoices(Object.fromEntries(new FormData($("#updates"))));
+  if (step === 3 || step === 4) await refresh();
+  await moveOnboarding(step + 1);
+}
 async function moveOnboarding(step) {
   await saveAccountChoices({hearth_onboarding: {...onboardingState(), step, complete: step > 5}});
   feedDraft = null;
@@ -133,9 +157,9 @@ function onboardingView() {
   const step = Math.max(0, Math.min(5, Number(state.step) || 0));
   const hasInviter = Boolean(state.inviter);
   if (step === 0) referral = state.inviter;
-  const panels = [invitePrompt, avatarForm, paletteChoices, preferenceTopics, updateChoices, () => pushChoices(true)];
+  const panels = [invitePrompt, avatarForm, paletteChoices, () => preferenceTopics(true), () => updateChoices(true), () => pushChoices(true)];
   const first = hasInviter ? 0 : 1;
-  $("#app").innerHTML = `<main id="main" class="auth onboarding" tabindex="-1"><a class="brand" href="./index.html">${brand}hearth</a><div class="eyebrow">Make Hearth your home</div><h1>A little space, just for you.</h1><p>Every choice is optional. Skip anything, and change your preferences whenever you like.</p><p class="onboarding-progress" role="status">Step ${step - first + 1} of ${6 - first}</p>${panels[step]()}<nav class="live-actions" aria-label="Getting settled">${step > first ? button("Back", "onboarding-back") : ""}${button(step === 5 ? "Make yourself at home" : "Continue", "onboarding-next", 'class="primary"')}${step < 5 ? button("Skip this step", "onboarding-next") : ""}${button("Finish for now", "onboarding-finish")}</nav><p class="live-muted">Saved choices stay with you. Use Save or Apply where shown before continuing.</p>${button("Sign out", "logout")}</main>`;
+  $("#app").innerHTML = `<main id="main" class="auth onboarding" tabindex="-1"><a class="brand" href="./index.html">${brand}hearth</a><div class="eyebrow">Make Hearth your home</div><h1>A little space, just for you.</h1><p>Every choice is optional. Continue whenever you’re ready, and change your preferences whenever you like.</p><p class="onboarding-progress" role="status">Step ${step - first + 1} of ${6 - first}</p>${panels[step]()}<nav class="live-actions" aria-label="Getting settled">${step > first ? button("Back", "onboarding-back") : ""}${button(step === 5 ? "Make yourself at home" : "Continue", "onboarding-next", 'class="primary"')}</nav><p class="live-muted onboarding-note">${step < 5 ? "Continue saves your choices." : "Your choices are saved."} You can change them later in Your preferences.</p></main>`;
   enhanceChoices($("#app"));
 }
 function recoveryView() {
@@ -304,8 +328,8 @@ function avatarForm() {
 function feedbackForm() {
   return `<section class="panel feedback-panel"><h2>What would you like to do here?</h2><p>Anything you wish we could do together? Or a little thing that got in the way? A sentence is plenty.</p><form id="feedback" class="live-form">${field("Leave a little note", '<textarea name="content" required maxlength="2000" placeholder="I’d love to…" aria-describedby="feedback-privacy"></textarea>')}<small id="feedback-privacy">This goes to Hearth’s host with your account, not to your kin. It isn’t an encrypted message.</small><button class="primary">Send note</button><p id="feedback-result" role="status" tabindex="-1"></p></form></section>`;
 }
-function updateChoices() { return `<section class="panel"><h2>At your own pace</h2><form id="updates" class="live-form">${field("When should Hearth check in?",`<select name="mode"><option value="manual" ${preferences.update_mode==='manual'?'selected':''}>Only when I choose Refresh</option><option value="foreground" ${preferences.update_mode==='foreground'?'selected':''}>Quietly while I’m here</option></select>`)}<p>Quiet check-ins happen about once a minute while this tab is visible. They pause while you’re writing. A small dot marks new moments or notes; no pop-ups or sounds.</p><hr><h3>How should Hearth let you know?</h3>${field("Notification preference",`<select name="notification_mode"><option value="in_app" ${preferences.notification_mode==='in_app'?'selected':''}>Indicators inside Hearth only</option><option value="immediate" ${preferences.notification_mode==='immediate'?'selected':''}>Immediately when something arrives</option><option value="hourly" ${preferences.notification_mode==='hourly'?'selected':''}>An hourly digest</option><option value="daily" ${preferences.notification_mode==='daily'?'selected':''}>A daily check-in</option><option value="manual" ${preferences.notification_mode==='manual'?'selected':''}>Manual-only mode</option></select>`)}${field("Daily check-in time",`<input type="time" name="notification_time" value="${esc(preferences.notification_time || '20:00')}">`)}<p class="live-muted">Save your preference first. Device notifications need a separate opt-in below. Immediate notifications usually arrive within a minute. Hourly digests wait at least an hour; daily check-ins use the time zone on this device when you save. Quiet days need no notification. Manual-only mode pauses quiet check-ins and hides new-item dots.</p><button>Save my pace</button></form></section>`; }
-function preferenceTopics() { return `<section class="panel"><h2>What comes into your living room</h2>${topicChoices()}<h3>Whose moments?</h3><div class="live-actions" role="group" aria-label="People in your living room">${[["all","All chosen topics"],["circle","Inner circle"],["mine","My moments"]].map(([id,label])=>`<button data-feed-filter="${id}" aria-pressed="${(feedDraft?.filter || feedFilter)===id}">${label}</button>`).join('')}</div><div class="live-actions"><button class="primary" data-action="apply-feed">Apply</button></div><div class="setting"><div><strong>Hidden moments</strong><p>Hidden only on this device, for your account.</p></div><button data-action="restore-moments">Restore</button></div></section>`; }
+function updateChoices(onboarding = false) { return `<section class="panel"><h2>At your own pace</h2><form id="updates" class="live-form">${field("When should Hearth check in?",`<select name="mode"><option value="manual" ${preferences.update_mode==='manual'?'selected':''}>Only when I choose Refresh</option><option value="foreground" ${preferences.update_mode==='foreground'?'selected':''}>Quietly while I’m here</option></select>`)}<p>Quiet check-ins happen about once a minute while this tab is visible. They pause while you’re writing. A small dot marks new moments or notes; no pop-ups or sounds.</p><hr><h3>How should Hearth let you know?</h3>${field("Notification preference",`<select name="notification_mode"><option value="in_app" ${preferences.notification_mode==='in_app'?'selected':''}>Indicators inside Hearth only</option><option value="immediate" ${preferences.notification_mode==='immediate'?'selected':''}>Immediately when something arrives</option><option value="hourly" ${preferences.notification_mode==='hourly'?'selected':''}>An hourly digest</option><option value="daily" ${preferences.notification_mode==='daily'?'selected':''}>A daily check-in</option><option value="manual" ${preferences.notification_mode==='manual'?'selected':''}>Manual-only mode</option></select>`)}${field("Daily check-in time",`<input type="time" name="notification_time" value="${esc(preferences.notification_time || '20:00')}">`)}<p class="live-muted">${onboarding ? "Continue saves your pace. You can enable device notifications on the next step." : "Save your preference first. Device notifications need a separate opt-in below."} Immediate notifications usually arrive within a minute. Hourly digests wait at least an hour; daily check-ins use the time zone on this device when you save. Quiet days need no notification. Manual-only mode pauses quiet check-ins and hides new-item dots.</p>${onboarding ? "" : "<button>Save my pace</button>"}</form></section>`; }
+function preferenceTopics(onboarding = false) { return `<section class="panel"><h2>What comes into your living room</h2>${topicChoices()}<h3>Whose moments?</h3><div class="live-actions" role="group" aria-label="People in your living room">${[["all","All chosen topics"],["circle","Inner circle"],["mine","My moments"]].map(([id,label])=>`<button data-feed-filter="${id}" aria-pressed="${(feedDraft?.filter || feedFilter)===id}">${label}</button>`).join('')}</div>${onboarding ? "" : '<div class="live-actions"><button class="primary" data-action="apply-feed">Apply</button></div>'}<div class="setting"><div><strong>Hidden moments</strong><p>Hidden only on this device, for your account.</p></div><button data-action="restore-moments">Restore</button></div></section>`; }
 function messagePrivacy() {
  return `<section class="panel"><h2>Your private conversations</h2><div class="setting"><div><strong>This device</strong><p>Remove its saved message key before sharing it. Your recovery code or existing passphrase can reopen your conversations.</p></div>${button("Lock and forget this device","lock")}</div></section><section class="panel"><h2>Existing inner-circle sharing</h2><p>Your existing Inner circle still controls access to moments shared with that audience.</p><details><summary>Manage this audience</summary><div class="preference-topics">${friends().map(id=>`<button class="preference-row" data-circle="${id}" aria-pressed="${circle.some(c=>c.member===id)}"><span>${esc(name(id))}</span><span>${circle.some(c=>c.member===id)?"Included":"Not included"}</span></button>`).join("")||"<p>No kin yet.</p>"}</div></details></section>`;
 }
@@ -313,7 +337,7 @@ function pushChoices(onboarding = false) {
   if (!systemMode(preferences.notification_mode)) return onboarding
     ? '<section class="panel"><h2>A gentle nudge, if you choose</h2><p>Your current pace keeps device notifications off. If you’d like them, go back and choose immediate notifications or a digest, then return here to enable this device.</p><p>You can also leave things quiet and change this later in Your preferences.</p></section>'
     : '';
-  return `<section class="panel"><h2>A gentle nudge, if you choose</h2><p>Enable this device, then send yourself a test. Immediate notifications usually arrive within a minute. Hourly digests wait at least an hour; daily check-ins use the time zone on this device when you save. Quiet days need no notification. Notifications never include private message text.</p>${pushPublicKey && pushAvailable() ? `${button('Enable notifications on this device','enable-push')}${button('Send me a test notification','test-push')}${button('Turn off this device','disable-push')}` : '<p>Device notifications aren’t available here yet. On iPhone or iPad, add Hearth to your Home Screen and open it there.</p>'}<p role="status">${esc(pushStatus)}</p></section>`;
+  return `<section class="panel"><h2>A gentle nudge, if you choose</h2><p>Enable this device, then send yourself a test. Immediate notifications usually arrive within a minute. Hourly digests wait at least an hour; daily check-ins use the time zone on this device when you save. Quiet days need no notification. Notifications never include private message text.</p>${pushPublicKey && pushAvailable() ? `<div class="live-actions push-actions">${button('Enable notifications on this device','enable-push')}${button('Send me a test notification','test-push')}${button('Turn off this device','disable-push')}</div>` : '<p>Device notifications aren’t available here yet. On iPhone or iPad, add Hearth to your Home Screen and open it there.</p>'}<p role="status">${esc(pushStatus)}</p></section>`;
 }
 function paletteChoices() {
   return `<section class="panel palette-panel"><h2>What colours feel like home?</h2><p>A few quiet corners of the world. Pick one to try it here.</p><div class="palette-choices" role="group" aria-label="Colour palette">${palettes.map(([id,label,description,...colours])=>`<button type="button" data-palette-choice="${id}" aria-pressed="${colourPalette===id}"><span class="palette-swatches" aria-hidden="true">${colours.map(c=>`<span style="background:${c}"></span>`).join("")}</span><strong>${label}</strong><small>${description}</small></button>`).join("")}</div><p class="live-muted">Remembered in this browser. You can choose a different feeling on each device.</p></section>`;
@@ -583,11 +607,8 @@ document.addEventListener("submit", (event) => {
       delete gatheringMessageDrafts[plan.id];gatheringMessagePlan="";
     }
     if (form.id === "updates") {
-      if (!["manual","foreground"].includes(data.mode)) throw Error("Choose an update pace.");
-      if (!["in_app","immediate","hourly","daily","manual"].includes(data.notification_mode)) throw Error("Choose a notification preference.");
-      if (data.notification_time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(data.notification_time)) throw Error("Choose a valid daily check-in time.");
-      check(await client.from("hearth_preferences").upsert({owner:user.id,topics:preferences.topics,update_mode:data.mode,notification_mode:data.notification_mode,notification_time:data.notification_time || null,notification_zone:Intl.DateTimeFormat().resolvedOptions().timeZone}));
-      if (!systemMode(data.notification_mode)) await disablePush(client,user.id);
+      if (onboardingState() && !onboardingState().complete) { await continueOnboarding(); return; }
+      await savePaceChoices(data);
     }
     if (form.id === "event") {
       const starts = new Date(eventDraft.starts_at);
@@ -740,7 +761,17 @@ document.addEventListener("click", (event) => {
    d.chat=moment.author;
   }
   if (d.action === 'enable-push') {
-    run(async () => { await enablePush(client,user.id,preferences.notification_mode,pushPublicKey); pushStatus='This device is ready. You can send yourself a test.'; render(); }); return;
+    run(async () => {
+      try {
+        await enablePush(client,user.id,preferences.notification_mode,pushPublicKey);
+        pushStatus='This device is ready. You can send yourself a test.';
+      } catch (error) {
+        pushStatus=error.message || 'Couldn’t enable notifications. Please try again.';
+        render();
+        throw error;
+      }
+      render();
+    }); return;
   }
   if (d.action === 'disable-push') {
     run(async () => { await disablePush(client,user.id); pushStatus='Notifications on this device are off.'; render(); }); return;
@@ -795,13 +826,16 @@ document.addEventListener("click", (event) => {
   if (d.action === "close-menu") { $("#mobile-menu").close(); return; }
   if (b.closest("dialog")) $("#mobile-menu").close();
   run(async () => {
-    if (d.action?.startsWith("onboarding-") && onboardingState()) {
-      const step = Number(onboardingState().step) || 0;
-      await moveOnboarding(d.action === "onboarding-finish" ? 6 : d.action === "onboarding-back" ? Math.max(onboardingState().inviter ? 0 : 1, step - 1) : step + 1);
+    if (d.action === "onboarding-next" && onboardingState()) {
+      await continueOnboarding();
+      return;
+    }
+    if (d.action === "onboarding-back" && onboardingState()) {
+      await moveOnboarding(Math.max(onboardingState().inviter ? 0 : 1, Number(onboardingState().step) - 1));
       return;
     }
     if (d.action === "apply-feed") {
-      if(feedDraft){check(await client.from("hearth_preferences").upsert({owner:user.id,topics:feedDraft.topics,update_mode:preferences.update_mode}));feedFilter=feedDraft.filter;feedDraft=null;page=0;await refresh();render();say("Your living room choices are saved.");}return;
+      if(feedDraft){await saveFeedChoices();await refresh();render();say("Your living room choices are saved.");}return;
     }
     if (d.editEvent) {
       const e=events.find(e=>e.id===d.editEvent && e.owner===user.id);

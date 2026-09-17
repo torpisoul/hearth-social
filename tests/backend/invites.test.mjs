@@ -19,7 +19,7 @@ test('invitation survives signup and nickname creation, then sends a consent-bas
     auth: { onAuthStateChange() {}, async getSession() { return { data: { session: null } }; }, async updateUser({data}) { return {data:{user:{id:visitor,user_metadata:data}}}; }, async signUp() { return { data: { user: { id: visitor }, session: {} } }; } },
     from(table) {
       let single = false;
-      const q = { or(){return q;}, select() { return q; },or(){return q}, eq() { return q; }, neq() { return q; }, order() { return q; }, gte() { return q; }, limit() { return q; }, range() { return q; }, in() {return q;}, maybeSingle() { single = true; return q; }, insert(value) { if (table === 'hearth_profiles') profile = value; return q; }, then(resolve) { return Promise.resolve({ data: table === 'hearth_profiles' ? (single ? profile : profile ? [profile] : []) : table === 'hearth_connections' ? connections : table === 'hearth_preferences' ? null : [] }).then(resolve); } };
+      const q = { upsert() { return q; }, or(){return q;}, select() { return q; },or(){return q}, eq() { return q; }, neq() { return q; }, order() { return q; }, gte() { return q; }, limit() { return q; }, range() { return q; }, in() {return q;}, maybeSingle() { single = true; return q; }, insert(value) { if (table === 'hearth_profiles') profile = value; return q; }, then(resolve) { return Promise.resolve({ data: table === 'hearth_profiles' ? (single ? profile : profile ? [profile] : []) : table === 'hearth_connections' ? connections : table === 'hearth_preferences' ? null : [] }).then(resolve); } };
       return q;
     },
     async rpc(action, args) { calls.push([action,args]); if (action === 'hearth_request_friend') connections = [{requester:visitor,recipient:args.person,accepted:false}]; return {data:null}; }
@@ -46,8 +46,10 @@ test('invitation survives signup and nickname creation, then sends a consent-bas
   document.querySelector('[data-action="dismiss-invite"]').click();
   await settle();
   assert.match(document.querySelector('h2').textContent,/A familiar face/);
-  document.querySelector('[data-action="onboarding-finish"]').click();
-  await settle();
+  for (let step=0; step<5; step++) {
+    document.querySelector('[data-action="onboarding-next"]').click();
+    await settle();
+  }
   assert.equal(sessionStorage.getItem('hearth-pending-invite'),null);
   assert.equal(location.search,'');
   dom.window.close();

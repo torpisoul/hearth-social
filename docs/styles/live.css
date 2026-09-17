@@ -410,6 +410,8 @@ button.primary:not(:disabled):hover, button[aria-pressed="true"]:not(:disabled):
 
 .onboarding { max-width: 720px; }
 .onboarding-progress { padding: 12px 18px; border-radius: 16px; box-shadow: inset 3px 3px 7px var(--shadow-low), inset -3px -3px 7px var(--shadow-high); }
-.onboarding .live-actions { flex-wrap: wrap; gap: 12px; }
+.onboarding .live-actions, .push-actions { flex-wrap: wrap; gap: 18px; }
+.onboarding > .onboarding-note { margin-top: 24px; }
+.push-actions { margin-block: 24px; }
 .onboarding .panel { margin: 24px 0; }
 .onboarding:focus { outline: none; }

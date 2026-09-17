@@ -4,13 +4,31 @@ export function pushAvailable(env = globalThis) {
   return Boolean(env.isSecureContext && env.Notification && env.PushManager && env.navigator?.serviceWorker);
 }
 
+async function readyForPush(worker) {
+  let timer;
+  try {
+    // Retry a failed startup registration instead of waiting forever for ready.
+    return await Promise.race([
+      worker.register('./sw.js').then(() => worker.ready),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(Error('Notifications couldn’t get ready. Reload Hearth and try again.')), 10000);
+      }),
+    ]);
+  } catch (error) {
+    throw Error('Couldn’t prepare notifications on this device. Reload Hearth and try again.', {cause:error});
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function enablePush(client, owner, mode, key, env = globalThis) {
   if (!systemMode(mode) || !key) throw Error('Save a notification preference first.');
   if (!pushAvailable(env)) throw Error('Notifications aren’t available here. On iPhone or iPad, add Hearth to your Home Screen and open it there.');
   // Call immediately from the deliberate button click, before any network work.
+  if (env.Notification.permission === 'denied') throw Error('Notifications are blocked for Hearth. Allow notifications in your browser’s site settings, then try again.');
   const permission = await env.Notification.requestPermission();
   if (permission !== 'granted') throw Error('Notifications remain off. You can change browser permissions whenever you choose.');
-  const registration = await env.navigator.serviceWorker.ready;
+  const registration = await readyForPush(env.navigator.serviceWorker);
   const existing = await registration.pushManager.getSubscription();
   const subscription = existing || await registration.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: key});
   const {keys} = subscription.toJSON();

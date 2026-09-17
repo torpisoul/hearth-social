@@ -5,12 +5,12 @@ import esmock from 'esmock';
 
 const me = '22222222-2222-4222-8222-222222222222';
 const inviter = '11111111-1111-4111-8111-111111111111';
-async function setup({profile = null, metadata = {}, ref = '', failSave = false} = {}) {
+async function setup({profile = null, metadata = {}, ref = '', failSave = false, failPreferences = false} = {}) {
   const dom = new JSDOM('<div id="app"></div><div id="notice"></div>', {url: `https://example.org/live.html${ref ? '?ref='+ref : ''}`});
   for (const key of ['document','location','history','sessionStorage','localStorage','FormData']) globalThis[key] = dom.window[key];
   let user = {id: me, user_metadata: metadata};
   const tables = {hearth_profiles: profile ? [profile] : [], hearth_preferences: {topics: [], update_mode: 'manual', notification_mode: 'in_app'}, hearth_connections: []};
-  const requests = [];
+  const requests = [], pushRequests = [];
   const client = {
     auth: {onAuthStateChange(){}, async getSession(){return {data: {session: {user}}}}, async updateUser({data}) {
       if (failSave) return {error: {message: 'Could not save choices'}};
@@ -20,10 +20,16 @@ async function setup({profile = null, metadata = {}, ref = '', failSave = false}
     async rpc(action, args) {requests.push([action,args]); if(action === 'hearth_request_friend') tables.hearth_connections.push({requester:me, recipient:args.person, accepted:false}); return {data: action === 'hearth_event_attendees' ? [] : null}},
     from(table) {let single = false; const q = {select(){return q},or(){return q},eq(){return q},neq(){return q},order(){return q},gte(){return q},limit(){return q},range(){return q},in(){return q},maybeSingle(){single=true;return q},insert(row){tables[table].push(row);return q},upsert(row){tables[table]={...tables[table],...row};return q},then(resolve){return Promise.resolve({data: table==='hearth_profiles' && single ? tables[table][0] || null : tables[table] ?? (single ? null : [])}).then(resolve)}};return q}
   };
-  globalThis.fetch = async()=>({ok:true,json:async()=>({supabaseUrl:'https://example.supabase.co',supabasePublishableKey:'public'})});
-  await esmock('../../js/live/app.js', {'@supabase/supabase-js': {createClient:()=>client}});
+  if (failPreferences) {
+    const from = client.from;
+    client.from = table => table === 'hearth_preferences'
+      ? {...from(table), upsert:async()=>({error:Error('Could not save preferences')})}
+      : from(table);
+  }
+  globalThis.fetch = async()=>({ok:true,json:async()=>({supabaseUrl:'https://example.supabase.co',supabasePublishableKey:'public',pushPublicKey:'test-key'})});
+  await esmock('../../js/live/app.js', {'@supabase/supabase-js': {createClient:()=>client}, '../../js/live/push.js': {pushAvailable:()=>true,enablePush:async(_client,_owner,mode,key)=>{pushRequests.push({mode,key})}}});
   const settle = ()=>new Promise(r=>setTimeout(r,25)); await settle();
-  return {dom,tables,requests,get user(){return user},async click(action){document.querySelector(`[data-action="${action}"]`).click();await settle()},async submit(id){document.querySelector('#'+id).dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await settle()}};
+  return {dom,tables,requests,pushRequests,get user(){return user},async click(action){document.querySelector(`[data-action="${action}"]`).click();await settle()},async finish(){for(let i=0;i<6 && document.querySelector('.onboarding');i++)await this.click('onboarding-next')},async submit(id){document.querySelector('#'+id).dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await settle()}};
 }
 
 test('new profile gets optional preferences, saves choices, and completes into parlor', async()=>{
@@ -31,6 +37,9 @@ test('new profile gets optional preferences, saves choices, and completes into p
   document.querySelector('#profile input').value='New friend'; await app.submit('profile');
   assert.match(document.querySelector('h2').textContent,/A familiar face/);
   assert.equal(app.user.user_metadata.hearth_onboarding.step,1);
+  assert.equal(document.querySelector('[data-action="logout"]'),null);
+  assert.equal(document.querySelector('[data-action="onboarding-finish"]'),null);
+  assert.ok(!document.querySelector('.onboarding').textContent.includes('Skip this step'));
   await app.click('onboarding-next');
   assert.match(document.querySelector('h2').textContent,/colours/);
   document.querySelector('[data-palette-choice="shore"]').click();
@@ -38,18 +47,21 @@ test('new profile gets optional preferences, saves choices, and completes into p
   await app.click('onboarding-next');
   document.querySelector('[data-topic]').click(); await new Promise(r=>setTimeout(r,25));
   assert.equal(app.tables.hearth_preferences.topics.length,0);
-  await app.click('apply-feed');
-  assert.equal(app.tables.hearth_preferences.topics.length,1);
+  assert.equal(document.querySelector('[data-action="apply-feed"]'),null);
   await app.click('onboarding-next');
+  assert.equal(app.tables.hearth_preferences.topics.length,1);
   assert.ok([...document.querySelectorAll('#updates select')].every(s=>s.hidden));
+  assert.ok(!document.querySelector('#updates').textContent.includes('Save my pace'));
   document.querySelector('#updates select[name="mode"]').value='foreground';
   document.querySelector('#updates select[name="notification_mode"]').value='daily';
-  await app.submit('updates');
+  await app.click('onboarding-next');
   assert.equal(app.tables.hearth_preferences.update_mode,'foreground');
   assert.equal(app.tables.hearth_preferences.notification_mode,'daily');
-  await app.click('onboarding-next');
   assert.match(document.querySelector('h2').textContent,/gentle nudge/);
   assert.match(document.querySelector('.onboarding').textContent,/daily check-ins/);
+  assert.ok(document.querySelector('.push-actions [data-action="enable-push"]'));
+  await app.click('enable-push');
+  assert.deepEqual(app.pushRequests,[{mode:'daily',key:'test-key'}]);
   await app.click('onboarding-back');
   assert.equal(document.querySelector('#updates select').value,'foreground');
   await app.click('onboarding-next'); await app.click('onboarding-next');
@@ -70,7 +82,7 @@ test('inviter goes first, connects only by consent, and can be skipped', async()
   assert.match(document.querySelector('h2').textContent,/on its way/);
   await app.click('dismiss-invite');
   assert.match(document.querySelector('h2').textContent,/familiar face/);
-  await app.click('onboarding-finish');
+  await app.finish();
   assert.equal(app.user.user_metadata.hearth_onboarding.complete,true);
   assert.equal(sessionStorage.getItem('hearth-pending-invite'),null);
   app.dom.window.close();
@@ -81,20 +93,31 @@ test('resumed quiet onboarding finishes without opting into device notifications
   assert.match(document.querySelector('h2').textContent,/gentle nudge/);
   assert.match(document.querySelector('.onboarding').textContent,/keeps device notifications off/);
   assert.equal(document.querySelector('[data-action="enable-push"]'),null);
-  await app.click('onboarding-finish');
+  await app.click('onboarding-next');
   assert.equal(app.user.user_metadata.hearth_onboarding.complete,true);
   assert.equal(app.tables.hearth_preferences.notification_mode,'in_app');
   assert.equal(app.tables.hearth_push_subscriptions,undefined);
   app.dom.window.close();
 });
 
+for (const step of [3,4]) test('failed preference save keeps onboarding step '+step+' open', async()=>{
+  const app=await setup({profile:{id:me,name:'Me'},metadata:{hearth_onboarding:{step,complete:false}},failPreferences:true});
+  if(step===3) document.querySelector('[data-topic]').click();
+  await app.click('onboarding-next');
+  assert.match(document.querySelector('#notice').textContent,/Could not save preferences/);
+  assert.equal(app.user.user_metadata.hearth_onboarding.step,step);
+  assert.equal(document.querySelector('[data-action="onboarding-next"]').disabled,false);
+  if(step===3) assert.equal(document.querySelector('[data-topic]').getAttribute('aria-pressed'),'true');
+  app.dom.window.close();
+});
+
 test('pending accounts resume on another browser and failed completion stays retryable', async()=>{
   const app=await setup({profile:{id:me,name:'Me'},metadata:{hearth_onboarding:{step:4,complete:false}},failSave:true});
   assert.match(document.querySelector('h2').textContent,/own pace/);
-  await app.click('onboarding-finish');
+  await app.click('onboarding-next');
   assert.match(document.querySelector('#notice').textContent,/Could not save/);
   assert.ok(document.querySelector('.onboarding'));
-  assert.equal(document.querySelector('[data-action="onboarding-finish"]').disabled,false);
+  assert.equal(document.querySelector('[data-action="onboarding-next"]').disabled,false);
   app.dom.window.close();
 });
 

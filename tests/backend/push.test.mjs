@@ -17,9 +17,41 @@ test('denied permission never creates a subscription',async()=>{
 test('failed persistence undoes a newly created subscription',async()=>{
  let removed=false;
  const sub={endpoint:'https://fcm.googleapis.com/x',toJSON:()=>({keys:{p256dh:'x',auth:'y'}}),unsubscribe:async()=>{removed=true}};
- const env={isSecureContext:true,Notification:{requestPermission:async()=> 'granted'},PushManager:{},navigator:{serviceWorker:{ready:Promise.resolve({pushManager:{getSubscription:async()=>null,subscribe:async()=>sub}})}}};
+ const env={isSecureContext:true,Notification:{requestPermission:async()=> 'granted'},PushManager:{},navigator:{serviceWorker:{register:async()=>{},ready:Promise.resolve({pushManager:{getSubscription:async()=>null,subscribe:async()=>sub}})}}};
  await assert.rejects(enablePush({from:()=>({upsert:async()=>({error:Error()})})},'me','daily','key',env));
  assert.equal(removed,true);
+});
+test('enabling push requests permission first, retries worker registration, and stores the subscription',async()=>{
+ const calls=[];
+ const sub={endpoint:'https://fcm.googleapis.com/x',toJSON:()=>({keys:{p256dh:'x',auth:'y'}})};
+ const registration={pushManager:{getSubscription:async()=>null,subscribe:async options=>{calls.push(options);return sub}}};
+ const env={isSecureContext:true,Notification:{requestPermission(){calls.push('permission');return Promise.resolve('granted')}},PushManager:{},navigator:{serviceWorker:{register:async path=>calls.push(path),ready:Promise.resolve(registration)}}};
+ const client={from:table=>({upsert:async data=>{calls.push({table,data});return {error:null}}})};
+ const pending=enablePush(client,'me','daily','key',env);
+ assert.deepEqual(calls,['permission']);
+ await pending;
+ assert.equal(calls[1],'./sw.js');
+ assert.deepEqual(calls[2],{userVisibleOnly:true,applicationServerKey:'key'});
+ assert.deepEqual(calls[3],{table:'hearth_push_subscriptions',data:{owner:'me',endpoint:sub.endpoint,p256dh:'x',auth:'y'}});
+});
+test('worker registration failure is reported instead of waiting indefinitely',async()=>{
+ const env={isSecureContext:true,Notification:{requestPermission:async()=> 'granted'},PushManager:{},navigator:{serviceWorker:{register:async()=>{throw Error('Registration failed')},ready:new Promise(()=>{})}}};
+ await assert.rejects(enablePush({},'me','daily','key',env),/prepare notifications/);
+});
+test('worker activation timeout remains retryable',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ const env={isSecureContext:true,Notification:{requestPermission:async()=> 'granted'},PushManager:{},navigator:{serviceWorker:{register:async()=>{},ready:new Promise(()=>{})}}};
+ const pending=enablePush({},'me','daily','key',env);
+ await Promise.resolve();
+ const rejected=assert.rejects(pending,/prepare notifications/);
+ t.mock.timers.tick(10000);
+ await rejected;
+});
+test('blocked permission explains how to unblock without prompting again',async()=>{
+ let prompted=false;
+ const env={isSecureContext:true,Notification:{permission:'denied',requestPermission(){prompted=true}},PushManager:{},navigator:{serviceWorker:{}}};
+ await assert.rejects(enablePush({},'me','daily','key',env),/site settings/);
+ assert.equal(prompted,false);
 });
 test('sender rejects opt-out and endpoint redirects to arbitrary hosts',()=>{
  for (const mode of ['manual','in_app',undefined]) assert.equal(maySend(mode),false);
