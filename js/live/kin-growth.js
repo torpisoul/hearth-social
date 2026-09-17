@@ -37,7 +37,7 @@ export function kinGrowth({ client, user, friends, connections, name, esc, avata
  }
  function panels() {
   if(!available) return '';
-  return `<section class="panel parlor-kin"><h2>Pending connections</h2><label class="field">Find a pending connection<input type="search" data-growth-search="pending" value="${esc(pendingSearch)}" aria-controls="pending-people"></label><div class="parlor-kin-list" id="pending-people">${pendingRows()}</div></section><section class="panel parlor-kin" id="kin-groups" tabindex="-1"><h2>Your groups</h2><label class="field">Find a group<input type="search" data-growth-search="groups" value="${esc(groupSearch)}" aria-controls="kin-group-list"></label><div class="parlor-kin-list" id="kin-group-list">${groupRows()}</div><details><summary>＋ Create group</summary><form id="kin-new-group" class="live-form"><label class="field">New group name<input name="name" required maxlength="60" placeholder="School friends, family…"></label><button>Create group</button></form></details></section>`;
+  return `<section class="panel parlor-kin"><h2>Pending connections</h2><label class="field">Find a pending connection<input type="search" data-growth-search="pending" value="${esc(pendingSearch)}" aria-controls="pending-people"></label><div class="parlor-kin-list" id="pending-people">${pendingRows()}</div></section><section class="panel parlor-kin" id="kin-groups" tabindex="-1"><h2>Your groups</h2><label class="field">Find a group<input type="search" data-growth-search="groups" value="${esc(groupSearch)}" aria-controls="kin-group-list"></label><div class="parlor-kin-list" id="kin-group-list">${groupRows()}</div><div class="live-actions"><button type="button" class="primary" data-growth="new-group" aria-expanded="false" aria-controls="kin-group-create">＋ Group</button></div><div id="kin-group-create" hidden><form id="kin-new-group" class="live-form"><label class="field">New group name<input name="name" required maxlength="60" placeholder="School friends, family…"></label><button class="primary">Create group</button></form></div></section>`;
  }
  function detail() {
   if(!available) return '';
@@ -71,6 +71,12 @@ export function kinGrowth({ client, user, friends, connections, name, esc, avata
  function click(button) {
   const {growth:action,id}=button.dataset;
   if(!action) return false;
+  if(action==='new-group') {
+   const form=document.getElementById('kin-group-create');
+   form.hidden=!form.hidden;button.setAttribute('aria-expanded',String(!form.hidden));
+   if(!form.hidden) form.querySelector('input').focus();else button.focus();
+   return true;
+  }
   if(action==='pending') {focus('kin-card-'+id);return true;}
   if(action==='group') {assigning='';selectedGroup=id;memberSearch='';render();focus('kin-group-detail');return true;}
   if(action==='person-groups') {assigning=id;render();focus('kin-group-detail');return true;}
