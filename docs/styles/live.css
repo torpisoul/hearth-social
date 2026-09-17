@@ -293,12 +293,16 @@ button.primary, .nav button.active, .live-auth-tabs button[aria-pressed="true"] 
  .kin-detail, #conversation, #event { scroll-margin-top:88px; }
 }
 @media(max-width:480px) { .soft-dialog { padding:20px; } .calendar-days { gap:7px; } .date-targets { grid-template-columns:1fr; } }
-.kin-growth-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.25rem; margin-bottom:1.25rem; }
-.kin-growth-grid .panel { min-width:0; }
+.kin-sidebar { grid-column:2; grid-row:1; display:grid; gap:24px; min-width:0; }
+.kin-sidebar .parlor-kin { position:static; grid-column:auto; grid-row:auto; }
+.kin-sidebar .parlor-kin-list { max-height:230px; }
+[data-growth-search] { width:100%; min-height:52px; background:var(--paper); border-color:transparent; border-radius:14px; box-shadow:inset 3px 3px 7px var(--shadow-low),inset -3px -3px 7px var(--shadow-high); font-size:16px; }
+#group-member-list { max-height:230px; }
+.group-people { overflow-wrap:anywhere; }
 .group-row { display:flex; align-items:center; gap:.5rem; margin-bottom:.6rem; }
 .group-row .parlor-person { flex:1; min-width:0; }
 .group-row span { overflow-wrap:anywhere; }
 .kin-suggestion { border-bottom:1px solid var(--line); padding-bottom:1rem; margin-bottom:1rem; }
 .kin-suggestion .live-actions { flex-wrap:wrap; }
 #kin-group-detail, #kin-groups { scroll-margin-top:6rem; }
-@media(max-width:700px) { .kin-growth-grid { grid-template-columns:1fr; } }
+@media(max-width:1000px) { .kin-sidebar { grid-column:1; grid-row:1; } }

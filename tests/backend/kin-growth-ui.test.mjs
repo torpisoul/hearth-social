@@ -17,12 +17,15 @@ test('groups, pending search, introductions and confirmation work without openin
    if(action==='insert')state[table].push(payload);
    return Promise.resolve({data:state[table].filter(match)}).then(resolve);
   }};return query;
- },async rpc(action,args){calls.push([action,args]);return {data:action==='hearth_my_introductions'?intros:action==='hearth_next_introduction'?{a:'b',b:'c'}:null}}};
+ },async rpc(action,args){calls.push([action,args]);return {data:action==='hearth_my_introductions'?intros:action==='hearth_sent_introductions'?[{id:'sent',a:'b',b:'c',a_name:'Bob',b_name:'Carol',created_at:'2026-09-17T10:00:00Z'}]:action==='hearth_next_introduction'?{a:'b',b:'c'}:null}}};
  const esc=value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
  let growth;
- const render=()=>{document.querySelector('main').innerHTML=growth.panels()+growth.cards()+growth.familiar()+'<section id="kin-card-c" tabindex="-1"></section>';};
+ const render=()=>{document.querySelector('main').innerHTML=growth.panels()+growth.detail()+growth.cards()+growth.familiar()+'<section id="kin-card-c" tabindex="-1"></section>';};
  growth=kinGrowth({client:()=>client,user:()=>({id:'a'}),friends:()=>['b'],connections:()=>links,name:id=>people[id],esc,avatar:()=>'',run:fn=>{work=fn();},refresh:()=>growth.load(),render,say:()=>{}});
  await growth.load();render();
+ assert.match(growth.cards('b'),/Hi Bob! I noticed you and Carol/);
+ assert.match(growth.cards('c'),/Hi Carol! I noticed you and Bob/);
+ assert.doesNotMatch(growth.cards('d'),/data-sent-introduction/);
  assert.equal(document.querySelector('script'),null);
  assert.match(document.querySelector('main').textContent,/Family <&>/);
  const search=document.querySelector('[data-growth-search="pending"]');search.focus();search.value='CAR';growth.input(search);
@@ -31,6 +34,9 @@ test('groups, pending search, introductions and confirmation work without openin
  assert.equal(document.activeElement.id,'kin-card-c');
  growth.click(document.querySelector('[data-growth="group"]'));
  assert.equal(document.activeElement.id,'kin-group-detail');
+ assert.equal(document.querySelector('#group-edit').open,false);
+ assert.equal(document.querySelector('#kin-group-detail').parentElement,document.querySelector('main'));
+ document.querySelector('#group-edit').open=true;
  const member=document.querySelector('[data-growth="member"][data-id="b"]');
  assert.equal(member.getAttribute('aria-pressed'),'true');growth.click(member);await work;
  assert.equal(document.querySelector('[data-growth="member"][data-id="b"]').getAttribute('aria-pressed'),'false');

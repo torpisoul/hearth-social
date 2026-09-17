@@ -3,6 +3,8 @@
 ## What changed
 
 Your kin now includes searchable **Your groups** and **Pending connections** panels.
+All three people widgets share the kin sidebar. The selected group appears below
+the invite card and above individual kin cards; its member editor opens on demand.
 Group names and membership are private to their owner. Groups never change sharing
 permissions or the existing Inner circle. Create a group, select it, and press
 people to add or remove them. The Groups button on each kin or pending card opens
@@ -23,6 +25,11 @@ accept it. Existing Accept, Cancel request and Block controls still work. Cancel
 or blocking closes stale introductions. Declined/cancelled pairs are not suggested
 again automatically; direct friend-code requests remain available.
 
+Sent introductions remain visible to their author in the parlor overview and in
+both recipient conversations, including introductions created before this update.
+These show only the original introduction, with no read receipts or reply status.
+The familiar-faces widget now shows suggestions only, without a duplicate kin list.
+
 Outgoing pending cards offer a fixed-text reminder in the recipient’s parlor,
 at most once a week after the original request. Reminders do not send free text
 or request notification permission. Introductions/reminders use in-app indicators;
@@ -40,7 +47,9 @@ npx supabase db push --dry-run
 npx supabase db push
 ```
 
-The only new migration is `20260916231551_hearth_kin_groups_introductions.sql`.
+The initial migration is `20260916231551_hearth_kin_groups_introductions.sql`.
+The follow-up `20260916235008_hearth_sent_introductions.sql` adds the private sent
+history lookup. Apply it even if the initial groups migration is already deployed.
 It adds tables/functions and one nullable reminder timestamp; no existing account,
 message, key backup or production row is removed by the migration. Normal later
 disconnect/block actions clean up private group membership and close introductions.

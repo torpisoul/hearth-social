@@ -112,6 +112,20 @@ test('reverse-order consent preserves private pending groups through acceptance'
 });
 test('anonymous callers cannot enumerate candidates, cards or private groups',async()=>{
  await db.exec('reset role;set role anon');
- for(const sql of ['select * from hearth_kin_groups','select * from hearth_kin_group_members','select hearth_next_introduction()','select hearth_my_introductions()'])
+ for(const sql of ['select * from hearth_kin_groups','select * from hearth_kin_group_members','select hearth_next_introduction()','select hearth_my_introductions()','select hearth_sent_introductions()'])
   await assert.rejects(db.query(sql),/permission denied/);
+});
+test('sent introductions persist for their author without disclosing either reply',async()=>{
+ await suggest();
+ const sent=async actor=>(await as(actor,'select hearth_sent_introductions() as items'))[0].items;
+ const original=await sent(a);
+ assert.equal(original.length,1);
+ assert.deepEqual(Object.keys(original[0]).sort(),['a','a_name','b','b_name','created_at','id']);
+ assert.equal(original[0].a_name,'Bob');assert.equal(original[0].b_name,'Carol');
+ for(const actor of [b,c,d]) assert.deepEqual(await sent(actor),[]);
+ const [intro]=await list(b);
+ await as(b,'select hearth_answer_introduction($1,true)',[intro.id]);
+ assert.deepEqual(await sent(a),original);
+ await as(c,'select hearth_answer_introduction($1,false)',[intro.id]);
+ assert.deepEqual(await sent(a),original);
 });
