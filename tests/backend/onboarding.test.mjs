@@ -9,7 +9,7 @@ async function setup({profile = null, metadata = {}, ref = '', failSave = false}
   const dom = new JSDOM('<div id="app"></div><div id="notice"></div>', {url: `https://example.org/live.html${ref ? '?ref='+ref : ''}`});
   for (const key of ['document','location','history','sessionStorage','localStorage','FormData']) globalThis[key] = dom.window[key];
   let user = {id: me, user_metadata: metadata};
-  const tables = {hearth_profiles: profile ? [profile] : [], hearth_preferences: {topics: [], update_mode: 'manual'}, hearth_connections: []};
+  const tables = {hearth_profiles: profile ? [profile] : [], hearth_preferences: {topics: [], update_mode: 'manual', notification_mode: 'in_app'}, hearth_connections: []};
   const requests = [];
   const client = {
     auth: {onAuthStateChange(){}, async getSession(){return {data: {session: {user}}}}, async updateUser({data}) {
@@ -18,7 +18,7 @@ async function setup({profile = null, metadata = {}, ref = '', failSave = false}
       return {data: {user}};
     }},
     async rpc(action, args) {requests.push([action,args]); if(action === 'hearth_request_friend') tables.hearth_connections.push({requester:me, recipient:args.person, accepted:false}); return {data: action === 'hearth_event_attendees' ? [] : null}},
-    from(table) {let single = false; const q = {select(){return q},eq(){return q},neq(){return q},order(){return q},gte(){return q},limit(){return q},range(){return q},in(){return q},maybeSingle(){single=true;return q},insert(row){tables[table].push(row);return q},upsert(row){tables[table]={...tables[table],...row};return q},then(resolve){return Promise.resolve({data: table==='hearth_profiles' && single ? tables[table][0] || null : tables[table] ?? (single ? null : [])}).then(resolve)}};return q}
+    from(table) {let single = false; const q = {select(){return q},or(){return q},eq(){return q},neq(){return q},order(){return q},gte(){return q},limit(){return q},range(){return q},in(){return q},maybeSingle(){single=true;return q},insert(row){tables[table].push(row);return q},upsert(row){tables[table]={...tables[table],...row};return q},then(resolve){return Promise.resolve({data: table==='hearth_profiles' && single ? tables[table][0] || null : tables[table] ?? (single ? null : [])}).then(resolve)}};return q}
   };
   globalThis.fetch = async()=>({ok:true,json:async()=>({supabaseUrl:'https://example.supabase.co',supabasePublishableKey:'public'})});
   await esmock('../../js/live/app.js', {'@supabase/supabase-js': {createClient:()=>client}});
@@ -37,19 +37,24 @@ test('new profile gets optional preferences, saves choices, and completes into p
   assert.equal(document.documentElement.dataset.palette,'shore');
   await app.click('onboarding-next');
   document.querySelector('[data-topic]').click(); await new Promise(r=>setTimeout(r,25));
+  assert.equal(app.tables.hearth_preferences.topics.length,0);
+  await app.click('apply-feed');
   assert.equal(app.tables.hearth_preferences.topics.length,1);
   await app.click('onboarding-next');
-  document.querySelector('#updates select').value='foreground'; await app.submit('updates');
+  assert.ok([...document.querySelectorAll('#updates select')].every(s=>s.hidden));
+  document.querySelector('#updates select[name="mode"]').value='foreground';
+  document.querySelector('#updates select[name="notification_mode"]').value='daily';
+  await app.submit('updates');
   assert.equal(app.tables.hearth_preferences.update_mode,'foreground');
+  assert.equal(app.tables.hearth_preferences.notification_mode,'daily');
   await app.click('onboarding-next');
   assert.match(document.querySelector('h2').textContent,/gentle nudge/);
-  assert.equal(document.querySelector('#nudges select').value,'off');
-  document.querySelector('#nudges select').value='on'; await app.submit('nudges');
+  assert.match(document.querySelector('.onboarding').textContent,/daily check-ins/);
   await app.click('onboarding-back');
   assert.equal(document.querySelector('#updates select').value,'foreground');
   await app.click('onboarding-next'); await app.click('onboarding-next');
   assert.equal(app.user.user_metadata.hearth_onboarding.complete,true);
-  assert.equal(app.user.user_metadata.hearth_nudges,true);
+  assert.equal(app.tables.hearth_preferences.notification_mode,'daily');
   assert.ok(document.querySelector('#unlock'));
   assert.equal(document.querySelector('.onboarding'),null);
   app.dom.window.close();
@@ -68,6 +73,18 @@ test('inviter goes first, connects only by consent, and can be skipped', async()
   await app.click('onboarding-finish');
   assert.equal(app.user.user_metadata.hearth_onboarding.complete,true);
   assert.equal(sessionStorage.getItem('hearth-pending-invite'),null);
+  app.dom.window.close();
+});
+
+test('resumed quiet onboarding finishes without opting into device notifications', async()=>{
+  const app=await setup({profile:{id:me,name:'Me'},metadata:{hearth_onboarding:{step:5,complete:false}}});
+  assert.match(document.querySelector('h2').textContent,/gentle nudge/);
+  assert.match(document.querySelector('.onboarding').textContent,/keeps device notifications off/);
+  assert.equal(document.querySelector('[data-action="enable-push"]'),null);
+  await app.click('onboarding-finish');
+  assert.equal(app.user.user_metadata.hearth_onboarding.complete,true);
+  assert.equal(app.tables.hearth_preferences.notification_mode,'in_app');
+  assert.equal(app.tables.hearth_push_subscriptions,undefined);
   app.dom.window.close();
 });
 
