@@ -125,6 +125,8 @@ button.primary:hover { background: var(--accent); }
   background: var(--paper);
 }
 .live-auth-tabs button { flex: 1; }
+.auth-choice { background: var(--paper); color: inherit; }
+.auth-choice:hover { background: var(--hover); }
 .live-auth-tabs button[aria-pressed="true"],
 .nav button.active {
   background: var(--accent);
