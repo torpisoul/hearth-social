@@ -10,6 +10,8 @@
     "build": "node scripts/build-pages.mjs",
     "preview": "python3 -m http.server 4173 --directory docs",
     "test:backend": "node --test tests/backend/*.test.mjs",
+    "test:browser": "playwright test",
+    "test:release": "npm test && npm run build && npm run test:browser",
     "test:legacy": "vitest run --coverage"
   },
   "repository": {
@@ -36,6 +38,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "1.63.0",
     "@testing-library/dom": "^10.4.1",
     "@vitest/coverage-v8": "^5.0.0",
     "esbuild": "^0.28.2",

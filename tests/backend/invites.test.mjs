@@ -28,11 +28,11 @@ test('invitation survives signup and nickname creation, then sends a consent-bas
   await esmock('../../js/live/app.js', {'@supabase/supabase-js':{createClient:()=>client}});
   const settle = () => new Promise(r=>setTimeout(r,20));
   await settle();
-  assert.equal(document.querySelector('[data-action="signup"]').getAttribute('aria-pressed'),'true');
+  assert.ok(document.querySelector('[data-auth-mode="signup"]'));
   assert.equal(sessionStorage.getItem('hearth-pending-invite'),inviter);
   document.querySelector('[name=email]').value='visitor@example.org';
   document.querySelector('[name=password]').value='test-password-only';
-  document.querySelector('#auth').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));
+  document.querySelector('[data-auth-mode="signup"]').click();
   await settle();
   document.querySelector('[name=name]').value='New friend';
   document.querySelector('#profile').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));

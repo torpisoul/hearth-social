@@ -52,6 +52,8 @@ await build({
   legalComments: "eof",
 });
 await writeFile(new URL("docs/.nojekyll", root), "");
+// CI verifies that post-deployment tests reached this exact release artifact.
+await writeFile(new URL("docs/build-info.json", root), JSON.stringify({commit:process.env.GITHUB_SHA || null}) + "\n");
 // Serve the live app at old entrypoints too, preserving auth callback query/hash.
 for (const file of [
   "app.html",

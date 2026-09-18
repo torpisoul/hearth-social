@@ -18,3 +18,7 @@ Thumbs.db
 
 # Supabase CLI scratch files
 supabase/.temp/
+
+# Browser regression artifacts
+test-results/
+playwright-report/

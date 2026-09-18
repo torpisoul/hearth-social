@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Use Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '22'
         cache: 'npm'
@@ -25,3 +25,16 @@ jobs:
     - name: Run Unit Tests
       # Test live backend authorization, encryption and demo behavior
       run: npm test
+    - name: Build the release candidate
+      run: npm run build
+    - run: npx playwright install --with-deps chromium firefox webkit
+    - name: Browser regression tests against the built site
+      run: npm run test:browser
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-regression
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 14

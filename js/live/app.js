@@ -108,7 +108,7 @@ const button = (text, action, extra = "") =>
   `<button data-action="${action}" ${extra}>${text}</button>`;
 const growth = kinGrowth({client:()=>client,user:()=>user,friends,connections:()=>connections,name:id=>id===user?.id?profile.name:name(id),esc,avatar,run,refresh,render,say,selectKin:id=>openKinCard(id,false)});
 function authView() {
-  const authChoices = mode === "reset" ? `<button class="auth-choice primary" type="submit">Send reset link</button>` : `<div class="live-auth-tabs"><button class="auth-choice" type="submit" data-auth-mode="login" data-action="login" aria-pressed="${mode === "login"}">Sign in</button><button class="auth-choice" type="submit" data-auth-mode="signup" data-action="signup" aria-pressed="${mode === "signup"}">Create account</button></div>`;
+  const authChoices = mode === "reset" ? `<button class="auth-choice primary" type="submit">Send reset link</button>` : `<div class="live-auth-tabs"><button class="auth-choice" type="submit" data-auth-mode="login">Sign in</button><button class="auth-choice" type="submit" data-auth-mode="signup">Create account</button></div>`;
   $("#app").innerHTML =
     `<main id="main" class="auth"><a class="brand" href="./index.html">${brand}hearth</a><div class="eyebrow">A place for your people</div><h1>A little closer,<br>at your own pace.</h1><p>Real moments. Quiet conversations. A small circle that feels like home.</p><section class="panel"><p>${referral ? "Someone has invited you to Hearth. Create an account or sign in, then choose whether to connect." : ""}</p><h2>${mode === "reset" ? "Find your way back." : "Welcome home."}</h2><form id="auth" class="live-form">${field("Email", '<input name="email" type="email" autocomplete="email" required maxlength="254">')}${mode === "reset" ? "" : field("Password", '<input name="password" type="password" autocomplete="' + (mode === "signup" ? "new-password" : "current-password") + '" required minlength="12" maxlength="128">')}${authChoices}</form>${emailDeliveryEnabled ? button("Forgot password?", "reset") : "<p>Email confirmation and password-reset emails are unavailable in this friends beta. Save your password and only accept friend codes from people you know.</p>"}<p class="live-muted">Friends beta · No public directory or popularity scores.</p></section></main>`;
 }
@@ -731,6 +731,9 @@ document.addEventListener("click", (event) => {
   if(choiceClick(event))return;
   const b = event.target.closest("button");
   if (!b || b.disabled) return;
+  // Let native validation and submission run before run() disables controls.
+  // Submit buttons may carry data attributes without being click actions.
+  if (b.form?.id === "auth" && b.type === "submit") return;
   const d = b.dataset;
   if(growth.click(b)) return;
   if(d.messageGuest){guestPlan=d.messageGuest;eventOpen=false;render();$("#gathering-guests")?.focus();return;}
@@ -869,7 +872,7 @@ document.addEventListener("click", (event) => {
       $("#main").focus();
       return;
     }
-    if (["login", "signup", "reset"].includes(d.action)) {
+    if (d.action === "reset") {
       mode = d.action;
       render();
       return;

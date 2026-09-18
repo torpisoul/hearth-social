@@ -1,5 +1,9 @@
 # Hearth
 
+Release checks and browser coverage: see [TESTING.md](TESTING.md). Run
+`npm run test:release` before publishing; Pages deployment now requires the built
+site to pass Playwright regression tests.
+
 A digital living room for your people: real accounts, mutual friend connections, chronological statuses, and encrypted direct messages.
 
 **Current beta signup:** email verification is disabled by the host. Email ownership is not checked. Password-reset email is unavailable until custom SMTP is configured. Save account passwords and message recovery codes. Verify friend codes directly with people you know.
