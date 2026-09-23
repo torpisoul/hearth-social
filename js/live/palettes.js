@@ -5,6 +5,9 @@ export const palettes = [
   ["autumn", "Autumn", "Clay, oat and fallen leaves", "#e9ddd0", "#dcc2a9", "#d3c29f"],
   ["mountain", "Mountain", "Mist, stone and pine", "#dfe4dc", "#bfcfc1", "#d1cbbb"],
   ["twilight", "Twilight", "Lavender and the evening sky", "#e4ddec", "#cbbbd9", "#d9c4d2"],
+  ["ember", "Ember", "Dark cocoa and warm amber", "#282321", "#b89774", "#48372d"],
+  ["moonlight", "Moonlight", "Dark blue and silver", "#202830", "#98b9c8", "#344550"],
+  ["night-garden", "Night garden", "Deep green and soft sage", "#222b25", "#a9be9c", "#374b3c"],
 ];
 const key = "hearth-colour-palette";
 export function savedPalette() {

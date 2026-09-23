@@ -209,11 +209,6 @@ small,
   gap: 10px;
   font-size: 12px;
 }
-.topbar .demo {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
 .dot {
   height: 6px;
   width: 6px;

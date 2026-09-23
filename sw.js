@@ -1,4 +1,4 @@
-const CACHE = "hearth-shell-v1";
+const CACHE = "hearth-shell-v2";
 const APP_URL = new URL('./live.html', self.registration.scope).href;
 self.addEventListener('push', event => {
   let payload={};

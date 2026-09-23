@@ -5,8 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "npm run test:demo && npm run test:backend",
-    "test:demo": "node --test tests/demo/*.test.mjs",
+    "test": "npm run test:backend",
     "build": "node scripts/build-pages.mjs",
     "preview": "python3 -m http.server 4173 --directory docs",
     "test:backend": "node --test tests/backend/*.test.mjs",

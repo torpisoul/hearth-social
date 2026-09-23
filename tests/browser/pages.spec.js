@@ -4,6 +4,7 @@ test('new account completes all onboarding steps through real controls', async (
   backend.tables.hearth_profiles=[]; backend.user.user_metadata={};
   const app=new Hearth(page); await app.open(); await app.credentials();
   await page.getByRole('button',{name:'Create account',exact:true}).click();
+  await expect(page.getByLabel('What should we call you?')).toHaveAccessibleDescription(/name your people know/);
   await page.getByLabel('What should we call you?').fill('Robin');
   await page.getByRole('button',{name:'Settle in'}).click();
   await expect(page.getByRole('heading',{name:'A familiar face'})).toBeVisible();

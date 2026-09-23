@@ -8,7 +8,7 @@ A digital living room for your people: real accounts, mutual friend connections,
 
 **Current beta signup:** email verification is disabled by the host. Email ownership is not checked. Password-reset email is unavailable until custom SMTP is configured. Save account passwords and message recovery codes. Verify friend codes directly with people you know.
 
-The friends beta is built for GitHub Pages with Supabase Auth and Postgres. The original fictional prototype is preserved at `demo.html`; its fictional content remains separate from real user data. The live app now has real gatherings and RSVPs, with a date picker and a gentle choice to invite guests or keep a plan for yourself.
+The friends beta is built for GitHub Pages with Supabase Auth and Postgres. The live app now has real gatherings and RSVPs, with a date picker and a gentle choice to invite guests or keep a plan for yourself.
 
 ## Run locally
 
@@ -36,7 +36,7 @@ For a new project:
 5. Configure custom SMTP before relying on email confirmation or password resets for friends. Supabase's default sender only delivers to project-team addresses. See https://supabase.com/docs/guides/auth/auth-smtp.
 6. Run tests, build and deploy. Test with two real accounts before inviting a wider group.
 
-Blank public settings produce an honest setup screen with a link to the fictional demo; there is no silent fake multi-user fallback.
+Blank public settings produce a setup screen; accounts and messages become available once the backend is connected.
 
 ## Sharing with friends
 
@@ -63,20 +63,20 @@ This is a small friends beta, not a fully moderated public network. There is blo
 
 ## Verification
 
-`npm test` runs the fictional-demo behavior suite plus:
+`npm test` runs the backend and security regression suites, including:
 
 - Real Postgres policy tests through PGlite for anonymous access denial, impersonation prevention, mutual friend acceptance, audience privacy, author-controlled inner circles, vault isolation, immutable keys, blocking, server timestamps and write limits.
 - Encryption tests for two users, a restored device, wrong passphrases, unrelated keys, modified ciphertext and modified recipient metadata.
 
 The database limits each account to 30 messages/minute, 30 retained statuses/hour, and 20 retained requests/hour. These are beta safeguards, not a full anti-abuse system; deleted statuses/requests no longer count. Supabase Auth has separate signup/IP limits. Add CAPTCHA and operational monitoring before broader promotion.
 
-`npm run test:legacy` retains the old Netlify/Vitest suite for reference. That implementation is not deployed by this build and has pre-existing failing pulse tests. The new Pages workflow tests the live backend and demo, then builds only the static allowlist. `npm audit` should be reviewed during dependency updates.
+`npm run test:legacy` retains the old Netlify/Vitest suite for reference. That implementation is not deployed by this build and has pre-existing failing pulse tests. The new Pages workflow tests the live backend, builds the static allowlist, then runs Playwright browser tests before deployment and smoke tests afterwards. `npm audit` should be reviewed during dependency updates.
 
 ## Publish
 
 Push to `main`. In GitHub Settings → Pages, choose **GitHub Actions** as the source. **Deploy Hearth to Pages** tests and builds the app, then deploys `docs/`. Alternatively use the `main` branch `/docs` source, but choose one deployment method.
 
-The older HTML/Netlify implementation and tests remain in source as reference, and are excluded from published assets. Old login/profile/parlor URLs serve the live app; the old notice board points to fictional demo gatherings.
+The older HTML/Netlify implementation and tests remain in source as reference, and are excluded from published assets. Old login/profile/parlor and notice-board URLs serve the live app.
 
 Hosted verification on 10 September 2026 passed signup, profile storage, mutual connections, status isolation, encrypted delivery, key-backup unlock, outsider denial and blocking with three disposable accounts; all were cleaned up. Supabase Security Advisor reports only leaked-password protection disabled (an Auth setting); database policy/function warnings were resolved.
 

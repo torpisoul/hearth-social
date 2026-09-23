@@ -38,8 +38,8 @@ site URL (including the repository subpath) and run `npm run test:browser`.
 | Surface | Browser regression coverage |
 | --- | --- |
 | Sign in / create account | Both actual button clicks, exact credentials and one request, keyboard Enter, native validation, same light styling, failed login then signup retry, confirmation-email state, password-reset request and redirect |
-| Onboarding | Profile creation, every step, palette, topic and pace selection, conditional daily time, saved completion |
-| Navigation | All five pages through desktop navigation and the mobile menu |
+| Onboarding | Profile creation, every step, palette/topic/pace selection, conditional daily time, saved completion, top-of-page focus on Continue/Back, accessible field help; Web App install acceptance, dismissal, unavailable-prompt guidance and optional decline |
+| Navigation | All five pages through desktop navigation and the mobile menu; fixed short title with scrolling introduction |
 | Living room | Composer, audience choice, publish, delete confirmation, hide/restore and private reply |
 | Parlor | Real browser crypto, recovery setup, encrypted waiting note, forget-device lock, recovery unlock |
 | Kin | Search, friend-code validation/request, incoming accept, outgoing remind/cancel, block/unblock, group create/membership/delete, introduction accept/decline |
@@ -53,6 +53,12 @@ remain as additional checks. Browser tests replace reliance on DOM-only tests
 as the release gate; they do not replace the database authorization tests.
 
 ## Test boundaries
+
+`quality-of-life.spec.js` also checks photos above 5 MB are resized with their
+aspect ratio intact, Apply spans the card and changes appearance only for unsaved
+choices, and all three dark palettes persist with readable text contrast.
+Published-entrypoint checks include the old notice-board URL and reject links
+to the removed fictional prototype.
 
 The browser suite loads the real compiled app, real Supabase JS client, native
 forms and browser crypto. `fixtures.js` intercepts the Supabase network boundary

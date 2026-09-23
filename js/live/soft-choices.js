@@ -16,6 +16,15 @@ export function enhanceChoices(root=document) {
   options.id=`choice-${select.form?.id || 'page'}-${select.name}`;
   options.setAttribute('role','group');options.setAttribute('aria-label',caption);
   trigger.setAttribute('aria-controls',options.id);
+  trigger.id = `${options.id}-toggle`;
+  if (select.hasAttribute('aria-describedby')) trigger.setAttribute('aria-describedby', select.getAttribute('aria-describedby'));
+  if (label) {
+   const captionLabel = document.createElement('label');
+   captionLabel.className = 'field-label'; captionLabel.htmlFor = trigger.id; captionLabel.textContent = caption;
+   // Replace the old text node with a real label for the visible control.
+   const field = box.parentNode;
+   field.firstChild.replaceWith(captionLabel);
+  }
   const update=()=>{const value=select.selectedOptions[0]?.textContent || '';trigger.textContent=value;trigger.setAttribute('aria-label',`${caption}: ${value}`);};
   update();box.append(trigger,options);
   for(const option of select.options) {

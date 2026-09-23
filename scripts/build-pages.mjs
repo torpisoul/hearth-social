@@ -26,11 +26,8 @@ await rm(new URL("docs", root), { recursive: true, force: true });
 for (const file of [
   "index.html",
   "live.html",
-  "demo.html",
   "styles/hearth.css",
   "styles/live.css",
-  "js/hearth.js",
-  "js/hearth-store.js",
   "public-config.json",
   "manifest.webmanifest",
   "sw.js",
@@ -62,10 +59,7 @@ for (const file of [
   "parlor.html",
   "profile.html",
   "reset-password.html",
+  "notice-board.html",
 ])
   await copyFile(new URL("live.html", root), new URL("docs/" + file, root));
-await writeFile(
-  new URL("docs/notice-board.html", root),
-  '<!doctype html><html lang="en"><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=./demo.html#gatherings"><title>Hearth gatherings demo</title><a href="./demo.html#gatherings">Explore demo gatherings</a></html>',
-);
-console.log("Built Hearth friends beta and fictional demo in docs/");
+console.log("Built Hearth friends beta in docs/");

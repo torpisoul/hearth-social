@@ -23,7 +23,7 @@ jobs:
       run: npm ci
 
     - name: Run Unit Tests
-      # Test live backend authorization, encryption and demo behavior
+      # Test live backend authorization and encryption
       run: npm test
     - name: Build the release candidate
       run: npm run build
