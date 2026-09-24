@@ -119,3 +119,37 @@ test('data export downloads JSON and account deletion requires explicit confirma
   await page.getByRole('button',{name:'Permanently delete my account'}).click();
   expect(backend.calls.some(c=>c.path.endsWith('/hearth_delete_account'))).toBe(false);
 });
+
+test('new moments default to All kin and keep an explicitly private draft', async ({page,backend}) => {
+ const app=new Hearth(page); await app.signIn(); await app.tab('pulse');
+ const toggle=page.locator('[data-action="toggle-moment"]');
+ const audience=page.locator('#status select[name="audience"]');
+ await toggle.click();
+ await expect(audience).toHaveValue('All kin');
+ await page.getByLabel('A little moment from your day',{exact:true}).fill('Shared by default');
+ await page.getByRole('button',{name:'Share moment',exact:true}).click();
+ await expect.poll(()=>backend.tables.hearth_statuses.length).toBe(1);
+ expect(backend.tables.hearth_statuses[0].audience).toBe('All kin');
+ await toggle.click(); await expect(audience).toHaveValue('All kin');
+ await app.choice('#status','audience','Only me');
+ await page.getByLabel('A little moment from your day',{exact:true}).fill('Private draft');
+ await toggle.click(); await toggle.click();
+ await expect(audience).toHaveValue('Only me');
+ await page.getByRole('button',{name:'Share moment',exact:true}).click();
+ await expect.poll(()=>backend.tables.hearth_statuses.length).toBe(2);
+ expect(backend.tables.hearth_statuses.find(p=>p.content==='Private draft').audience).toBe('Only me');
+ await toggle.click(); await expect(audience).toHaveValue('All kin');
+});
+
+test('scrollbars are hidden while the page still scrolls with the keyboard', async ({page,backend,browserName}) => {
+ const app=new Hearth(page); await app.signIn(); await app.tab('settings');
+ await expect.poll(()=>page.locator('html').evaluate(el=>getComputedStyle(el).scrollbarWidth)).toBe('none');
+ await page.locator('h1').click();
+ await page.keyboard.press('Control+End');
+ await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeGreaterThan(0);
+ // Playwright's Firefox backend does not emulate forced-colour mode.
+ if(browserName!=='firefox') {
+  await page.emulateMedia({forcedColors:'active'});
+  await expect.poll(()=>page.locator('html').evaluate(el=>getComputedStyle(el).scrollbarWidth)).toBe('auto');
+ }
+});

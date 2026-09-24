@@ -106,7 +106,7 @@ test('a decline cancels pending requests without exposing responses to the intro
  await as(c,'select hearth_answer_introduction($1,false)',[intro.id]);
  assert.equal((await as(b,'select * from hearth_connections where recipient=$1',[c])).length,0);
  assert.deepEqual(await list(b),[]);assert.deepEqual(await list(a),[]);
- assert.equal(await next(),null);
+ assert.notDeepEqual(await next(),{a:b,b:c});
  await assert.rejects(as(b,'select hearth_answer_introduction($1,true)',[intro.id]),/no longer available/);
 });
 test('blocks and cancellation prevent stale cards reconnecting users',async()=>{
@@ -118,7 +118,8 @@ test('blocks and cancellation prevent stale cards reconnecting users',async()=>{
  assert.deepEqual(await list(c),[]);
  assert.equal((await as(a,'select * from hearth_kin_group_members where person=$1',[c])).length,0);
 });
-test('hidden blocks, existing connections and ungrouped people are never suggested',async()=>{
+test('hidden blocks and existing connections are never suggested',async()=>{
+ await as(a,'select hearth_remove_friend($1)',[d]);
  await as(b,'insert into hearth_blocks(owner,target) values($1,$2)',[b,c]);
  assert.equal(await next(),null);
  await as(b,'delete from hearth_blocks');
@@ -165,4 +166,28 @@ test('sent introductions persist for their author without disclosing either repl
  assert.deepEqual(await sent(a),original);
  await as(c,'select hearth_answer_introduction($1,false)',[intro.id]);
  assert.deepEqual(await sent(a),original);
+});
+
+test('ungrouped kin rotate and can be introduced with both participants consenting',async()=>{
+ await as(a,'delete from hearth_kin_groups');
+ const pairs=[await next(),await next(),await next()];
+ assert.equal(new Set(pairs.map(p=>p.a+p.b)).size,3);
+ await suggest();
+ const [intro]=await list(b);
+ await as(b,'select hearth_answer_introduction($1,true)',[intro.id]);
+ assert.equal((await as(b,'select accepted from hearth_connections where recipient=$1',[c]))[0].accepted,false);
+ await as(c,'select hearth_answer_introduction($1,true)',[intro.id]);
+ assert.equal((await as(b,'select accepted from hearth_connections where recipient=$1',[c]))[0].accepted,true);
+});
+
+test('shared-group pairs rank first, then ungrouped pairs remain available',async()=>{
+ await as(a,'delete from hearth_kin_group_members');
+ for(const id of [c,d]) await as(a,'insert into hearth_kin_group_members(group_id,person) values($1,$2)',[group,id]);
+ assert.deepEqual(await next(),{a:c,b:d});
+ await as(a,'select hearth_suggest_kin($1,$2,false)',[c,d]);
+ assert.deepEqual(await next(),{a:b,b:c});
+ await as(a,'select hearth_suggest_kin($1,$2,false)',[b,c]);
+ assert.deepEqual(await next(),{a:b,b:d});
+ await as(a,'select hearth_suggest_kin($1,$2,false)',[b,d]);
+ assert.equal(await next(),null);
 });

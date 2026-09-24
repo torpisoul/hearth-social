@@ -1,3 +1,11 @@
+/* Keep native scrolling without a contrasting scrollbar in the soft UI. */
+html, body, body * { scrollbar-width: none; }
+html::-webkit-scrollbar, body::-webkit-scrollbar, body *::-webkit-scrollbar { display: none; }
+@media (forced-colors: active) {
+  html, body, body * { scrollbar-width: auto; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar, body *::-webkit-scrollbar { display: block; }
+}
+
 #notice {
   position: fixed;
   bottom: 20px;

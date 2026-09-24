@@ -30,10 +30,18 @@ test('create a solo plan, edit, RSVP, share a guest note and cancel', async ({pa
   await expect(page.getByRole('heading',{name:'Evening tea',exact:true})).toHaveCount(0);
 });
 
-test('calendar supports all-day selection, cancel and invalid time feedback', async ({page,backend}) => {
+for(const hour of [10,22]) test(`calendar validates explicit dates with a ${hour}:30 starting clock`, async ({page,backend}) => {
+  await page.clock.setFixedTime(new Date(2026,8,24,hour,30));
   const app=new Hearth(page); await app.signIn(); await app.tab('gatherings');
   await page.locator('[data-action="toggle-event"]').click();
   await page.locator('[data-action="choose-event-time"]').click();
+  // Choose both dates explicitly: late-night defaults can span midnight.
+  await page.getByRole('button',{name:'Next month',exact:true}).click();
+  const day=page.locator('[data-day]').first();
+  const date=await day.getAttribute('data-day');
+  await day.click();
+  await page.locator('[data-target="end"]').click();
+  await page.locator(`[data-day="${date}"]`).click();
   await page.getByLabel('Start time').fill('14:00');
   await page.getByLabel('End time').fill('13:00');
   await page.getByRole('button',{name:'Confirm dates'}).click();

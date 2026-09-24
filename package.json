@@ -11,6 +11,7 @@
     "test:backend": "node --test tests/backend/*.test.mjs",
     "test:browser": "playwright test",
     "test:release": "npm test && npm run build && npm run test:browser",
+    "test:release:container": "node scripts/test-release-container.mjs",
     "test:legacy": "vitest run --coverage"
   },
   "repository": {

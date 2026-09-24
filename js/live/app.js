@@ -51,7 +51,7 @@ function clearInvite() {
 }
 let feedFilter = "all", feedDraft=null;
 let guestPlan="", gatheringMessagePlan="", gatheringMessageDrafts={};
-let momentOpen=false, eventOpen=false, momentDraft={content:"",audience:"Only me",topic:topics[0]}, messageDraft="";
+let momentOpen=false, eventOpen=false, momentDraft={content:"",audience:"All kin",topic:topics[0]}, messageDraft="";
 let chatActivity={}, hiddenMoments=new Set(), hiddenMomentsOwner="";
 function loadHiddenMoments(){if(hiddenMomentsOwner===user.id)return;hiddenMomentsOwner=user.id;try {const saved=JSON.parse(localStorage.getItem(`hearth-hidden:${user.id}`)||"[]");hiddenMoments=new Set(Array.isArray(saved)?saved:[]);}catch {hiddenMoments=new Set();}}
 function saveHiddenMoments(){try{localStorage.setItem(`hearth-hidden:${user.id}`,JSON.stringify([...hiddenMoments]));}catch{say("Hidden for this visit. This browser couldn’t save that choice.");}}
@@ -486,7 +486,7 @@ async function signOut() {
   await disablePush(client, user.id);
   check(await client.auth.signOut());
   growth.reset();
-  momentOpen=false;eventOpen=false;momentDraft={content:"",audience:"Only me",topic:topics[0]};messageDraft="";feedDraft=null;guestPlan="";gatheringMessagePlan="";gatheringMessageDrafts={};hiddenMoments.clear();hiddenMomentsOwner="";chatActivity={};
+  momentOpen=false;eventOpen=false;momentDraft={content:"",audience:"All kin",topic:topics[0]};messageDraft="";feedDraft=null;guestPlan="";gatheringMessagePlan="";gatheringMessageDrafts={};hiddenMoments.clear();hiddenMomentsOwner="";chatActivity={};
   privateKey = null;
   ownPublicKey = null;
   vault = null;
@@ -659,7 +659,7 @@ document.addEventListener("submit", (event) => {
           }),
       );
       form.reset();
-      momentDraft={content:"",audience:"Only me",topic:topics[0]};momentOpen=false;
+      momentDraft={content:"",audience:"All kin",topic:topics[0]};momentOpen=false;
       page = 0;
     }
     if (form.id === "unlock") {
@@ -1052,7 +1052,7 @@ async function start() {
         user = null;
         profile = null;
         growth.reset();
-        momentOpen=false;eventOpen=false;momentDraft={content:"",audience:"Only me",topic:topics[0]};messageDraft="";feedDraft=null;guestPlan="";gatheringMessagePlan="";gatheringMessageDrafts={};hiddenMoments.clear();hiddenMomentsOwner="";chatActivity={};
+        momentOpen=false;eventOpen=false;momentDraft={content:"",audience:"All kin",topic:topics[0]};messageDraft="";feedDraft=null;guestPlan="";gatheringMessagePlan="";gatheringMessageDrafts={};hiddenMoments.clear();hiddenMomentsOwner="";chatActivity={};
   eventDraft={}; selectedGuests=new Set(); eventSearch=""; eventInvites=[]; eventAttendees=[]; kinListSearch=""; selectedKin="";
         messages = [];
         profiles = [];

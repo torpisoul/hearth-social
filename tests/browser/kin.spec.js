@@ -45,3 +45,15 @@ test('outgoing connection reminder and cancellation', async ({page,backend}) => 
   await page.getByRole('button',{name:'Cancel request'}).click();
   await expect.poll(()=>backend.tables.hearth_connections.length).toBe(0);
 });
+
+for(const introduce of [true,false]) test(`ungrouped kin suggestion can be ${introduce?'sent':'dismissed'}`, async ({page,backend}) => {
+ const other='33333333-3333-4333-8333-333333333333';
+ backend.tables.hearth_profiles.push({id:other,name:'Sam'});
+ backend.tables.hearth_connections.push({requester:me,recipient:other,accepted:true});
+ backend.suggestion={a:friend,b:other};
+ const app=new Hearth(page); await app.signIn(); await app.tab('pulse');
+ await expect(page.locator('.kin-suggestion')).toContainText('Sam');
+ await page.locator(`[data-growth="suggest-${introduce?'yes':'no'}"]`).click();
+ await expect.poll(()=>backend.calls.some(c=>c.path.endsWith('/hearth_suggest_kin')&&c.body.introduce===introduce)).toBe(true);
+ await expect(page.locator('.kin-suggestion')).toHaveCount(0);
+});
