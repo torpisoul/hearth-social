@@ -721,6 +721,15 @@ document.addEventListener("close", (event) => {
 }, true);
 document.addEventListener("change",event=>{if(event.target.id==="profile-photo"){ $("#photo-name").textContent=event.target.files?.[0]?.name || "Choose file";if(event.target.files?.length)event.target.form.requestSubmit(); }});
 document.addEventListener("change", event => { if (event.target.name === "notification_mode") { const timeField = document.querySelector("#notification-time-field"); if (timeField) timeField.hidden = event.target.value !== "daily"; } });
+document.addEventListener("keydown", event => {
+  if (event.key !== "Enter" || event.isComposing || !(event.target instanceof HTMLInputElement)) return;
+  const form = event.target.form;
+  if (form?.id !== "auth") return;
+  const submitter = form.querySelector(`button[type="submit"][data-auth-mode="${mode}"]`) || form.querySelector('button[type="submit"]');
+  if (!submitter) return;
+  event.preventDefault();
+  form.requestSubmit(submitter);
+});
 document.addEventListener("keydown",choiceKey);
 document.addEventListener("click", (event) => {
   if(choiceClick(event))return;

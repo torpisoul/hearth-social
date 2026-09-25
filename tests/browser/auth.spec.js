@@ -29,6 +29,7 @@ test('Enter signs in through native form submission', async ({page,backend}) => 
   await page.getByLabel('Password',{exact:true}).press('Enter');
   await expect(page.locator('#auth')).toHaveCount(0);
   expect(backend.calls.filter(c=>c.path==='/auth/v1/token')).toHaveLength(1);
+  expect(backend.calls.filter(c=>c.path==='/auth/v1/signup')).toHaveLength(0);
 });
 test('invite signup default never overrides a deliberate Sign in click', async ({page,backend}) => {
   const app=new Hearth(page); await page.goto('live.html?ref='+friend); await app.credentials();
