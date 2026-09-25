@@ -81,3 +81,11 @@ test('password reset sends the email and repository-path redirect', async ({page
   expect(call.body.email).toBe('friend@example.test');
   expect(call.query.get('redirect_to')).toBe(new URL('live.html',page.url()).href);
 });
+
+test('password reset can return to sign in without sending an email', async ({page,backend}) => {
+  await new Hearth(page).open();
+  await page.getByRole('button',{name:'Forgot password?'}).click();
+  await page.getByRole('button',{name:'Back to sign in'}).click();
+  await expect(page.getByLabel('Password',{exact:true})).toBeVisible();
+  expect(backend.calls.filter(c=>c.path==='/auth/v1/recover')).toHaveLength(0);
+});

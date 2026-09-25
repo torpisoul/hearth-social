@@ -6,7 +6,7 @@ site to pass Playwright regression tests.
 
 A digital living room for your people: real accounts, mutual friend connections, chronological statuses, and encrypted direct messages.
 
-**Current beta signup:** email verification is disabled by the host. Email ownership is not checked. Password-reset email is unavailable until custom SMTP is configured. Save account passwords and message recovery codes. Verify friend codes directly with people you know.
+**Current beta signup:** email verification is disabled by the host. Email ownership is not checked. Resend SMTP is configured, with live delivery testing pending before password-reset controls are enabled. Save account passwords and message recovery codes. Verify friend codes directly with people you know.
 
 The friends beta is built for GitHub Pages with Supabase Auth and Postgres. The live app now has real gatherings and RSVPs, with a date picker and a gentle choice to invite guests or keep a plan for yourself.
 
@@ -33,7 +33,7 @@ For a new project:
 2. Run all SQL files in `supabase/migrations/` in filename order against the empty database. This defines the thirteen Hearth tables, access policies, guarded RPCs, and write limits. The initial Hearth project was provisioned through the dashboard SQL editor; it is not recorded in the Supabase migration-history table. Reconcile migration history before adopting automatic CLI deployment; do not blindly replay the initial migration. The account-deletion/policy-hardening migration is recorded in hosted history.
 3. Set `supabaseUrl` and `supabasePublishableKey` in `public-config.json`. The build rejects secret keys and incomplete settings.
 4. Set Auth Site URL and allowed redirect URL to `https://torpisoul.github.io/hearth-social/live.html`. For a different host, use its exact `live.html` URL. The site works at the repository subpath.
-5. Configure custom SMTP before relying on email confirmation or password resets for friends. Supabase's default sender only delivers to project-team addresses. See https://supabase.com/docs/guides/auth/auth-smtp.
+5. Configure custom SMTP before relying on email confirmation or password resets for friends. Follow [the Resend setup and delivery checks](EMAIL-SETUP.md); the host configuration script and email templates are included. Supabase's default sender only delivers to project-team addresses.
 6. Run tests, build and deploy. Test with two real accounts before inviting a wider group.
 
 Blank public settings produce a setup screen; accounts and messages become available once the backend is connected.
@@ -106,4 +106,4 @@ On viewports up to 800px wide, navigation and account actions move into a hambur
 - #54: Optional trusted-device storage skips repeated message unlocking. New-user onboarding generates encryption keys with a random recovery code, removing separate password creation. New devices use the recovery code once. Existing passphrase backups remain readable. Lock and forget removes the saved key. Sign-out ends the session but retains an explicitly trusted-device key; only remember on a personal device.
 - #55: Manual or opt-in foreground updates and subtle new-activity dots. The owner chose indicators inside the app only; OS push is intentionally excluded. New-message markers use local per-conversation last-viewed timestamps and are not read receipts.
 - #56: Original Hearth logo, navigation icons and sprig; real kin, gatherings and attention cards; topic/person filters. Gatherings support editable plans shared with selected kin, private invitation lists, accepted guest lists, RSVP and host cancellation. Hosts automatically join their new plans. Plans support start/end dates, multi-day and all-day ranges; the first 20 upcoming or ongoing events are shown. Disconnection/blocking removes access. Plans and RSVP records are not encrypted.
-- #42 remains blocked on a custom SMTP provider and verified sender. Reset-request and recovery forms already exist behind the email-delivery configuration flag.
+- #42 / #89: Resend SMTP and a verified sending domain are configured. Live delivery testing is pending; reset-request and recovery forms remain behind the email-delivery configuration flag. See [EMAIL-SETUP.md](EMAIL-SETUP.md).

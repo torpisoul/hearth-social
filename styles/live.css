@@ -66,6 +66,20 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, body *::-webkit-scrollbar { di
 .live-muted {
   color: #666;
 }
+.auth-email-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+.auth-email-actions button {
+  width: auto;
+  min-height: 36px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+}
+.auth-email-actions + .live-muted {
+  margin-top: 24px;
+}
 .bubble small {
   display: block;
 }
