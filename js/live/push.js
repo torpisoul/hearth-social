@@ -4,6 +4,18 @@ export function pushAvailable(env = globalThis) {
   return Boolean(env.isSecureContext && env.Notification && env.PushManager && env.navigator?.serviceWorker);
 }
 
+// Browser permission alone is not consent for this account on this device.
+export async function pushEnabled(client, owner, env = globalThis) {
+  if (!pushAvailable(env) || env.Notification.permission !== 'granted') return false;
+  const registration = await env.navigator.serviceWorker.getRegistration();
+  const subscription = await registration?.pushManager?.getSubscription();
+  if (!subscription) return false;
+  const {data, error} = await client.from('hearth_push_subscriptions')
+    .select('endpoint').eq('owner', owner).eq('endpoint', subscription.endpoint).maybeSingle();
+  if (error) throw Error('Couldn’t check notifications for this device. Refresh to try again.');
+  return Boolean(data);
+}
+
 async function readyForPush(worker) {
   let timer;
   try {

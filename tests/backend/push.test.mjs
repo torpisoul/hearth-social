@@ -2,8 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {enablePush, disablePush} from '../../js/live/push.js';
+import {enablePush, disablePush, pushEnabled} from '../../js/live/push.js';
 import {allowedEndpoint, maySend} from '../../supabase/functions/send-push/policy.js';
+test('device status requires permission and a subscription owned by the current account without prompting', async()=>{
+ const filters=[];
+ const env={isSecureContext:true,Notification:{permission:'default'},PushManager:{},navigator:{serviceWorker:{getRegistration:async()=>({pushManager:{getSubscription:async()=>({endpoint:'device'})}})}}};
+ const query={eq(key,value){filters.push([key,value]);return query},maybeSingle:async()=>({data:null})};
+ const client={from:()=>({select:()=>query})};
+ assert.equal(await pushEnabled(client,'me',env),false);
+ assert.equal(filters.length,0);
+ env.Notification.permission='granted';
+ assert.equal(await pushEnabled(client,'me',env),false);
+ assert.deepEqual(filters,[['owner','me'],['endpoint','device']]);
+ query.maybeSingle=async()=>({data:{endpoint:'device'}});
+ assert.equal(await pushEnabled(client,'me',env),true);
+ query.maybeSingle=async()=>({error:Error('offline')});
+ await assert.rejects(pushEnabled(client,'me',env),/Couldn’t check/);
+});
 test('push consent rejects quiet modes before requesting permission', async () => {
  let prompted=0;
  const env={isSecureContext:true,Notification:{requestPermission(){prompted++;}},PushManager:{},navigator:{serviceWorker:{}}};

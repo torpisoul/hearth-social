@@ -2,7 +2,7 @@ import { enhanceChoices, choiceClick, choiceKey } from "./soft-choices.js";
 import { relativeTime, calendarParts, sortConversations, conversationActivity } from "./presentation.js";
 import { kinGrowth } from "./kin-growth.js";
 import { openEventTime, eventRange } from "./event-time.js";
-import { enablePush, disablePush, systemMode, pushAvailable } from './push.js';
+import { enablePush, disablePush, systemMode, pushAvailable, pushEnabled } from './push.js';
 import { palettes, savedPalette, applyPalette, rememberPalette } from "./palettes.js";
 import { deviceKey } from "./device-key.js";
 import { icon, brand, sprig } from "./art.js";
@@ -66,6 +66,7 @@ let preferences = {topics: [], update_mode: "manual", notification_mode: "in_app
 let emailDeliveryEnabled = false;
 let pushPublicKey = '';
 let pushStatus = '';
+let devicePushEnabled = false;
 let client,
   user,
   profile,
@@ -333,7 +334,10 @@ function pushChoices(onboarding = false) {
   if (!systemMode(preferences.notification_mode)) return onboarding
     ? '<section class="panel"><h2>A gentle nudge, if you choose</h2><p>Your current pace keeps device notifications off. If you’d like them, go back and choose immediate notifications or a digest, then return here to enable this device.</p><p>You can also leave things quiet and change this later in Your preferences.</p></section>'
     : '';
-  return `<section class="panel"><h2>A gentle nudge, if you choose</h2><p>Enable this device, then send yourself a test. Immediate notifications usually arrive within a minute. Hourly digests wait at least an hour; daily check-ins use the time zone on this device when you save. Quiet days need no notification. Notifications never include private message text.</p>${pushPublicKey && pushAvailable() ? `<div class="live-actions push-actions">${button('Enable notifications on this device','enable-push')}${button('Send me a test notification','test-push')}${button('Turn off notifications for this device','disable-push')}</div>` : '<p>Device notifications aren’t available here yet. On iPhone or iPad, add Hearth to your Home Screen and open it there.</p>'}<p role="status">${esc(pushStatus)}</p></section>`;
+  const availability = !pushPublicKey
+    ? 'Device notifications aren’t configured yet. You can continue and enable them later in Your preferences.'
+    : 'Device notifications aren’t available in this browser. On iPhone or iPad, add Hearth to your Home Screen and open it there, then enable notifications in Your preferences.';
+  return `<section class="panel"><h2>A gentle nudge, if you choose</h2><p>Device notifications are optional and stay off until you enable them. Choosing a pace or finishing onboarding does not give permission. You can turn them off here whenever you like.</p><p>Enable this device, then send yourself a test. Immediate notifications usually arrive within a minute. Hourly digests wait at least an hour; daily check-ins use the time zone on this device when you save. Quiet days need no notification. Notifications never include private message text.</p>${pushPublicKey && pushAvailable() ? `<p>${devicePushEnabled ? 'Notifications are enabled for this account on this device.' : 'Notifications are off for this account on this device.'}</p><div class="live-actions push-actions">${devicePushEnabled ? `${button('Send me a test notification','test-push')}${button('Turn off notifications for this device','disable-push')}` : button('Enable notifications on this device','enable-push')}</div>` : `<p>${availability}</p>`}<p role="status">${esc(pushStatus)}</p></section>`;
 }
 function paletteChoices() {
   return `<section class="panel palette-panel"><h2>What colours feel like home?</h2><p>A few quiet corners of the world. Pick one to try it here.</p><div class="palette-choices" role="group" aria-label="Colour palette" aria-describedby="palette-help">${palettes.map(([id,label,description,...colours])=>`<button type="button" data-palette-choice="${id}" aria-pressed="${colourPalette===id}"><span class="palette-swatches" aria-hidden="true">${colours.map(c=>`<span style="background:${c}"></span>`).join("")}</span><strong>${label}</strong><small>${description}</small></button>`).join("")}</div><p id="palette-help" class="live-muted">Remembered in this browser. You can choose a different feeling on each device.</p></section>`;
@@ -351,6 +355,10 @@ async function refresh() {
   );
   if (!profile) return;
   preferences = check(await client.from("hearth_preferences").select("*").eq("owner", user.id).maybeSingle()) || {topics: [], update_mode: "manual", notification_mode: "in_app", notification_time: "20:00"};
+  devicePushEnabled = false;
+  pushStatus = '';
+  try { devicePushEnabled = await pushEnabled(client, user.id); }
+  catch (error) { pushStatus = error.message; }
   [profiles, connections, circle, blocks, vault, ownPublicKey] =
     await Promise.all(
       [
@@ -774,6 +782,7 @@ document.addEventListener("click", (event) => {
     run(async () => {
       try {
         await enablePush(client,user.id,preferences.notification_mode,pushPublicKey);
+        devicePushEnabled = true;
         pushStatus='This device is ready. You can send yourself a test.';
       } catch (error) {
         pushStatus=error.message || 'Couldn’t enable notifications. Please try again.';
@@ -784,11 +793,12 @@ document.addEventListener("click", (event) => {
     }); return;
   }
   if (d.action === 'disable-push') {
-    run(async () => { await disablePush(client,user.id); pushStatus='Notifications for this device are off.'; render(); }); return;
+    run(async () => { await disablePush(client,user.id); devicePushEnabled=false; pushStatus='Notifications for this device are off.'; render(); }); return;
   }
   if (d.action === 'test-push') {
     run(async () => {
       if (!systemMode(preferences.notification_mode)) throw Error('Choose a notification preference first.');
+      if (!devicePushEnabled) throw Error('Enable notifications on this device first.');
       const {error} = await client.functions.invoke('send-push', {body:{}});
       if (error) throw Error('Couldn’t send a test. Enable this device first and try again.');
       pushStatus='Your test is on its way. Your browser controls when it appears.'; render();

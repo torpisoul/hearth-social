@@ -53,11 +53,13 @@ test('notification opt-in, test, failure feedback and opt-out use the current de
     let current=null;
     const subscription={endpoint:'https://push.example.test/device',toJSON:()=>({keys:{p256dh:'public-key',auth:'auth-key'}}),unsubscribe:async()=>{current=null;return true;}};
     const registration={pushManager:{getSubscription:async()=>current,subscribe:async()=>{current=subscription;return current;}},getNotifications:async()=>[]};
-    Object.defineProperty(window,'Notification',{configurable:true,value:{permission:'default',requestPermission:async()=> 'granted'}});
+    Object.defineProperty(window,'Notification',{configurable:true,value:{permission:'default',requestPermission:async()=> {Notification.permission='granted';return 'granted';}}});
     Object.defineProperty(window,'PushManager',{configurable:true,value:function(){}});
     Object.defineProperty(navigator,'serviceWorker',{configurable:true,value:{register:async()=>registration,ready:Promise.resolve(registration),getRegistration:async()=>registration}});
   });
   const app=new Hearth(page); await app.signIn(); await app.tab('settings');
+  await expect(page.getByRole('button',{name:'Send me a test notification'})).toHaveCount(0);
+  expect(backend.tables.hearth_push_subscriptions).toHaveLength(0);
   await page.getByRole('button',{name:'Enable notifications on this device'}).click();
   await expect.poll(()=>backend.tables.hearth_push_subscriptions.length).toBe(1);
   await page.getByRole('button',{name:'Send me a test notification'}).click();
@@ -69,4 +71,6 @@ test('notification opt-in, test, failure feedback and opt-out use the current de
   await page.getByRole('button',{name:'Turn off notifications for this device'}).click();
   await expect.poll(()=>backend.tables.hearth_push_subscriptions.length).toBe(0);
   await expect(page.getByRole('status').filter({hasText:'Notifications for this device are off.'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Enable notifications on this device'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Send me a test notification'})).toHaveCount(0);
 });

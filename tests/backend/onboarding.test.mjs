@@ -5,11 +5,11 @@ import esmock from 'esmock';
 
 const me = '22222222-2222-4222-8222-222222222222';
 const inviter = '11111111-1111-4111-8111-111111111111';
-async function setup({profile = null, metadata = {}, ref = '', failSave = false, failPreferences = false} = {}) {
+async function setup({profile = null, metadata = {}, ref = '', failSave = false, failPreferences = false, notificationMode = 'in_app', denyPush = false} = {}) {
   const dom = new JSDOM('<div id="app"></div><div id="notice"></div>', {url: `https://example.org/live.html${ref ? '?ref='+ref : ''}`});
   for (const key of ['document','location','history','sessionStorage','localStorage','FormData']) globalThis[key] = dom.window[key];
   let user = {id: me, user_metadata: metadata};
-  const tables = {hearth_profiles: profile ? [profile] : [], hearth_preferences: {topics: [], update_mode: 'manual', notification_mode: 'in_app'}, hearth_connections: []};
+  const tables = {hearth_profiles: profile ? [profile] : [], hearth_preferences: {topics: [], update_mode: 'manual', notification_mode: notificationMode}, hearth_connections: []};
   const requests = [], pushRequests = [];
   const client = {
     auth: {onAuthStateChange(){}, async getSession(){return {data: {session: {user}}}}, async updateUser({data}) {
@@ -27,7 +27,7 @@ async function setup({profile = null, metadata = {}, ref = '', failSave = false,
       : from(table);
   }
   globalThis.fetch = async()=>({ok:true,json:async()=>({supabaseUrl:'https://example.supabase.co',supabasePublishableKey:'public',pushPublicKey:'test-key'})});
-  await esmock('../../js/live/app.js', {'@supabase/supabase-js': {createClient:()=>client}, '../../js/live/push.js': {pushAvailable:()=>true,enablePush:async(_client,_owner,mode,key)=>{pushRequests.push({mode,key})}}});
+  await esmock('../../js/live/app.js', {'@supabase/supabase-js': {createClient:()=>client}, '../../js/live/push.js': {pushAvailable:()=>true,pushEnabled:async()=>false,enablePush:async(_client,_owner,mode,key)=>{pushRequests.push({mode,key});if(denyPush)throw Error('Notifications remain off.')}}});
   const settle = ()=>new Promise(r=>setTimeout(r,25)); await settle();
   return {dom,tables,requests,pushRequests,get user(){return user},async click(action){document.querySelector(`[data-action="${action}"]`).click();await settle()},async finish(){for(let i=0;i<6 && document.querySelector('.onboarding');i++)await this.click('onboarding-next')},async submit(id){document.querySelector('#'+id).dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await settle()}};
 }
@@ -60,8 +60,12 @@ test('new profile gets optional preferences, saves choices, and completes into p
   assert.match(document.querySelector('h2').textContent,/gentle nudge/);
   assert.match(document.querySelector('.onboarding').textContent,/daily check-ins/);
   assert.ok(document.querySelector('.push-actions [data-action="enable-push"]'));
+  assert.deepEqual(app.pushRequests,[]);
+  assert.equal(document.querySelector('[data-action="test-push"]'),null);
   await app.click('enable-push');
   assert.deepEqual(app.pushRequests,[{mode:'daily',key:'test-key'}]);
+  assert.ok(document.querySelector('[data-action="test-push"]'));
+  assert.equal(document.querySelector('[data-action="enable-push"]'),null);
   await app.click('onboarding-back');
   assert.equal(document.querySelector('#updates select').value,'foreground');
   await app.click('onboarding-next'); await app.click('onboarding-next');
@@ -96,6 +100,21 @@ test('resumed quiet onboarding finishes without opting into device notifications
   await app.click('onboarding-next');
   assert.equal(app.user.user_metadata.hearth_onboarding.complete,true);
   assert.equal(app.tables.hearth_preferences.notification_mode,'in_app');
+  assert.equal(app.tables.hearth_push_subscriptions,undefined);
+  app.dom.window.close();
+});
+
+for (const denyPush of [false,true]) test(`notification onboarding can finish without consent, including denied permission: ${denyPush}`, async()=>{
+  const app=await setup({profile:{id:me,name:'Me'},metadata:{hearth_onboarding:{step:5,complete:false}},notificationMode:'immediate',denyPush});
+  assert.deepEqual(app.pushRequests,[]);
+  if(denyPush) {
+    await app.click('enable-push');
+    assert.match(document.querySelector('#notice').textContent,/Notifications remain off/);
+    assert.equal(document.querySelector('[data-action="test-push"]'),null);
+  }
+  await app.click('onboarding-next');
+  assert.equal(app.user.user_metadata.hearth_onboarding.complete,true);
+  assert.equal(app.pushRequests.length,denyPush ? 1 : 0);
   assert.equal(app.tables.hearth_push_subscriptions,undefined);
   app.dom.window.close();
 });
