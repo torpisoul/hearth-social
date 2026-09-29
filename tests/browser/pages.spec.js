@@ -68,6 +68,8 @@ test('preferences save, survive reload, send feedback and sign out', async ({pag
   await page.getByLabel('Daily check-in time').fill('18:45');
   await page.getByRole('button',{name:'Save my pace',exact:true}).click();
   await expect.poll(()=>backend.tables.hearth_preferences[0].notification_time).toBe('18:45');
+  // The fixture write occurs before the save's follow-up refresh completes.
+  await expect(page.locator('#notice')).toBeEmpty();
   await page.reload(); await app.tab('settings');
   await expect(page.locator('html')).toHaveAttribute('data-palette','shore');
   await expect(page.getByLabel('Daily check-in time')).toHaveValue('18:45');

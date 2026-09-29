@@ -5,8 +5,9 @@ function moment(backend){backend.tables.hearth_statuses=[{id:'moment',author:fri
 async function unlock(page){await page.getByLabel('I’ve saved my recovery code somewhere safe.').check();await page.getByRole('button',{name:'Open my conversations'}).click();await expect(page.locator('#unlock')).toHaveCount(0);}
 test('dismissal survives reload and reopening the same invitation, but not a different connection',async({page,backend})=>{
  const app=new Hearth(page);await app.signIn();await page.goto('live.html?ref='+friend);await expect(page.getByRole('heading',{name:'You’re connected.'})).toBeVisible();
- await page.getByRole('button',{name:'Done',exact:true}).click();await page.reload();await expect(page.getByRole('heading',{name:'You’re connected.'})).toHaveCount(0);
- await page.goto('live.html?ref='+friend);await expect(page.getByRole('heading',{name:'You’re connected.'})).toHaveCount(0);
+ await page.getByRole('button',{name:'Done',exact:true}).click();await expect(page.locator('#notice')).toBeEmpty();
+ await page.reload();await expect(page.getByRole('heading',{name:'Make yourself at home.',exact:true})).toBeVisible();await expect(page.getByRole('heading',{name:'You’re connected.'})).toHaveCount(0);
+ await page.goto('live.html?ref='+friend);await expect(page.getByRole('heading',{name:'Make yourself at home.',exact:true})).toBeVisible();await expect(page.getByRole('heading',{name:'You’re connected.'})).toHaveCount(0);
  backend.tables.hearth_profiles.push({id:other,name:'Jo'});backend.tables.hearth_connections.push({requester:me,recipient:other,accepted:true});
  await page.goto('live.html?ref='+other);await expect(page.getByRole('heading',{name:'You’re connected.'})).toBeVisible();
 });
