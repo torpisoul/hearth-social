@@ -9,7 +9,7 @@ async function setup({profile = null, metadata = {}, ref = '', failSave = false,
   const dom = new JSDOM('<div id="app"></div><div id="notice"></div>', {url: `https://example.org/live.html${ref ? '?ref='+ref : ''}`});
   for (const key of ['document','location','history','sessionStorage','localStorage','FormData']) globalThis[key] = dom.window[key];
   let user = {id: me, user_metadata: metadata};
-  const tables = {hearth_profiles: profile ? [profile] : [], hearth_preferences: {topics: [], update_mode: 'manual', notification_mode: notificationMode}, hearth_connections: []};
+  const tables = {hearth_profiles: profile ? [profile] : [], hearth_preferences: {topics: [], update_mode: 'manual', notification_mode: notificationMode}, hearth_connections: [], hearth_invite_dismissals: []};
   const requests = [], pushRequests = [];
   const client = {
     auth: {onAuthStateChange(){}, async getSession(){return {data: {session: {user}}}}, async updateUser({data}) {
@@ -67,7 +67,7 @@ test('new profile gets optional preferences, saves choices, and completes into p
   assert.ok(document.querySelector('[data-action="test-push"]'));
   assert.equal(document.querySelector('[data-action="enable-push"]'),null);
   await app.click('onboarding-back');
-  assert.equal(document.querySelector('#updates select').value,'foreground');
+  assert.equal(document.querySelector('#updates select[name=mode]').value,'foreground');
   await app.click('onboarding-next'); await app.click('onboarding-next');
   assert.equal(app.user.user_metadata.hearth_onboarding.complete,true);
   assert.equal(app.tables.hearth_preferences.notification_mode,'daily');

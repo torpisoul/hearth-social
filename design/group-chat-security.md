@@ -1,0 +1,13 @@
+# Group conversations: schema and encryption decision
+
+Private kin organisation and shared conversations are separate. Owners can invite their accepted kin; members need not connect with each other. Membership has an opaque routing ID, a join time and a leave time. Rejoining creates a fresh routing ID. Only active members with an active connection to the owner can use the chat.
+
+Each message uses an independent random AES-256-GCM key. The sender wraps it separately for every active membership using P-256 ECDH + AES-GCM, binding conversation, message, sender membership and recipient membership in authenticated data. Message plaintext is padded to a fixed 8 KiB before encryption. There is no shared long-lived group key. This provides equivalent future-access control on removal without redistributing historical keys. It is not cryptographic forward secrecy against compromise of a member's long-term identity.
+
+Sending locks the conversation and checks its membership revision and the exact recipient set atomically. Removal uses the same lock. A stale sender must reload before retrying. No member may obtain another member's key envelope. Existing members retain their historical envelopes; a newly invited or re-invited member cannot read earlier messages. Removing an account does not delete messages; a stored sender label supports historical attribution.
+
+Messages, memberships and envelopes live in a private schema with RLS and no direct client table privileges. Narrow authenticated RPCs enforce access. Open returns authorized envelopes; Moderate returns a constant placeholder plus the sender identity for non-connections; Safeguard returns only one conversation-level hidden-message flag, with no hidden sender, timestamp, ID, ciphertext or per-message size. Sending rosters expose opaque routing IDs and public keys, never hidden users' account IDs or names. Public keys are necessarily linkable cryptographic metadata; the server cannot erase keys or plaintext already received by a previously authorized member.
+
+Workflow defaults are private preferences. Overrides are checked against the current default on every read (including after a default changes). Only adjacent levels are allowed. Widening requires a UI confirmation. A stricter setting cannot retract previously decrypted messages, and server-side filtering cannot protect against collusion with an Open member.
+
+Group unread summaries contain no message contents or hidden sender metadata. Read markers belong only to the viewer; no read receipts or typing signals are published. Post replies and reactions use independent, non-encrypted tables with parent-post RLS. Storage media is private and downloaded through authenticated requests rather than public URLs.

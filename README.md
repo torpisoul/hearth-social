@@ -30,7 +30,7 @@ The configured project is Hearth (`nkpzdvpzlxiwrtivpiwv`) in Frankfurt. Its publ
 For a new project:
 
 1. Create a Supabase project with the Data API enabled, automatic table exposure disabled and RLS enabled.
-2. Run all SQL files in `supabase/migrations/` in filename order against the empty database. This defines the thirteen Hearth tables, access policies, guarded RPCs, and write limits. The initial Hearth project was provisioned through the dashboard SQL editor; it is not recorded in the Supabase migration-history table. Reconcile migration history before adopting automatic CLI deployment; do not blindly replay the initial migration. The account-deletion/policy-hardening migration is recorded in hosted history.
+2. Run all SQL files in `supabase/migrations/` in filename order against the empty database. This defines Hearth tables, access policies, guarded RPCs, and write limits. Hosted migration history is reconciled through the September 29 social-interaction and group-conversation migrations. For an existing project, compare migration history first and apply only pending files; do not replay the initial schema.
 3. Set `supabaseUrl` and `supabasePublishableKey` in `public-config.json`. The build rejects secret keys and incomplete settings.
 4. Set Auth Site URL and allowed redirect URL to `https://torpisoul.github.io/hearth-social/live.html`. For a different host, use its exact `live.html` URL. The site works at the repository subpath.
 5. Configure custom SMTP before relying on email confirmation or password resets for friends. Follow [the Resend setup and delivery checks](EMAIL-SETUP.md); the host configuration script and email templates are included. Supabase's default sender only delivers to project-team addresses.

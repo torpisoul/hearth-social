@@ -93,3 +93,28 @@ Issues #86–#88: browser coverage checks hidden scrollbars with working keyboar
 On Linux hosts without Playwright’s supported browser libraries (including Nobara/Fedora), run `npm ci` and `npm run test:release:container`. This uses the official Ubuntu Playwright image matching the pinned package version, runs all four browser projects, and writes build/test artifacts as your user. Docker must be running; its first run downloads the image. No host library replacement is needed. See [Playwright’s container documentation](https://playwright.dev/docs/docker).
 
 Calendar validation explicitly selects both dates and runs with daytime and near-midnight clocks, so a valid overnight default cannot accidentally bypass the invalid-range assertion.
+
+## Social feature permutations (#91–#97)
+
+`social-interactions.spec.js`, `feature-permutations.spec.js` and
+`media-permutations.spec.js` exercise these combinations in all four browser projects:
+
+| Feature | Permutations and failure paths |
+| --- | --- |
+| Invite dismissal | Reload and repeat link, another connection, failed save/retry, connection reset |
+| Waiting notes | Recipient setup after original note; preserved date and order relative to a later encrypted note |
+| Post controls/context | Desktop/mobile dimensions, context after reload, no automatic draft insertion |
+| Public replies | Empty validation, escaped text, save failure/retry, author deletion |
+| Reactions | All four choices replace each other, one selected state, failed replacement, reload |
+| Unread state | Multiple senders, unopened sender survives, unread-first ordering, manual/foreground refresh, manual-only mode |
+| Post pictures | JPEG/PNG/WebP; one, two and four images; All kin/Only me/kin group audiences; keyboard carousel and reduced motion; count/type/size rejection; preview removal; upload/post/metadata failures; deletion cancel/failure/retry |
+| Group channels | Open/Moderate/Safeguard defaults; every permitted one-step override and forbidden controls; confirmation cancel/confirm; return to default; per-chat isolation; changed default invalidates a distant override; non-owner controls absent |
+| Group operations | Chat-only and linked kin creation; kin preselection and reopening an existing chat; create/send failure and retry; actual browser encryption and incoming note decryption; pagination; owner removal cancel/failure/retry/reinvite; removed-member history; removed-viewer refresh; forget-device lock |
+| Mutual connections | Moderate hides plaintext until a connection request is accepted and the chat refreshes; Safeguard omits the sender and cannot offer Open |
+
+The channel fixture uses independently encrypted envelopes for non-connection
+messages. It supplies only the server payload permitted by each workflow; the
+Postgres suite independently verifies those authorization rules, including
+one-step boundaries, per-user isolation, exact active recipients, stale sends,
+blocked senders, removed accounts and private Storage policies. Playwright
+interception never substitutes for server-side authorization tests.

@@ -11,7 +11,7 @@ export const test = base.extend({
         hearth_profiles: [{ id: me, name: 'Robin' }, { id: friend, name: 'Alex' }],
         hearth_preferences: [{ owner: me, topics: ['Everyday life'], update_mode: 'manual', notification_mode: 'in_app', notification_time: '20:00' }],
         hearth_connections: [{ requester: me, recipient: friend, accepted: true }],
-        ...Object.fromEntries(['circle','blocks','statuses','events','rsvps','event_invites','messages','waiting_notes','kin_groups','kin_group_members','feedback','keys','push_subscriptions'].map(n => ['hearth_' + n, []])),
+        ...Object.fromEntries(['circle','blocks','statuses','events','rsvps','event_invites','messages','waiting_notes','kin_groups','kin_group_members','feedback','keys','push_subscriptions','invite_dismissals','post_replies','post_reactions','status_media'].map(n => ['hearth_' + n, []])),
       },
       session() { return { access_token: 'test-access-token', refresh_token: 'test-refresh-token', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now()/1000)+3600, user: state.user }; },
     };
@@ -31,8 +31,9 @@ export const test = base.extend({
       if (url.pathname === '/auth/v1/user') { if (body?.data) Object.assign(state.user.user_metadata, body.data); return reply(state.user); }
       const rpc = url.pathname.match(/^\/rest\/v1\/rpc\/(.+)$/)?.[1];
       if (rpc) {
+        if(state.rpc){const result=await state.rpc(rpc,body);if(result!==undefined)return reply(result);}
         if (rpc === 'hearth_my_introductions') return reply(state.introductions);
-        const empty = ['hearth_sent_introductions','hearth_event_attendees'];
+        const empty = ['hearth_group_list','hearth_sent_introductions','hearth_event_attendees'];
         if (empty.includes(rpc)) return reply([]);
         if (rpc === 'hearth_my_vault') return reply(state.tables.hearth_keys[0]?.vault || null);
         if (rpc === 'hearth_public_key') return reply(body.person === me ? state.tables.hearth_keys[0]?.public_key || null : null);
@@ -57,8 +58,8 @@ export const test = base.extend({
         const matches = row => [...url.searchParams].every(([key,value]) => !value.startsWith('eq.') || String(row[key]) === value.slice(3));
         if (req.method() === 'POST') {
           for (const row of Array.isArray(body) ? body : [body]) {
-            const existing = table === 'hearth_preferences' ? state.tables[table].find(r=>r.owner===row.owner) : null;
-            if (existing) Object.assign(existing,row); else state.tables[table].push({id:crypto.randomUUID(),created_at:new Date().toISOString(),...(table==='hearth_rsvps'?{person:me}:{}),...row});
+            const existing = table === 'hearth_preferences' ? state.tables[table].find(r=>r.owner===row.owner) : table==='hearth_post_reactions' ? state.tables[table].find(r=>r.post===row.post && r.actor===row.actor) : null;
+            if (existing) Object.assign(existing,row); else state.tables[table].push({id:crypto.randomUUID(),created_at:new Date().toISOString(),...(table==='hearth_rsvps'?{person:me}:{}),...(table==='hearth_post_replies'?{author:me,author_name:'Robin'}:{}),...row});
           }
           const created=state.tables[table].at(-1);
           return reply(req.headers().prefer?.includes('return=representation') ? (req.headers().accept?.includes('application/vnd.pgrst.object') ? created : [created]) : null, 201);

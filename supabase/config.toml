@@ -5,3 +5,5 @@ project_id = "hearth-social"
 verify_jwt = false
 [functions.dispatch-push]
 verify_jwt = false
+[functions.cleanup-moment-media]
+verify_jwt = false

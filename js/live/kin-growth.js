@@ -45,7 +45,7 @@ export function kinGrowth({ client, user, friends, connections, name, esc, avata
   const group=groups.find(g=>g.id===selectedGroup);
   if(!group) return '';
   const included=members.filter(m=>m.group_id===group.id);
-  return `<section class="panel kin-detail" id="kin-group-detail" tabindex="-1"><h2>${esc(group.name)}</h2><p class="group-people">${included.map(m=>esc(name(m.person))).join(', ')||'No people added yet.'}</p><details id="group-edit"><summary>Edit people</summary><p class="live-muted">These groups are private. Selected people belong to this group.</p><label class="field">Find people<input type="search" data-growth-search="members" value="${esc(memberSearch)}" aria-controls="group-member-list"></label><div class="parlor-kin-list" id="group-member-list">${memberRows()}</div></details></section>`;
+  return `<section class="panel kin-detail" id="kin-group-detail" tabindex="-1"><h2>${esc(group.name)}</h2><button data-group-create="${group.id}">Start group chat</button><p class="group-people">${included.map(m=>esc(name(m.person))).join(', ')||'No people added yet.'}</p><details id="group-edit"><summary>Edit people</summary><p class="live-muted">These groups are private. Selected people belong to this group.</p><label class="field">Find people<input type="search" data-growth-search="members" value="${esc(memberSearch)}" aria-controls="group-member-list"></label><div class="parlor-kin-list" id="group-member-list">${memberRows()}</div></details></section>`;
  }
  function actions(id,accepted) {
   if(!available) return '';
