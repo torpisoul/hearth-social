@@ -9,26 +9,33 @@ async function refresh(page){if(await page.getByRole('button',{name:'Open menu',
 function seedPost(backend){backend.tables.hearth_statuses=[{id:'moment',author:friend,content:'Afternoon light',created_at:'2026-09-29T09:00:00Z',topic:'Everyday life',audience:'All kin'}];}
 async function openChannel(page,backend,options={}){const fixture=await channelFixture(backend,options);const app=new Hearth(page);await app.signIn();await app.tab('parlor');await unlock(page);for(const chat of fixture.chats)await fixture.notes(chat);await page.locator(`[data-group-chat="${fixture.chats[0].id}"]`).click();return {app,...fixture};}
 for(const main of levels){
- test(`${main} default: hidden payload presentation, allowed overrides, cancellation and default restoration`,async({page,backend})=>{
+ const permitted=levels.filter(w=>Math.abs(levels.indexOf(w)-levels.indexOf(main))<=1);
+ test(`${main} default: payload visibility, permitted controls and device locking`,async({page,backend})=>{
   const {chats,app}=await openChannel(page,backend,{main});
   const conversation=page.locator('#conversation');
   await expect(conversation).toContainText(label(main)+' channel');
   if(main==='open')await expect(conversation).toContainText('A note from Sam 1');
   else {await expect(conversation).not.toContainText('A note from Sam 1');if(main==='moderate')await expect(conversation).toContainText('Sam');else await expect(conversation).not.toContainText('Sam');}
   await page.getByText('Chat settings',{exact:true}).click();await expect(page.locator('[data-group-remove]')).toHaveCount(0);await expect(page.locator('#group-chat-invite')).toHaveCount(0);
-  const permitted=levels.filter(w=>Math.abs(levels.indexOf(w)-levels.indexOf(main))<=1);
   for(const w of levels){const control=page.locator(`[data-group-workflow="${w}"]`).filter({hasText:new RegExp('^Use '+label(w)+'$')});if(permitted.includes(w))await expect(control).toBeVisible();else await expect(control).toHaveCount(0);}
-  for(const target of permitted.filter(w=>w!==main)){
+  await app.tab('settings');await page.getByRole('button',{name:'Lock and forget this device'}).click();await app.tab('parlor');await page.locator(`[data-group-chat="${chats[0].id}"]`).click();await expect(conversation).not.toContainText('A note from Sam');await expect(page.locator('#unlock')).toBeVisible();
+ });
+ // Each transition gets a fresh browser and timeout budget. In particular,
+ // Moderate has two alternatives; combining both exceeded WebKit's CI budget.
+ for(const target of permitted.filter(w=>w!==main)){
+  test(`${main} to ${target}: cancel, confirm, isolate the chat and restore default`,async({page,backend})=>{
+   const {chats}=await openChannel(page,backend,{main});
+   const conversation=page.locator('#conversation');
+   await expect(conversation).toContainText(label(main)+' channel');
+   await page.getByText('Chat settings',{exact:true}).click();
    await page.getByRole('button',{name:'Use '+label(target),exact:true}).click();await expect(page.locator('#group-workflow-confirm')).toBeVisible();
    await page.locator('[data-group-dismiss]').click();expect(chats[0].workflow).toBe(null);await expect(conversation).toContainText(label(main)+' channel');
    await page.getByRole('button',{name:'Use '+label(target),exact:true}).click();await page.locator('[data-group-confirm]').click();await expect(conversation).toContainText(label(target)+' channel');expect(chats[0].workflow).toBe(target);expect(chats[1].workflow).toBe(null);
    await page.locator(`[data-group-chat="${chats[1].id}"]`).click();await expect(conversation).toContainText(label(main)+' channel');
    await page.locator(`[data-group-chat="${chats[0].id}"]`).click();await expect(conversation).toContainText(label(target)+' channel');
    await page.getByText('Chat settings',{exact:true}).click();await page.getByRole('button',{name:'Use my default',exact:true}).click();await page.locator('[data-group-confirm]').click();await expect(conversation).toContainText(label(main)+' channel');expect(chats[0].workflow).toBe(null);
-   await page.getByText('Chat settings',{exact:true}).click();
-  }
-  await app.tab('settings');await page.getByRole('button',{name:'Lock and forget this device'}).click();await app.tab('parlor');await page.locator(`[data-group-chat="${chats[0].id}"]`).click();await expect(conversation).not.toContainText('A note from Sam');await expect(page.locator('#unlock')).toBeVisible();
- });
+  });
+ }
 }
 test('Moderate Connect uses mutual acceptance and only reveals content after refresh',async({page,backend})=>{
  await openChannel(page,backend,{main:'moderate',count:1});await page.locator('[data-group-connect]').click();await expect(page.locator('#notice')).toContainText('Connection request sent');await expect(page.locator('.messages')).not.toContainText('A note from Sam');
