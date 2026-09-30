@@ -471,13 +471,30 @@ button.preferences-apply.primary, button.preferences-apply.primary:not(:disabled
 /* Shared post identity and actions, including at narrow widths. */
 .post-person .kin-identity {display:inline-flex;align-items:center;gap:.65rem;background:transparent;border:0;padding:0;min-height:44px;color:inherit;font:inherit;text-align:left;box-shadow:none}
 .post-footer {display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
-.post-footer .post-action {display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:.55rem .8rem;font:inherit;line-height:1.3;border:1px solid var(--line);border-radius:12px}
+.post-footer .post-action {display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:.55rem .8rem;font:inherit;line-height:1.3;border:0;border-radius:14px;background:var(--paper);box-shadow:var(--soft-raised)}
 .reply-context {padding:1rem;border-inline-start:3px solid var(--accent);margin-bottom:1rem}
-.post-replies {margin-top:1rem}.post-replies article {padding:.75rem 0;border-top:1px solid var(--line)}
+.post-replies {margin-top:1rem}.post-replies article {padding:.75rem 0}
 .post-images {display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:1rem;max-width:100%}
 .post-images figure {flex:0 0 100%;margin:0;scroll-snap-align:start}.post-images img {display:block;max-width:100%;max-height:32rem;margin:auto;object-fit:contain;border-radius:12px}
 .media-previews {display:flex;flex-wrap:wrap;gap:.5rem}.media-previews img {width:100px;height:100px;object-fit:cover}.media-previews figure {margin:0}
 @media(prefers-reduced-motion:reduce){.post-images{scroll-behavior:auto}}
-.post-footer [role="group"] {display:flex;flex-wrap:wrap;gap:.5rem}
 #group-chat-create fieldset label {display:flex;align-items:center;gap:.6rem;padding:.4rem 0}
 #group-chat-create input[type="checkbox"] {width:auto}
+
+/* Live post controls use the same raised surfaces as Preferences. */
+.post-footer { border:0; gap:12px; }
+.post-reaction { position:relative; min-width:120px; }
+.post-reaction > .field-label { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.post-reaction .soft-choice > button, .post-reaction .soft-options button { min-height:44px; padding:.55rem .8rem; font:inherit; border:0; border-radius:14px; background:var(--paper); box-shadow:var(--soft-raised); }
+.post-reaction .soft-options { position:absolute; z-index:5; left:0; top:100%; width:min(280px,70vw); padding:16px; margin-top:10px; border-radius:18px; background:var(--paper); box-shadow:var(--soft-raised); }
+.post-reaction .soft-options button[aria-pressed="true"] { background:var(--accent); color:var(--accent-ink); }
+.post-reaction .soft-options button:hover { background:var(--hover); }
+#group-chat-create fieldset { border:0; padding:0; margin:12px 0; }
+#group-chat-create fieldset label { gap:14px; min-height:48px; }
+#group-chat-create input[type="checkbox"] { appearance:none; display:grid; place-content:center; flex:none; width:26px; height:26px; margin:0; border:0; border-radius:8px; background:var(--paper); box-shadow:var(--soft-raised); cursor:pointer; }
+#group-chat-create input[type="checkbox"]:checked { background:var(--accent); color:var(--accent-ink); box-shadow:var(--soft-pressed); }
+#group-chat-create input[type="checkbox"]:checked::after { content:'✓'; font-size:20px; }
+#group-chat-create input[type="checkbox"]:focus-visible { outline:3px solid var(--green); outline-offset:4px; }
+#group-chat-invite, #group-chat-connect { margin-top:24px; }
+@media(forced-colors:active) { #group-chat-create input[type="checkbox"] { appearance:auto; } #group-chat-create input[type="checkbox"]::after { content:none; } }
+.post-reaction .soft-options button:disabled { display:none; }

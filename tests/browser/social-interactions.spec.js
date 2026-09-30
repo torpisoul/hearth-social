@@ -22,8 +22,8 @@ test('post actions share dimensions and private replies keep context without ins
 test('public replies stay on the post and one anonymous reaction replaces another',async({page,backend})=>{
  moment(backend);const app=new Hearth(page);await app.signIn();await page.getByRole('button',{name:'Public replies',exact:true}).click();
  await page.getByLabel('Reply to this moment').fill('Lovely garden');await page.getByRole('button',{name:'Share public reply'}).click();await expect(page.locator('.post-replies')).toContainText('Lovely garden');
- await page.getByRole('button',{name:'React ♥',exact:true}).click();await expect(page.getByRole('button',{name:'React ♥',exact:true})).toHaveAttribute('aria-pressed','true');
- await page.getByRole('button',{name:'React 🌱',exact:true}).click();await expect(page.getByRole('button',{name:'React ♥',exact:true})).toHaveAttribute('aria-pressed','false');
+ const picker=page.locator('.post-reaction');await picker.locator('[data-soft-toggle]').click();await picker.locator('[data-soft-option="♥"]').click();await expect(picker.locator('select')).toHaveValue('♥');await expect(page.locator('#notice')).toBeEmpty();
+ await picker.locator('[data-soft-toggle]').click();await picker.locator('[data-soft-option="🌱"]').click();await expect(picker.locator('select')).toHaveValue('🌱');await expect(page.locator('#notice')).toBeEmpty();
  expect(backend.tables.hearth_post_reactions).toHaveLength(1);expect(backend.tables.hearth_post_reactions[0].emoji).toBe('🌱');
 });
 test('two unread senders keep separate indicators when one conversation is opened',async({page,backend})=>{

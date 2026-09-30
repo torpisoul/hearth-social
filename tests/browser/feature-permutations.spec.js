@@ -66,9 +66,10 @@ test('failed encrypted group send preserves draft and succeeds on retry',async({
 });
 test('every reaction replaces the previous selection; failed replacement keeps saved state',async({page,backend})=>{
  seedPost(backend);const app=new Hearth(page);await app.signIn();
- for(const emoji of ['♥','🌱','☀️','🫂']){await page.getByRole('button',{name:'React '+emoji,exact:true}).click();await expect(page.locator('[data-react][aria-pressed="true"]')).toHaveCount(1);expect(backend.tables.hearth_post_reactions).toHaveLength(1);expect(backend.tables.hearth_post_reactions[0].emoji).toBe(emoji);}
- backend.fail=c=>c.path.endsWith('/hearth_post_reactions');await page.getByRole('button',{name:'React ♥',exact:true}).click();await expect(page.locator('#notice')).toContainText('Test service unavailable');await expect(page.getByRole('button',{name:'React 🫂',exact:true})).toHaveAttribute('aria-pressed','true');
- backend.fail=null;await page.reload();await expect(page.getByRole('button',{name:'React 🫂',exact:true})).toHaveAttribute('aria-pressed','true');
+ const picker=page.locator('.post-reaction');
+ for(const emoji of ['♥','🌱','☀️','🫂']){await picker.locator('[data-soft-toggle]').click();await picker.locator(`[data-soft-option="${emoji}"]`).click();await expect(picker.locator('select')).toHaveValue(emoji);await expect(page.locator('#notice')).toBeEmpty();expect(backend.tables.hearth_post_reactions).toHaveLength(1);expect(backend.tables.hearth_post_reactions[0].emoji).toBe(emoji);}
+ backend.fail=c=>c.path.endsWith('/hearth_post_reactions');await picker.locator('[data-soft-toggle]').click();await picker.locator('[data-soft-option="♥"]').click();await expect(page.locator('#notice')).toContainText('Test service unavailable');await expect(picker.locator('select')).toHaveValue('🫂');
+ backend.fail=null;await page.reload();await expect(picker.locator('select')).toHaveValue('🫂');
 });
 test('reply validation, failed save, retry, author deletion and escaped content',async({page,backend})=>{
  seedPost(backend);const app=new Hearth(page);await app.signIn();await page.getByRole('button',{name:'Public replies',exact:true}).click();const input=page.getByLabel('Reply to this moment');
